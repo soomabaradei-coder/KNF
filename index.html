@@ -914,7 +914,14 @@ form.addEventListener("submit",e=>{e.preventDefault();ask(box.value)});
 /* ---------- input modes: voice, image, text ---------- */
 function setInputMode(m){["mVoice","mImage","mText"].forEach(id=>$("#"+id).classList.toggle("on",id===m))}
 $("#mText").addEventListener("click",()=>{setInputMode("mText");box.focus()});
-$("#mImage").addEventListener("click",()=>{setInputMode("mImage");$("#imgIn").click()});
+$("#mImage").addEventListener("click",async()=>{setInputMode("mImage");
+  let st=null;try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false})}catch(_){st=null}
+  if(!st){$("#imgIn").click();return}
+  const c=card(head("📷","التقط صورة","لافتة، باب، علبة دواء، مكان")+`<div class="cam"><video autoplay muted playsinline style="transform:none"></video></div><div class="acts"><button type="button" class="primary" id="shot">التقط</button><button type="button" id="shotX">إلغاء</button></div>`);
+  const v=c.querySelector("video");v.srcObject=st;const stop=()=>{st.getTracks().forEach(t=>t.stop())};
+  c.querySelector("#shotX").addEventListener("click",()=>{stop();c.remove();setInputMode("mText")});
+  c.querySelector("#shot").addEventListener("click",()=>{const cv=document.createElement("canvas");cv.width=v.videoWidth||640;cv.height=v.videoHeight||480;cv.getContext("2d").drawImage(v,0,0);
+    cv.toBlob(async b=>{stop();c.remove();log("sup","التقط صورة بالكاميرا",state.imagesOK?"ترسل إلى الوكيل المباشر":"محاكاة قراءة الصورة");await ask("أرسلت صورة، ماذا ترى فيها وبماذا تنصحني؟",b);setInputMode("mText")},"image/jpeg",0.85)})});
 $("#imgIn").addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;e.target.value="";
   log("sup","وصلت صورة من الكاميرا",state.imagesOK?"ترسل إلى الوكيل المباشر":"محاكاة قراءة الصورة");
   await ask("أرسلت صورة، ماذا ترى فيها وبماذا تنصحني؟",f);setInputMode("mText")});
@@ -923,16 +930,42 @@ async function scriptedImage(text){
   card(head("🖼️","وصلتني الصورة","محاكاة")+`<div>في النسخة الحقيقية يقرؤها الوكيل بنفسه. الآن أخبرني ما فيها لأكمل:</div><div class="acts"><button class="primary" data-say="الصورة لافتة باب في الحرم">لافتة أو باب</button><button data-say="الصورة علبة دوائي">علبة دواء</button><button data-say="الصورة لمكان ضعت فيه">مكان ضعت فيه</button></div>`);
   return pick({ar:"وصلتني الصورة. أخبرني ما فيها لأساعدك بدقة.",fr:"J'ai bien reçu la photo. Dites-moi ce qu'elle montre pour vous aider précisément.",en:"I received the photo. Tell me what it shows so I can help precisely."})}
 /* ---------- sign-language stream mode (simulation of a limited on-device sign recogniser) ---------- */
-const SIGNS=[["ماء","وين أقرب زمزم؟"],["مساعدة","أحتاج مساعدة"],["دواء","دوائي"],["ضعت","دلني على الفندق"],["عائلتي","بعدت عن عائلتي"],["طبيب","وين أقرب مركز طبي؟"]];
+// إيماءات العرض (ليست لغة الإشارة السعودية): نموذج نقاط اليد يعمل على الجهاز
+const GEST={Open_Palm:"مساعدة",Closed_Fist:"ماء",Thumb_Up:"بخير",Victory:"عائلتي",Pointing_Up:"ضعت",ILoveYou:"طبيب"};
+const GEST_HINT="كف مفتوحة = مساعدة · قبضة = ماء · إبهام = بخير · إصبعان = عائلتي · سبابة لأعلى = ضعت · 🤟 = طبيب";
+let gestLoop=0;
+async function startGestures(video,c,fire){
+  const hud=c.querySelector(".hud");
+  try{
+    hud.textContent="أحمل نموذج التعرف على اليد…";
+    const vis=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+    const fs=await vis.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    const gr=await vis.GestureRecognizer.createFromOptions(fs,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task"},runningMode:"VIDEO",numHands:1});
+    hud.textContent="جاهز. "+GEST_HINT;log("care","نموذج اليد جاهز على الجهاز","الإيماءات للعرض وليست لغة الإشارة السعودية");
+    let last="",since=0,cool=0,lastT=-1;
+    const tick=()=>{if(!state.signMode||!camStream)return;gestLoop=requestAnimationFrame(tick);
+      if(video.readyState<2)return;const now=performance.now();if(now-lastT<80)return;lastT=now;
+      let r;try{r=gr.recognizeForVideo(video,now)}catch(_){return}
+      const g=r&&r.gestures&&r.gestures[0]&&r.gestures[0][0];const name=g?g.categoryName:"";const sc=g?g.score:0;
+      if(now<cool){return}
+      if(name&&GEST[name]&&sc>0.6){if(name!==last){last=name;since=now}
+        const held=now-since;hud.textContent="أرى: "+GEST[name]+" "+"▮".repeat(Math.min(5,Math.floor(held/200)))+" "+Math.round(sc*100)+"%";
+        if(held>900){cool=now+4000;last="";fire(GEST[name],Math.round(sc*100))}}
+      else{last="";hud.textContent="أراقب يديك… "+GEST_HINT}};
+    gestLoop=requestAnimationFrame(tick);
+  }catch(e){hud.textContent="تعذر تحميل نموذج اليد هنا ("+(e&&e.message||e)+")؛ استخدم أزرار المحاكاة";log("care","نموذج اليد غير متاح في هذا العارض","المحاكاة بالأزرار")}}
+const SIGNS=[["ماء","وين أقرب زمزم؟"],["مساعدة","أحتاج مساعدة"],["بخير","أنا بخير الحمد لله"],["دواء","دوائي"],["ضعت","دلني على الفندق"],["عائلتي","بعدت عن عائلتي"],["طبيب","وين أقرب مركز طبي؟"]];
 let camStream=null;
-function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}}
+function stopCam(){if(gestLoop){cancelAnimationFrame(gestLoop);gestLoop=0}if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}}
 async function openSignMode(){
   state.signMode=true;setInputMode("mSign");if(!profile.hearing){profile.hearing=1;saveProfile();renderKnown()}
   try{speechSynthesis.cancel()}catch(_){}
   log("care","وضع الإشارة: الكاميرا الأمامية","تعرف محدود على الجهاز، والرد نصا واهتزازا، والبيانات لا تغادر الهاتف");
-  const c=card(head("🤟","وضع الإشارة","بث الكاميرا · على الجهاز")+`<div class="cam"><video autoplay muted playsinline></video><div class="ph">جار فتح الكاميرا الأمامية…</div><div class="dotrec"></div><div class="hud">أراقب يديك… أفهم ست إشارات الآن، وأسألك قبل التنفيذ</div></div><div style="font-size:.76rem;color:var(--muted);margin-top:6px">محاكاة التعرف (في النسخة الحقيقية يتعرف النموذج بنفسه):</div><div class="signs">${SIGNS.map(([k])=>`<button type="button" data-sign="${k}">🤟 ${k}</button>`).join("")}</div><div class="acts"><button data-say="أبغى مكالمة فيديو مع المترجم">مترجم إشارة من الهيئة</button><button type="button" id="signOff">إيقاف الوضع</button></div>`);
+  const c=card(head("🤟","وضع الإشارة","بث الكاميرا · على الجهاز")+`<div class="cam"><video autoplay muted playsinline></video><div class="ph">جار فتح الكاميرا الأمامية…</div><div class="dotrec"></div><div class="hud">أراقب يديك… أفهم ست إشارات الآن، وأسألك قبل التنفيذ</div></div><div style="font-size:.76rem;color:var(--muted);margin-top:6px">إيماءات العرض أمام الكاميرا: كف مفتوحة، قبضة، إبهام، إصبعان، سبابة لأعلى. أو محاكاة بالأزرار:</div><div class="signs">${SIGNS.map(([k])=>`<button type="button" data-sign="${k}">🤟 ${k}</button>`).join("")}</div><div class="acts"><button data-say="أبغى مكالمة فيديو مع المترجم">مترجم إشارة من الهيئة</button><button type="button" id="signOff">إيقاف الوضع</button></div>`);
   const v=c.querySelector("video"),ph=c.querySelector(".ph");
-  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});v.srcObject=camStream;ph.remove()}
+  const fire=(k,conf)=>{const ph2=SIGNS.find(x=>x[0]===k)[1];log("care","تعرف على إشارة «"+k+"»","ثقة "+conf+"% · يطلب التأكيد قبل التنفيذ");c.querySelector(".hud").textContent="فهمت: «"+k+"» ("+conf+"%)";
+    card(head("🤟","فهمت إشارة «"+k+"»","ثقة "+conf+"%")+`<div>هل تقصد: ${esc(ph2)}</div><div class="acts"><button class="primary" data-say="${esc(ph2)}">نعم</button><button type="button" data-retry="1">لا</button></div>`).querySelector("[data-retry]").addEventListener("click",ev=>{ev.target.closest(".card").remove();c.querySelector(".hud").textContent="حسنا، أعد الإشارة ببطء أمام الكاميرا";log("care","لم يؤكد الإشارة","يعيد المحاولة")})};
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});v.srcObject=camStream;ph.remove();startGestures(v,c,fire)}
   catch(e){log("care","البث المباشر محجوب في هذا العارض ("+(e&&e.name||"")+")","بديل: لقطة من كاميرا الجوال");
     ph.innerHTML=`<div>البث المباشر محجوب في هذا العارض.<br>التقط إشارتك بكاميرا الجوال وسأقرؤها:</div><button type="button" class="chip" id="snapBtn" style="margin-top:8px;background:var(--gold);border-color:var(--gold);color:#1d1f1b">📷 التقط إشارة</button><input type="file" accept="image/*" capture="user" hidden id="snapIn">`;
     const si=ph.querySelector("#snapIn");ph.querySelector("#snapBtn").addEventListener("click",()=>si.click());
