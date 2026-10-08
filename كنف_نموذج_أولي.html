@@ -1,0 +1,992 @@
+<title>كنف</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@600;800&display=swap">
+<style>
+/* Layout: phone frame (the product) on the right, "behind the scenes" trace + services inventory on the left; stacks on narrow screens */
+:root{
+  --bg:#f6f2ea;        /* كنف cream */
+  --bg2:#e6efea;       /* mint wash */
+  --card:#fffdf9;
+  --fg:#15302d;
+  --muted:#5f6f6b;
+  --line:#cfe0d9;
+  --kiswa:#0a4f4c;     /* كنف teal */
+  --kiswa2:#073f3d;
+  --gold:#e9a23b;      /* كنف orange */
+  --gold2:#f3bd6b;
+  --ok:#2f7d4f; --warn:#c7811a; --crit:#b3352c; --info:#2d5f8a;
+  --bubble-user:#143d2b; --bubble-user-fg:#f6f1e4;
+  --bubble-bot:#fffdf8;
+  --display:"Noto Kufi Arabic","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --body:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1f1e; --bg2:#15302d; --card:#1b3835; --fg:#eaf2ee; --muted:#9fb5ae; --line:#2b4a46;
+  --kiswa:#1f6f69; --kiswa2:#0a4f4c; --gold:#f0b05a; --gold2:#f6c985;
+  --ok:#5fbf86; --warn:#e3a450; --crit:#e2695f; --info:#6aa3d6;
+  --bubble-user:#1f6f69; --bubble-user-fg:#eaf2ee; --bubble-bot:#1b3835; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1f1e; --bg2:#15302d; --card:#1b3835; --fg:#eaf2ee; --muted:#9fb5ae; --line:#2b4a46;
+  --kiswa:#1f6f69; --kiswa2:#0a4f4c; --gold:#f0b05a; --gold2:#f6c985;
+  --ok:#5fbf86; --warn:#e3a450; --crit:#e2695f; --info:#6aa3d6;
+  --bubble-user:#1f6f69; --bubble-user-fg:#eaf2ee; --bubble-bot:#1b3835; color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6;direction:rtl}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px;padding-inline:16px}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand h1{font-family:var(--display);font-weight:800;font-size:1.5rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:.9rem}
+.tag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.78rem;color:var(--muted);background:var(--card)}
+.tag b{color:var(--gold);font-weight:600}
+.grid{display:grid;grid-template-columns:420px minmax(0,1fr);gap:22px;align-items:start}
+.grid>*{min-width:0}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+/* phone */
+.phone{background:var(--kiswa2);border-radius:38px;padding:12px;box-shadow:0 30px 60px -30px rgba(0,0,0,.55);margin:0 auto;width:100%;max-width:420px}
+.screen{background:var(--bg2);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;height:min(760px,calc(100vh - 120px));min-height:560px}
+.sb{display:flex;justify-content:space-between;padding:8px 18px 0;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.appbar{display:flex;align-items:center;gap:10px;padding:8px 14px 10px;border-bottom:1px solid var(--line);background:var(--card)}
+.logo{width:40px;height:40px;flex:none;object-fit:contain}
+.appbar .t{min-width:0;flex:1}
+.appbar .t b{display:block;font-family:var(--display);font-size:1rem;line-height:1.2}
+.appbar .t span{display:block;font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loc{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--card);border-bottom:1px solid var(--line);font-size:.76rem;color:var(--muted)}
+.loc .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent);flex:none}
+.loc b{color:var(--fg);font-weight:600}
+.wb{display:flex;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);padding:8px 14px;text-align:right;cursor:pointer;font-family:inherit;color:#fff;--c:#8a8f87}
+.wb{background:linear-gradient(90deg,color-mix(in srgb,var(--c) 82%,black),var(--c))}
+.wb.green{--c:#2f8f5b}.wb.yellow{--c:#d99a1e}.wb.red{--c:#c43d33}.wb.gray{--c:#8a8f87}
+.wb b{font-size:.86rem;font-weight:700;white-space:nowrap}.wbic{display:flex;gap:6px;margin-inline-start:auto;flex:none}.wbic i{display:inline-flex;align-items:center;gap:3px;font-style:normal;font-size:.72rem;font-weight:600;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.18);white-space:nowrap}.wbic i svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.wbic i.bad{background:#fff;color:var(--c)}.wbic i.bad svg{stroke:var(--c)}.wbic i svg.lung{width:14px;height:14px}.wbic i svg.lung path{fill:#fff;stroke-width:1.4}.wbic i.bad svg.lung path{fill:var(--c)}.wbic i.off{opacity:.45}
+.wbdot{width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.28);flex:none}
+.simloc{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:.78rem;color:var(--muted)}
+.chip{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 10px;font-size:.74rem;cursor:pointer;color:var(--fg);font-family:inherit}
+.chip[aria-pressed="true"]{background:var(--kiswa);color:#f6f1e4;border-color:var(--kiswa)}
+.chip:focus-visible,.q:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.feed{flex:1;overflow-y:auto;padding:12px 12px 6px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.feed{scroll-behavior:auto}}
+.msg{max-width:88%;padding:9px 12px;border-radius:16px;font-size:.92rem;white-space:pre-wrap;word-wrap:break-word}
+.msg.user{align-self:flex-start;background:var(--bubble-user);color:var(--bubble-user-fg);border-bottom-left-radius:4px}
+.msg.bot{align-self:flex-end;background:var(--bubble-bot);border:1px solid var(--line);border-bottom-right-radius:4px}
+.msg.sys{align-self:center;background:transparent;color:var(--muted);font-size:.74rem;text-align:center;max-width:100%}
+.card{align-self:flex-end;width:92%;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;font-size:.86rem}
+.card .h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.card .h .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--bg2);flex:none}
+.card .h b{font-weight:600}
+.card .h small{color:var(--muted);font-size:.72rem;margin-inline-start:auto}
+.card.alert{border-inline-start:4px solid var(--warn)}
+.card.alert.crit{border-inline-start-color:var(--crit)}
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.bar{height:8px;border-radius:99px;background:var(--bg2);overflow:hidden;grid-column:1/-1}
+.bar i{display:block;height:100%;border-radius:99px}
+.lvl{font-size:.74rem;font-weight:600;padding:2px 8px;border-radius:999px;color:#fff}
+.l1{background:var(--ok)}.l2{background:var(--warn)}.l3{background:var(--crit)}
+.map{width:100%;height:auto;border-radius:10px;background:var(--bg2);display:block;margin-top:4px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.82rem}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-variant-numeric:tabular-nums}
+.ticket{border:1px dashed var(--gold);border-radius:10px;padding:8px 10px;margin-top:6px;background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.ticket b{font-family:var(--mono);font-size:1rem;letter-spacing:.08em;color:var(--gold)}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.acts button{border:1px solid var(--kiswa);background:transparent;color:var(--kiswa);border-radius:999px;padding:4px 10px;font-size:.76rem;cursor:pointer;font-family:inherit}
+.acts button.primary{background:var(--kiswa);color:#f6f1e4}
+.quick{display:flex;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none;background:var(--bg2)}
+.quick::-webkit-scrollbar{display:none}
+.q{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:.78rem;cursor:pointer;font-family:inherit;color:var(--fg)}
+.compose{display:flex;gap:8px;padding:8px 10px 12px;border-top:1px solid var(--line);background:var(--card)}
+.compose input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:9px 14px;font-family:inherit;font-size:.92rem}
+.compose button{border:0;border-radius:999px;width:40px;height:40px;background:var(--kiswa);color:#f6f1e4;cursor:pointer;display:grid;place-items:center;flex:none}
+.compose button:disabled{opacity:.5;cursor:default}
+.modes{display:flex;gap:4px;flex:none}
+.compose .modes .mode{width:34px;height:40px;border-radius:12px;background:transparent;color:var(--muted);border:1px solid var(--line)}
+.compose .modes .mode svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.compose .modes .mode.on{background:var(--bg2);color:var(--kiswa);border-color:var(--kiswa)}
+.compose .modes .mode.rec{background:var(--crit);color:#fff;border-color:var(--crit);animation:rec 1s infinite}
+@keyframes rec{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--crit) 45%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+.msg.user img{display:block;max-width:180px;border-radius:10px;margin-top:4px}
+.cam{position:relative;width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#0d1f1d;margin-top:6px}
+.cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam .ph{position:absolute;inset:0;display:grid;place-items:center;color:#cfe0d9;font-size:.8rem;text-align:center;padding:12px}
+.cam .hud{position:absolute;inset-inline:8px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px;padding:4px 8px;font-size:.76rem}
+.cam .dotrec{position:absolute;top:8px;inset-inline-end:8px;width:10px;height:10px;border-radius:50%;background:#e2695f;animation:rec 1.2s infinite}
+.signs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.signs button{border:1px dashed var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:4px 9px;font-size:.76rem;cursor:pointer;font-family:inherit}
+.typing{align-self:flex-end;display:flex;gap:4px;padding:8px 12px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-3px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}
+
+/* profile sheet */
+.sheet[hidden]{display:none}
+.sheet{background:var(--card);border-bottom:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-height:62%;overflow-y:auto;font-size:.82rem}
+.sh{display:flex;align-items:center;gap:8px}.sh b{font-family:var(--display)}.sh span{color:var(--muted);font-size:.72rem;flex:1;min-width:0}
+.sec{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sec label{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.sec input{width:110px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--bg);color:var(--fg);font-family:inherit}
+.lbl{width:100%;font-weight:600;font-size:.76rem;color:var(--muted)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:4px 10px;font-size:.76rem;cursor:pointer;font-family:inherit}
+.opts button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1d1f1b}
+.hint{margin:0;color:var(--muted);font-size:.72rem}
+.fam{display:flex;flex-direction:column;gap:4px;width:100%}
+.fm{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:4px 8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.fm b{font-weight:600}.fm small{display:block;color:var(--muted);font-size:.7rem;font-variant-numeric:tabular-nums}
+.fm .sw{border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:.7rem;background:var(--card);color:var(--fg);cursor:pointer;font-family:inherit}
+.fm .sw[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.fm .rm{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:.9rem}
+.known{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.82rem}
+.known dt{color:var(--muted)}.known dd{margin:0}
+.known .src{font-size:.7rem;color:var(--gold);margin-inline-start:6px}
+/* side */
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-size:1rem;margin:0 0 4px;font-weight:800}
+.panel p.lead{margin:0 0 10px;color:var(--muted);font-size:.86rem}
+.trace{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;font-size:.82rem}
+.tr{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;padding:6px 8px;border-radius:10px;background:var(--bg2)}
+.tr .who{font-weight:600;white-space:nowrap}
+.tr .who.sup{color:var(--gold)}
+.tr .what{min-width:0;color:var(--fg)}
+.tr .what small{display:block;color:var(--muted)}
+.tr time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.72rem}
+.empty{color:var(--muted);font-size:.84rem;padding:10px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ag{border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.8rem;background:var(--bg2)}
+.ag b{display:block;font-size:.84rem}
+.ag span{color:var(--muted)}
+.ag.active{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent)}
+.svc{width:100%;border-collapse:collapse;font-size:.8rem}
+.svc th,.svc td{text-align:right;padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.svc th{color:var(--muted);font-weight:600;font-size:.74rem}
+.svc td:last-child{white-space:nowrap}
+.st{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.7rem;font-weight:600}
+.st.sim{background:color-mix(in srgb,var(--info) 15%,transparent);color:var(--info)}
+.st.ext{background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)}
+.nav{border-inline-start:4px solid var(--gold)}
+.breath{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0 4px}
+.orb{width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 40% 35%,color-mix(in srgb,var(--gold) 55%,white),var(--kiswa));box-shadow:0 0 0 10px color-mix(in srgb,var(--gold) 18%,transparent),0 10px 30px -10px rgba(0,0,0,.5);transform:scale(.6);transition:transform 4s cubic-bezier(.4,0,.2,1)}
+.orb.in{transform:scale(1);transition-duration:4s}
+.orb.out{transform:scale(.6);transition-duration:6s}
+@media (prefers-reduced-motion:reduce){.orb{transition:none}}
+.bphase{font-family:var(--display);font-size:1.1rem;font-weight:800}
+.bcount{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.8rem}
+.bdhikr{color:var(--gold);font-size:.9rem;min-height:1.4em}
+.wait{border-inline-start:4px solid var(--ok)}
+.stg{display:flex;flex-direction:column;gap:4px;margin:8px 0 4px}
+.sg{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;color:var(--muted);background:var(--bg2)}
+.sg i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--line);font-style:normal;font-size:.72rem;color:var(--fg)}
+.sg.done{opacity:.65}.sg.done i{background:var(--ok);color:#fff}
+.sg.now{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--fg);font-weight:600}.sg.now i{background:var(--ok);color:#fff}
+.sg small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+.sg time{font-variant-numeric:tabular-nums;font-size:.76rem;color:var(--muted)}
+.wait .big{font-family:var(--display);font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+.steps{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.step{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;padding:5px 6px;border-radius:8px;color:var(--muted)}
+.step.now{background:color-mix(in srgb,var(--gold) 14%,transparent);color:var(--fg);font-weight:600}
+.step.done{opacity:.6;text-decoration:line-through}
+.step i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--bg2);font-style:normal;font-size:.72rem;font-variant-numeric:tabular-nums}
+.step.now i{background:var(--gold);color:#1d1f1b}
+.spk{display:inline-flex;gap:3px;align-items:flex-end;height:12px;margin-inline-start:6px}
+.spk b{width:3px;background:var(--gold);border-radius:2px;animation:sp .9s infinite ease-in-out}
+.spk b:nth-child(2){animation-delay:.2s}.spk b:nth-child(3){animation-delay:.4s}
+@keyframes sp{0%,100%{height:3px}50%{height:12px}}
+@media (prefers-reduced-motion:reduce){.spk b{animation:none;height:8px}}
+.foot{margin-top:18px;color:var(--muted);font-size:.78rem;text-align:center}
+.foot a{color:inherit}
+.mode{font-size:.74rem;color:var(--muted)}
+.mode b{color:var(--ok)}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <img class="logo" alt="كنف" src="data:image/png;base64,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">
+      <div>
+        <h1>كنف</h1>
+        <p>طبقة ذكية تفهم ضيف الرحمن، وتصل احتياجاته بخدمات الهيئة في محادثة واحدة؛ لتُقابَل كل حاجة بعنايةٍ في وقتها، وتصبح كل خدمة فرصةً للوقاية. لعافية جسده، وسكينة نفسه، وطيب رحلته.</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="tag">نموذج أولي <b>بيانات محاكاة</b></span>
+      <span class="tag mode" id="modeTag">الوضع: <b>جار التحقق</b></span>
+      <span class="tag" style="gap:6px">محاكاة موقع الضيف:
+        <button class="chip" data-k="site" data-v="makkah" aria-pressed="true">المسجد الحرام</button>
+        <button class="chip" data-k="site" data-v="madinah" aria-pressed="false">المسجد النبوي</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="phone">
+      <div class="screen">
+        <div class="sb"><span id="clock">--:--</span><span>مكة المكرمة · 41°</span></div>
+        <div class="appbar">
+          <img class="logo" alt="" src="data:image/png;base64,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" style="border-radius:10px">
+          <div class="t"><b>كنف</b><span id="subline">عناية تفهمك</span></div>
+          <button class="chip" id="voiceBtn" title="الصوت" aria-pressed="true">🔊</button><button class="chip" id="profBtn" title="ملف الضيف">👤 عبدالرحمن</button><button class="chip" id="resetBtn" title="بدء محادثة جديدة">↻</button>
+        </div>
+        <div class="loc" id="loc"><span class="dot"></span><span id="locText">جار تحديد موقعك…</span></div>
+        <button class="wb gray" id="wb" data-say="كيف حالي الجسدية؟"><span class="wbdot"></span><b id="wbTitle">بيانات غير كافية</b><span class="wbic" id="wbIc"></span><small id="wbWhy" hidden></small></button>
+        <div class="sheet" id="sheet" hidden>
+          <div class="sh"><b>ملف الضيف</b><span>ما يعرفه كنف عنك، وتتحكم فيه أنت</span><button class="chip" id="sheetClose">إغلاق</button></div>
+          <div class="sec">
+            <label>الاسم <input id="pName" type="text" value="عبدالرحمن"></label>
+            <label>العمر <input id="pAge" type="number" value="68" min="1" max="110"></label>
+          </div>
+          <div class="sec"><div class="lbl">يقرأ بـ</div>
+            <div class="opts" data-pref="readLang"><button data-v="ar" aria-pressed="true">العربية</button><button data-v="fr">Français</button><button data-v="en">English</button></div></div>
+          <div class="sec"><div class="lbl">يسمع بـ</div>
+            <div class="opts" data-pref="speakLang"><button data-v="ar">العربية</button><button data-v="fr" aria-pressed="true">Français</button><button data-v="en">English</button></div></div>
+          <div class="sec"><div class="lbl">الحركة</div>
+            <div class="opts" data-pref="mobility"><button data-v="walk">يمشي بلا مساعدة</button><button data-v="slow" aria-pressed="true">يتعب من المشي الطويل</button><button data-v="cart">يحتاج عربة</button></div></div>
+          <div class="sec"><div class="lbl">الرفقة</div>
+            <div class="opts" data-pref="kids"><button data-v="0">بلا أطفال</button><button data-v="2" aria-pressed="true">معه طفلان</button></div></div>
+          <div class="sec"><div class="lbl">تفضيلات العبادة</div>
+            <div class="opts multi">
+              <button data-pref="tawafFloor" data-v="1" aria-pressed="true">الطواف من الدور الأول</button>
+              <button data-pref="quiet" data-v="1" aria-pressed="true">يفضل المصليات الهادئة</button>
+              <button data-pref="lessons" data-v="1" aria-pressed="true">يحب حضور الدروس</button>
+              <button data-pref="rest" data-v="1" aria-pressed="true">تذكير بالراحة كل 20 دقيقة</button>
+              <button data-pref="hearing" data-v="1" aria-pressed="false">ضعف سمع</button>
+            </div></div>
+          <div class="sec"><div class="lbl">رحلته اليوم</div>
+            <div class="opts" data-pref="stage"><button data-v="arrive">وصل للتو</button><button data-v="tawaf" aria-pressed="true">أتم الطواف</button><button data-v="saee">أتم السعي</button></div></div>
+          <div class="sec"><div class="lbl">العائلة (مجموعة كنف)</div>
+            <div class="fam" id="famList"></div>
+            <button class="chip" id="famAdd" type="button">+ إضافة فرد</button></div>
+          <div class="sec"><div class="lbl">مكان السكن</div>
+            <label style="flex:1;min-width:0">السكن <input id="pHome" type="text" style="width:100%" value="فندق أجياد مكارم، 650 م من باب أجياد"></label>
+            <button class="chip" id="homeAuto" type="button">تحديده تلقائيا</button></div>
+          <p class="hint">تعلمها كنف من حسابك ومن حركتك في الحرم ومن حديثه معك، وتبقى على جهازك.</p>
+        </div>
+        <div class="feed" id="feed" aria-live="polite"></div>
+        <div class="quick" id="quick"></div>
+        <form class="compose" id="form">
+          <div class="modes" role="group" aria-label="طريقة الإدخال">
+            <button type="button" class="mode" id="mVoice" aria-label="تحدث" title="تحدث"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg></button>
+            <button type="button" class="mode" id="mImage" aria-label="صورة" title="صورة"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg></button>
+            <button type="button" class="mode" id="mSign" aria-label="إشارة (بث الكاميرا)" title="إشارة"><svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 10.5V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 13l-2.5-2.5a1.5 1.5 0 0 0-2.2 2L8 18a6 6 0 0 0 11 0v-5"/></svg></button>
+            <button type="button" class="mode on" id="mText" aria-label="كتابة" title="كتابة"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg></button>
+            <input type="file" id="imgIn" accept="image/*" capture="environment" hidden>
+          </div>
+          <input id="box" type="text" autocomplete="off" placeholder="اكتب أو تحدث… مثل: وين أقرب عربة؟" aria-label="رسالتك">
+          <button type="submit" id="send" aria-label="إرسال"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9z"/></svg></button>
+        </form>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h2>كنف طبقة ذكية تضاف إلى أي منصة، لا تطبيق مستقل</h2>
+        <p class="lead">الشاشة هنا تمثل محادثة كنف كما تظهر داخل المنصة المضيفة (نسك أو تطبيق الهيئة)؛ الحساب والهوية والحجوزات تبقى للمنصة، وكنف يضيف الفهم والرعاية والتكامل.</p>
+        <p class="lead">طبقة ذكية تفهم ضيف الرحمن، وتصل احتياجاته بخدمات الهيئة في محادثة واحدة؛ لتُقابَل كل حاجة بعنايةٍ في وقتها، وتصبح كل خدمة فرصةً للوقاية. لعافية جسده، وسكينة نفسه، وطيب رحلته.</p>
+        <div class="agents" style="margin-bottom:4px">
+          <div class="ag"><b>١ نعرف الضيف</b><span>ملفه من حديثه، وهاتفه بإذنه: الموقع والصحة والطقس والعائلة</span></div>
+          <div class="ag"><b>٢ نعرف المنصة</b><span>خدمات الهيئة الاثنتا عشرة كأدوات يستدعيها الوكيل</span></div>
+          <div class="ag"><b>٣ نكاملها</b><span>الخدمة المناسبة تصله في وقتها، في مكان واحد وبكلمة واحدة</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>ما يعرفه كنف عن الضيف</h2>
+        <p class="lead" style="margin-bottom:6px">ثلاثة أبعاد يرعاها كنف طوال الزيارة: <b>عافية الجسد</b> (الحر والماء والراحة والدواء وإشارات تطبيق الصحة)، <b>سكينة النفس</b> (الهدوء والانتظار والتوتر والتنفس)، و<b>طيب الرحلة</b> أي جودة الحياة (الطريق والعائلة والوقت وخدمات الهيئة كلها في مكان واحد وبكلمة واحدة). والشريط الملون أعلى الهاتف يلخصها في حالة واحدة: أخضر عافية جيدة بحسب إجاباته، أصفر قد يحتاج استراحة أو دعما، أحمر يحتاج متابعة، رمادي بيانات غير كافية أو قديمة.</p>
+        <p class="lead">كل تنبيه وكل اقتراح يبنى على هذا الملف. غيري شيئا فيه من زر الملف في الهاتف وستتغير التنبيهات الاستباقية.</p>
+        <dl class="known" id="known"></dl>
+      </div>
+      <div class="panel">
+        <h2>ماذا يحدث خلف المحادثة</h2>
+        <p class="lead">الوكيل المشرف يقرأ الطلب وملف الضيف والسياق، يختار الوكيل المتخصص، وهذا يستدعي خدمة الهيئة المناسبة.</p>
+        <div class="agents" id="agents"></div>
+        <div class="simloc" id="voiceStat" style="margin-top:6px"></div>
+        <div class="simloc">لمحاكاة العرض: <button class="chip" id="simPrayer" type="button">اقترب وقت العصر</button> <button class="chip" id="simThirst" type="button">مرت 40 دقيقة بلا ماء</button> <button class="chip" id="simRawdah" type="button">حان تحرك الفوج (الروضة)</button> <button class="chip" id="simPulse" type="button">الساعة: نبض 114 بلا حركة</button> <button class="chip" id="simSpo2" type="button">الساعة: أكسجين 91%</button> <button class="chip" id="simNoWatch" type="button">بلا ساعة / بلا إذن</button> <button class="chip" id="simMed" type="button">حان موعد الدواء</button></div>
+
+        <div style="height:10px"></div>
+        <div class="trace" id="trace"><div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div></div>
+      </div>
+      <div class="panel">
+        <h2>خدمات الهيئة التي يتكامل معها</h2>
+        <p class="lead">كل خدمة أدناه موجودة فعلا على alharamain.gov.sa أو في منشآت الحرمين؛ في هذا النموذج تستدعى ببيانات محاكاة عبر أدوات (Tools) يختارها الوكيل بنفسه.</p>
+        <div style="overflow-x:auto"><table class="svc" id="svcTable"><thead><tr><th>الخدمة</th><th>ما يفعله الوكيل بها</th><th>الحالة</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+  </div>
+  <p class="foot">كنف: نموذج أولي لعرض الفكرة في ديوان الابتكار. الضيف «عبدالرحمن» من فاس بالمغرب شخصية افتراضية، وأرقام الهواتف وهمية. البيانات والأرقام والتذاكر كلها محاكاة، والخدمات الحقيقية على <a href="https://alharamain.gov.sa/public/?site=ar" target="_blank" rel="noopener">alharamain.gov.sa</a>.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
+const state={site:"makkah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
+const DEFAULT_PROFILE={name:"عبدالرحمن",age:68,from:"فاس، المغرب",langs:"العربية والفرنسية",readLang:"ar",speakLang:"fr",rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"slow",kids:2,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:0,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
+  family:[{name:"يوسف",rel:"ابنه",phone:"+212 6 61 23 45 78",sharing:1},{name:"خديجة",rel:"زوجة ابنه",phone:"+212 6 62 98 76 54",sharing:1},{name:"آدم وليلى",rel:"حفيداه (9 و6)",phone:"مع والدتهما",sharing:0}]};
+const profile=Object.assign({},DEFAULT_PROFILE);
+const SRC={name:"من حسابه",age:"من حسابه",from:"من حسابه",langs:"من حسابه",family:"أضافهم بنفسه",home:"حدده كنف من مبيتك وأكدته أنت",mobility:"من حديثه",kids:"من حسابه",tawafFloor:"من سلوكه",quiet:"من حديثه",lessons:"من سلوكه",rest:"أدخله بنفسه",hearing:"أدخله بنفسه",stage:"قاله في المحادثة",meds:"قاله في المحادثة، ولا يقرأ كنف سجله الطبي"};
+try{Object.assign(profile,JSON.parse(localStorage.getItem("hafi.profile")||"{}"))}catch(_){}
+if(!Array.isArray(profile.family)||!profile.family.length)profile.family=DEFAULT_PROFILE.family.map(f=>Object.assign({},f));
+if(!profile.homes||!profile.homes.makkah||!profile.homes.madinah)profile.homes=JSON.parse(JSON.stringify(DEFAULT_PROFILE.homes));
+function HOME(){return profile.homes[state.site]||profile.homes.makkah}if(!profile.from)profile.from=DEFAULT_PROFILE.from;if(!profile.readLang)profile.readLang="ar";if(!profile.rawdah)profile.rawdah=DEFAULT_PROFILE.rawdah;if(!Array.isArray(profile.meds))profile.meds=DEFAULT_PROFILE.meds.map(m=>Object.assign({},m));if(!profile.speakLang)profile.speakLang="fr";
+function saveProfile(){try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
+function profileText(){
+  const m={walk:"يمشي بلا مساعدة",slow:"يتعب من المشي الطويل",cart:"يحتاج عربة"}[profile.mobility];
+  const st={arrive:"وصل للتو",tawaf:"أتم الطواف وبقي السعي",saee:"أتم الطواف والسعي"}[profile.stage];
+  return [["الاسم",profile.name,"name"],["العمر",profile.age,"age"],["من",profile.from,"from"],["اللغة","يقرأ بـ"+(LANGS[profile.readLang]||"العربية")+" ويسمع بـ"+(LANGS[profile.speakLang]||"الفرنسية"),"langs"],["العائلة",profile.family.filter(f=>f.sharing).length+" من "+profile.family.length+" يشاركون موقعهم","family"],["السكن",HOME().home,"home"],["الحركة",m,"mobility"],["الرفقة",profile.kids>0?"معه "+profile.kids+" من الأطفال":"بلا أطفال","kids"],
+   ["الطواف",profile.tawafFloor?"يفضل الدور الأول":"المطاف الأرضي","tawafFloor"],["المصلى",profile.quiet?"يفضل الهدوء":"لا تفضيل","quiet"],["الدروس",profile.lessons?"يحب حضورها":"لا يهتم","lessons"],
+   ["الراحة",profile.rest?"تذكير كل 20 دقيقة":"بلا تذكير","rest"],["السمع",profile.hearing?"ضعف سمع":"طبيعي","hearing"],["الدواء",profile.meds.length?profile.meds.map(m=>m.name+" "+m.times.join(" و")).join("، "):"لم يذكر دواء","meds"],["رحلته اليوم",st,"stage"]];
+}
+function renderKnown(){
+  $("#known").innerHTML=profileText().map(([k,v,key])=>`<dt>${k}</dt><dd>${esc(v)}<span class="src">${SRC[key]||""}</span></dd>`).join("");
+  $("#profBtn").textContent="👤 "+profile.name;
+  $("#pName").value=profile.name;$("#pAge").value=profile.age;$("#pHome").value=HOME().home;
+  $("#famList").innerHTML=profile.family.map((f,i)=>`<div class="fm"><div><b>${esc(f.name)}</b> <span style="color:var(--muted)">${esc(f.rel)}</span><small>${esc(f.phone)}</small></div><button class="sw" type="button" data-i="${i}" aria-pressed="${f.sharing?"true":"false"}">${f.sharing?"يشارك موقعه":"لا يشارك"}</button><button class="rm" type="button" data-rm="${i}" aria-label="حذف">✕</button></div>`).join("");
+  document.querySelectorAll(".opts [data-pref]").forEach(b=>{const k=b.dataset.pref;b.setAttribute("aria-pressed",String(profile[k])===b.dataset.v?"true":"false")});
+  document.querySelectorAll(".opts[data-pref]").forEach(g=>{const k=g.dataset.pref;g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(profile[k])===b.dataset.v?"true":"false"))});
+}
+
+/* ---------- mock data for the Authority's services ---------- */
+const SITES={
+  makkah:{name:"المسجد الحرام",city:"مكة المكرمة",temp:41,spot:"الساحة الشمالية، قرب بوابة 79",
+    density:[["المطاف",3],["المسعى",2],["ساحات الشمالية",1],["توسعة الملك فهد",2]],
+    halls:[["الدور الأرضي",92],["الدور الأول",78],["السطح",55],["توسعة الملك عبدالله",40]],
+    places:{
+      cart:[["نقطة عربات باب الملك فهد",120,"بوابة 79"],["نقطة عربات باب المروة (عربات التحلل)",260,"باب المروة، على مدار الساعة"]],
+      zamzam:[["محطة زمزم المسعى الدور الأول",60,"قرب الصفا"],["محطة زمزم الساحة الشمالية",180,"أمام باب الفتح"]],
+      wc:[["دورات مياه أجياد",140,"خارج باب أجياد"],["دورات مياه المروة",220,"باب المروة"]],
+      medical:[["مركز الهلال الأحمر باب الملك عبدالعزيز",210,"بوابة 1، الدور الأرضي"],["العيادة الطبية بالمسعى",150,"الدور الأول"]],
+      lost:[["مكتب التائهين والمفقودات باب الملك فهد",130,"بوابة 79، الدور الأرضي"]],
+      kids:[["مركز ضيافة الأطفال",190,"توسعة الملك فهد، الدور الأول"]],
+      lift:[["مصاعد باب الملك عبدالعزيز",90,"بوابة 1"],["سلالم كهربائية أجياد",170,"باب أجياد"]],
+      pray:[["مصليات كبار السن وذوي الإعاقة",110,"توسعة الملك فهد، الدور الأرضي، بوابة 64"]],
+      library:[["مكتبة المسجد الحرام",330,"ساحة أجياد"]],
+      saee:[["الصفا، بداية المسعى (الدور الأول)",210,"المصعد عند باب الصفا ثم يسارا"],["الصفا، المسعى الأرضي",180,"كثافة أعلى"]],
+      rest:[["مقاعد مظللة ومكيفة، الدور الأول قرب الصفا",90,"ماء زمزم بجانبها"],["استراحة كبار السن، توسعة الملك فهد",150,"بوابة 64"]],
+      gate:[["باب الملك عبدالعزيز (1)",90,""],["باب الملك فهد (79)",120,""],["باب الفتح (45)",180,""]]
+    }},
+  madinah:{name:"المسجد النبوي",city:"المدينة المنورة",temp:38,spot:"الساحة الشرقية، قرب باب 21",
+    density:[["مسار السلام (الروضة)",3],["الساحات الشرقية",1],["توسعة الملك فهد",2],["مواقف السيارات",1]],
+    halls:[["المصلى الرئيسي",88],["توسعة الملك فهد",64],["الساحات",35],["السطح",48]],
+    places:{
+      cart:[["نقطة عربات باب 21",100,"الجهة الشمالية"],["نقطة عربات باب السلام",240,"الجهة الغربية"]],
+      zamzam:[["نقطة سقيا زمزم باب 7",70,"الساحة الشرقية"]],
+      wc:[["دورات مياه الساحة الشمالية",160,"قرب مواقف السيارات"]],
+      medical:[["مركز طبي باب 15",180,"الجهة الشمالية"]],
+      lost:[["مكتب التائهين والمفقودات باب 21",120,"الجهة الشمالية"]],
+      kids:[["مركز ضيافة الأطفال",200,"الساحة الشمالية الغربية"]],
+      lift:[["مصاعد توسعة الملك فهد",110,"باب 22"]],
+      pray:[["مصليات كبار السن وذوي الإعاقة",95,"باب 24، الدور الأرضي"]],
+      library:[["مكتبة المسجد النبوي",150,"السطح، باب 10"]],
+      saee:[["مسار السلام (الروضة)",260,"الدخول من باب السلام بالتصريح"]],
+      rest:[["مقاعد مظللة، الساحة الشرقية",80,"تحت المظلات"],["استراحة كبار السن، باب 24",120,"الدور الأرضي"]],
+      gate:[["باب السلام (1)",240,""],["باب 21",100,""],["باب البقيع (41)",300,""]]
+    }}
+};
+const CATS={saee:"الصفا والمسعى",rest:"مكان للراحة",cart:"عربات",zamzam:"زمزم",wc:"دورات المياه",medical:"الرعاية الصحية",lost:"التائهين والمفقودات",kids:"ضيافة الأطفال",lift:"المصاعد والسلالم",pray:"مصليات ذوي الاحتياجات",library:"المكتبة",gate:"الأبواب"};
+const LVL=[null,["خفيفة","l1",30],["متوسطة","l2",62],["عالية","l3",94]];
+const LANGS={ar:"العربية",fr:"Français",en:"English",ur:"اردو",id:"Bahasa",tr:"Türkçe",ha:"Hausa",bn:"বাংলা"};
+const PRAYERS=[["الفجر","04:52"],["الظهر","12:08"],["العصر","15:31"],["المغرب","18:01"],["العشاء","19:31"]];
+const LESSONS=[["بعد الفجر","شرح رياض الصالحين","الدور الأول، مصلى 3"],["بعد العصر","تفسير جزء عم","التوسعة، مصلى 7"],["بعد المغرب","الأربعون النووية","الساحة الشمالية"]];
+const SERVICES=[
+ ["الخريطة التفاعلية الذكية (950+ نقطة، 13 فئة)","يحدد أقرب نقطة خدمة ويرسم المسار بحسب موقع الضيف","sim"],
+ ["مؤشر كثافة المطاف والمسعى / مسار السلام","يقرأ الكثافة لحظيا ويقترح الوقت والمسار الأنسب","sim"],
+ ["إشغال المصليات","يختار المصلى الأقل إشغالا قبل الصلاة","sim"],
+ ["عربات ذوي الإعاقة وكبار السن وعربات التحلل","يرسل طلب عربة إلى أقرب نقطة ويعطي رقم تذكرة","sim"],
+ ["مكاتب التائهين والمفقودات","يفتح بلاغ تائه أو مفقود ويوجه إلى المكتب الأقرب","sim"],
+ ["مركز ضيافة الأطفال","يحجز مكانا للطفل أثناء الصلاة","sim"],
+ ["منارة الحرمين: الخطب والدروس والترجمة (37+ لغة)","يصل الضيف ببث الترجمة بلغته ويعرض جدول الدروس","sim"],
+ ["الإرشاد بـ 16+ لغة ولغة الإشارة، مصاحف برايل","يحيل الصم وضعاف البصر إلى الخدمة المناسبة","sim"],
+ ["بوابة الزيارات: المكتبة والمعارض ومجمع الكسوة","يحجز موعد زيارة","sim"],
+ ["الاستفسارات الشرعية ومواقيت الصلاة","يجيب من مصادر الهيئة فقط","sim"],
+ ["الطوارئ: الهلال الأحمر ومراكز الهيئة الطبية","يوجه بأقصر مسار ويرسل بلاغا","sim"],
+ ["تصريح الروضة الشريفة (نسك)","يعرض حالة التصريح ويوجه لمسار السلام","ext"],
+ ["رصد التوتر من الكتابة والصوت","يلتقط علامات الضيق في أسلوب الضيف (وفي النسخة الحقيقية من نبرة صوته) فيطمئنه ويحل أولا ثم يعرض التهدئة","sim"],
+ ["وضع الإشارة (بث الكاميرا)","للضيف الأصم: الكاميرا الأمامية تلتقط مجموعة محدودة من الإشارات (ماء، مساعدة، دواء، ضعت، عائلتي، طبيب) وتحولها إلى طلب بعد تأكيده، والردود نصا واهتزازا؛ وما يتجاوزها يحول إلى مترجم إشارة من خدمة إرشاد الهيئة","sim"],
+ ["تذكير الدواء","تذكير فقط بمواعيد الدواء الذي ذكره الضيف بنفسه في المحادثة، مع الماء وأقرب مكان جلوس، ويسجل أخذه؛ لا يقترح كنف دواء ولا جرعة، ولا يقرأ سجله الطبي، ولا يرسل شيئا للهيئة","sim"],
+ ["شريط الحالة من تطبيق الصحة","يقرأ بإذن الضيف النبض والتنفس والأكسجين والخطوات من تطبيق الصحة في هاتفه (Apple Health أو Health Connect)، ويجمعها مع الطقس والماء وإجاباته؛ البيانات تبقى على الهاتف ويرسل للهيئة الطلب فقط","sim"],
+ ["لوحة الجهات التشغيلية","تجمع الطلبات لتوقع الاحتياج وتوزيع الموارد","sim"]
+];
+const AGENTS=[["sup","الوكيل المشرف","يفهم الطلب والسياق ويوزع"],["nav","وكيل الإرشاد","الخريطة والكثافة والمسارات"],["care","وكيل الصحة والسلامة","الحر، الطبي، الطوارئ"],["svc","وكيل الخدمات","العربات، الأطفال، المفقودات، الحجوزات"],["rite","وكيل المناسك والمعرفة","المناسك، الدروس، الترجمة، الصلاة"]];
+
+/* ---------- UI helpers ---------- */
+const site=()=>SITES[state.site];
+function el(h){const t=document.createElement("template");t.innerHTML=h.trim();return t.content.firstChild}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function push(node){feed.appendChild(node);feed.scrollTop=feed.scrollHeight;return node}
+function msg(kind,text){return push(el(`<div class="msg ${kind}"></div>`)).textContent=text,feed.lastChild}
+function card(html,cls=""){return push(el(`<div class="card ${cls}">${html}</div>`))}
+function head(ic,title,sub){return `<div class="h"><span class="ic">${ic}</span><b>${esc(title)}</b>${sub?`<small>${esc(sub)}</small>`:""}</div>`}
+const ICON={map:"🗺️",crowd:"👥",cart:"♿",lost:"🔎",kids:"🧒",tr:"🎧",pray:"🕌",med:"🩺",sun:"☀️",book:"📚",cal:"🗓️",tick:"🎫"};
+let t0=Date.now();
+function log(who,what,sub){
+  if(trace.querySelector(".empty"))trace.innerHTML="";
+  const a=AGENTS.find(x=>x[0]===who);
+  const n=el(`<div class="tr"><span class="who ${who==="sup"?"sup":""}">${esc(a?a[1]:who)}</span><span class="what">${esc(what)}${sub?`<small>${esc(sub)}</small>`:""}</span><time>+${((Date.now()-t0)/1000).toFixed(1)}s</time></div>`);
+  trace.appendChild(n);trace.scrollTop=trace.scrollHeight;
+  document.querySelectorAll(".ag").forEach(x=>x.classList.toggle("active",x.dataset.id===who));
+}
+function typing(on){let t=feed.querySelector(".typing");if(on&&!t){push(el('<div class="typing"><i></i><i></i><i></i></div>'))}else if(!on&&t)t.remove()}
+function walk(m){return Math.max(1,Math.round(m/70))}
+
+/* ---------- the Authority's services as tools (mock) ---------- */
+function svgMap(dist){
+  const s=state.site==="makkah";
+  const px=Math.min(230,40+dist*0.6);
+  return `<svg class="map" viewBox="0 0 320 120" role="img" aria-label="مخطط تقريبي للمسار">
+   <rect x="0" y="0" width="320" height="120" fill="transparent"/>
+   ${s?`<rect x="135" y="40" width="50" height="50" rx="4" fill="var(--kiswa)"/><circle cx="160" cy="65" r="38" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/><text x="160" y="110" font-size="9" text-anchor="middle" fill="var(--muted)">المطاف</text>`
+      :`<rect x="110" y="35" width="100" height="55" rx="6" fill="var(--kiswa)"/><circle cx="135" cy="62" r="14" fill="var(--kiswa2)" stroke="var(--gold2)" stroke-width="1.5"/><text x="160" y="110" font-size="9" text-anchor="middle" fill="var(--muted)">المسجد النبوي</text>`}
+   <circle cx="270" cy="95" r="6" fill="var(--info)"/><text x="270" y="82" font-size="9" text-anchor="middle" fill="var(--fg)">أنت</text>
+   <path d="M270 95 C 240 95, ${270-px} 60, ${270-px} 40" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-dasharray="6 4"/>
+   <circle cx="${270-px}" cy="40" r="7" fill="var(--gold)"/><text x="${270-px}" y="28" font-size="9" text-anchor="middle" fill="var(--fg)">الوجهة</text>
+  </svg>`;
+}
+function famPositions(){const s=site();const spots=[[s.places.zamzam[0][0],140,4],[s.places.gate[2][0],320,9],["مع "+(profile.family[1]?profile.family[1].name:"العائلة"),320,9]];
+  return profile.family.map((f,i)=>Object.assign({},f,{where:spots[i%3][0],dist:spots[i%3][1],ago:spots[i%3][2]}))}
+function svgFamily(pos){const pins=pos.filter(f=>f.sharing).slice(0,3).map((f,i)=>{const x=80+i*70,y=35+(i%2)*25;return `<circle cx="${x}" cy="${y}" r="7" fill="var(--gold)"/><text x="${x}" y="${y-11}" font-size="9" text-anchor="middle" fill="var(--fg)">${esc(f.name.split(" ")[0])}</text>`}).join("");
+  return `<svg class="map" viewBox="0 0 320 120" role="img" aria-label="مواقع العائلة"><rect x="135" y="40" width="50" height="50" rx="4" fill="var(--kiswa)"/><circle cx="160" cy="65" r="38" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/><circle cx="270" cy="95" r="6" fill="var(--info)"/><text x="270" y="82" font-size="9" text-anchor="middle" fill="var(--fg)">أنت</text>${pins}</svg>`}
+/* ---------- voice (speech synthesis) ---------- */
+const voice={on:true,ok:"speechSynthesis" in window,lang:{ar:"ar-SA",fr:"fr-FR",en:"en-US",ur:"ur-PK"}};
+function pickVoice(code){try{const vs=speechSynthesis.getVoices();return vs.find(v=>v.lang===code)||vs.find(v=>v.lang.startsWith(code.slice(0,2)))||null}catch(_){return null}}
+function speak(text,opt={}){
+  if(state.signMode){try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(_){}return Promise.resolve()}
+  if(!voice.on||!voice.ok||!text)return Promise.resolve();
+  return new Promise(res=>{try{const u=new SpeechSynthesisUtterance(text);const code=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";u.lang=code;const v=pickVoice(code);if(v)u.voice=v;u.rate=opt.rate||0.95;
+    let done=false;const fin=()=>{if(!done){done=true;res()}};u.onend=fin;u.onerror=e=>{voice.err=e.error||"error";voiceStatus();fin()};u.onstart=()=>{voice.err="";voice.spoke=true;voiceStatus()};
+    if(!opt.queue)speechSynthesis.cancel();
+    setTimeout(()=>{try{speechSynthesis.speak(u)}catch(e){voice.err=String(e);voiceStatus();fin()}},60);
+    setTimeout(fin,Math.min(20000,2500+text.length*120));
+  }catch(_){res()}})
+}
+function voiceStatus(){const el=$("#voiceStat");if(!el)return;let vs=[];try{vs=speechSynthesis.getVoices()}catch(_){}
+  const ar=vs.filter(v=>v.lang.startsWith("ar")).map(v=>v.name);const fr=vs.filter(v=>v.lang.startsWith("fr")).length;
+  el.innerHTML=!voice.ok?"المتصفح لا يدعم النطق (Web Speech)":`الأصوات في هذا الجهاز: ${vs.length}${ar.length?` · عربي: ${esc(ar.slice(0,2).join("، "))}`:" · <b style='color:var(--crit)'>لا يوجد صوت عربي مثبت</b>"}${fr?" · فرنسي متاح":""}${voice.err?` · <b style='color:var(--crit)'>خطأ: ${esc(voice.err)}</b>`:voice.spoke?" · نطق بنجاح":" · لم ينطق بعد، اضغط 🔊 ثم أرسل رسالة"}`}
+function stopSpeak(){try{speechSynthesis.cancel()}catch(_){}}
+let navRun=0;
+function guidance(dest,dist){
+  const id=++navRun;const s=site();const L=state.lang!=="ar"&&state.lang!==profile.readLang?state.lang:profile.readLang;const SL=profile.speakLang||L;
+  const ALL={ar:{t:"الإرشاد الصوتي إلى "+dest,steps:["اتجه يمينا نحو "+s.places.gate[0][0]+"، "+Math.round(dist*0.3)+" مترا.","المصعد على يسارك، اصعد إلى الدور الأول وتجنب السلالم.","استمر مستقيما "+Math.round(dist*0.5)+" مترا، المسار أخف كثافة من المطاف.","وصلت. "+dest+" أمامك على بعد عشرة أمتار."],arrived:"وصلت بسلامة.",done:"اكتمل الإرشاد"},
+    fr:{t:"Guidage vocal vers "+dest,steps:["Tournez à droite vers la porte principale, "+Math.round(dist*0.3)+" mètres.","L'ascenseur est à votre gauche, montez au premier étage, évitez les escaliers.","Continuez tout droit "+Math.round(dist*0.5)+" mètres, le passage est moins dense.","Vous êtes arrivé. Votre destination est devant vous, à dix mètres."],arrived:"Arrivé.",done:"Guidage terminé"},
+    en:{t:"Voice guidance to "+dest,steps:["Turn right towards the main gate, "+Math.round(dist*0.3)+" metres.","The lift is on your left, go up to the first floor and avoid the stairs.","Continue straight "+Math.round(dist*0.5)+" metres, this path is less crowded.","You have arrived. Your destination is ten metres ahead."],arrived:"Arrived.",done:"Guidance complete"}};
+  const X=ALL[L]||ALL.ar;const S=ALL[SL]||X;
+  log("nav","بدأ الإرشاد الصوتي خطوة بخطوة",dest+" · "+X.steps.length+" خطوات"+(voice.on&&voice.ok?" · النص بـ"+(LANGS[L]||"")+" والصوت بـ"+(LANGS[SL]||""):" · الصوت مكتوم"));
+  const c=card(head("🧭",X.t,walk(dist)+" د")+`<div class="steps">${X.steps.map((st,i)=>`<div class="step" data-i="${i}"><i>${i+1}</i><span>${esc(st)}</span></div>`).join("")}</div><div class="acts"><button data-stop="1">إيقاف</button></div>`,"nav");
+  const rows=[...c.querySelectorAll(".step")];let stopped=false;
+  c.querySelector("[data-stop]").addEventListener("click",()=>{stopped=true;stopSpeak();c.querySelector("[data-stop]").textContent="توقف"});
+  (async()=>{for(let i=0;i<X.steps.length;i++){if(stopped||id!==navRun)return;rows.forEach((r,j)=>{r.classList.toggle("now",j===i);r.classList.toggle("done",j<i)});
+      const sp=document.createElement("span");sp.className="spk";sp.innerHTML="<b></b><b></b><b></b>";rows[i].querySelector("span").appendChild(sp);
+      await speak(S.steps[i],{lang:SL});sp.remove();if(!voice.on||!voice.ok)await wait(1400)}
+    if(stopped||id!==navRun)return;rows.forEach(r=>{r.classList.remove("now");r.classList.add("done")});c.querySelector("[data-stop]").textContent=X.done;log("nav","وصل الضيف إلى الوجهة",dest)})();
+  return{started:true,destination:dest,steps:X.steps.length}
+}
+const wb={body:"ok",mind:"calm",fam:2,lastDrink:Date.now(),reminded:false,answered:0,medDue:null};
+function medMins(){return wb.medDue?Math.floor((Date.now()-wb.medDue.at)/60000):0}
+// طبقة إشارات الجسم: من تطبيق الصحة في الهاتف (بإذن الضيف)، تبقى على الهاتف ولا ترسل للهيئة
+const health={permitted:true,watch:true,hr:78,rr:16,spo2:97,steps:4200,moving:false,ts:Date.now()};
+function healthFresh(){return health.permitted&&health.watch&&(Date.now()-health.ts)<60*60000}
+function healthSignals(){const w=[];if(!healthFresh())return w;
+  if(health.spo2<93)w.push({k:"spo2",t:"أكسجين "+health.spo2+"%",sev:2});
+  if(health.hr>=110&&!health.moving)w.push({k:"hr",t:"نبض "+health.hr+" بلا حركة",sev:health.hr>=120?2:1});
+  else if(health.hr>=110&&health.moving)w.push({k:"hr",t:"نبض "+health.hr+" مع المشي",sev:0});
+  if(health.rr>=24)w.push({k:"rr",t:"تنفس سريع "+health.rr+"/د",sev:1});
+  return w}
+function healthLine(){return healthFresh()?"نبض "+health.hr+" · تنفس "+health.rr+" · أكسجين "+health.spo2+"%":(health.permitted?"لا ساعة متصلة":"لم تأذن لتطبيق الصحة")}
+function nextDose(){const m=profile.meds[0];if(!m)return"لا يوجد";const now=$("#clock").textContent||"12:00";const t=m.times.find(x=>x>now)||m.times[0];return m.name+" "+t}
+function minsSinceDrink(){return Math.floor((Date.now()-wb.lastDrink)/60000)}
+function wbState(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();
+  const stale=!wb.answered||(Date.now()-wb.answered)>60*60000;const why=[];
+  if(wb.body==="pain")return{c:"red",t:"تحتاج متابعة",w:"أبلغت الطوارئ، الفريق في الطريق"};
+  // ثلاث طبقات: إشارات الجسم من تطبيق الصحة، السياق (الحر والماء والحركة)، وما يقوله الضيف
+  const hs=healthSignals();const severe=hs.some(x=>x.sev===2);const bodySig=hs.filter(x=>x.sev>=1);
+  hs.filter(x=>x.sev>=1).forEach(x=>why.push(x.t));
+  if(wb.mind==="stressed")why.push("تبدو متوترا");if(wb.body==="thirsty"||m0>=limit)why.push("مر "+m0+" د بلا ماء");if(wb.body==="tired")why.push("قلت إنك متعب");if(wb.medDue)why.push("موعد "+wb.medDue.name+(medMins()?" فات بـ"+medMins()+" د":" الآن"));
+  if(severe||bodySig.length>=2||(bodySig.length&&wb.mind==="stressed"))return{c:"red",t:"تحتاج متابعة",w:why.join(" · ")+" · من تطبيق الصحة"};
+  if(wb.mind==="stressed"&&why.length>=2)return{c:"red",t:"تحتاج متابعة",w:why.join(" · ")};
+  if(why.length)return{c:"yellow",t:"قد تحتاج استراحة أو دعما",w:why.join(" · ")+(bodySig.length?" · سأسألك قبل أن أحكم":"")};
+  if(!healthFresh()&&stale)return{c:"gray",t:"بيانات غير كافية أو قديمة",w:healthLine()+" · أخبرني كيف تشعر"};
+  if(!healthFresh())return{c:"green",t:"عافية جيدة بحسب إجاباتك",w:(m0?"شربت قبل "+m0+" د":"شربت الآن")+(hot?" · الحر "+s.temp+"°، الزم الظل":"")};
+  return{c:"green",t:"عافية جيدة بحسب تطبيق الصحة وإجاباتك",w:healthLine()+(m0?" · شربت قبل "+m0+" د":"")+(hot?" · الحر "+s.temp+"°":"")}}
+let healthAsked=false;
+const WB_SHORT={green:"عافية جيدة",yellow:"قد تحتاج استراحة",red:"تحتاج متابعة",gray:"بيانات غير كافية"};
+const IC={heart:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>',
+ breath:'<svg viewBox="0 0 24 24" class="lung"><path d="M12 2v7" fill="none"/><path d="M10.5 9C7 9 3 13 3 18.5 3 20.4 4.3 22 6 22h2.2c1.3 0 2.3-1.1 2.3-2.4V9z"/><path d="M13.5 9C17 9 21 13 21 18.5c0 1.9-1.3 3.5-3 3.5h-2.2c-1.3 0-2.3-1.1-2.3-2.4V9z"/></svg>',
+ drop:'<svg viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>',
+ sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+ pill:'<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)"/><path d="M9 9l6 6"/></svg>',
+ mind:'<svg viewBox="0 0 24 24"><path d="M9 3a4 4 0 0 0-4 4v1a3 3 0 0 0-1 5.5V15a4 4 0 0 0 4 4h1v2"/><path d="M15 3a4 4 0 0 1 4 4v1a3 3 0 0 1 1 5.5V15a4 4 0 0 1-4 4h-1v2"/><path d="M9 3v18M15 3v18"/></svg>'};
+function wbIcons(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();const f=healthFresh();const hs=healthSignals();const bad=k=>hs.some(x=>x.k===k&&x.sev>=1);
+  const it=[];const ic=(k,v,cls)=>it.push(`<i class="${cls||""}">${IC[k]}${v}</i>`);
+  ic("heart",f?health.hr:"–",f?(bad("hr")?"bad":""):"off");
+  ic("breath",f?(health.spo2<93?health.spo2+"%":health.rr):"–",f?((bad("rr")||bad("spo2"))?"bad":""):"off");
+  ic("drop",m0+" د",(wb.body==="thirsty"||m0>=limit)?"bad":"");
+  ic("sun",s.temp+"°","");
+  if(wb.medDue)ic("pill","دواء","bad");
+  if(wb.mind==="stressed")ic("mind","","bad");
+  if(it.length>4)it.splice(3,1);
+  return it.join("")}
+function wbRender(){const el=$("#wb");if(!el)return;const st=wbState();el.className="wb "+st.c;$("#wbTitle").textContent=WB_SHORT[st.c];$("#wbWhy").textContent=st.w;$("#wbIc").innerHTML=wbIcons();el.title=st.w;
+  const hs=healthSignals();const sig=hs.filter(x=>x.sev>=1);
+  if(sig.length&&!healthAsked){healthAsked=true;const severe=hs.some(x=>x.sev===2);
+    log("care","إشارة من تطبيق الصحة: "+sig.map(x=>x.t).join("، "),"البيانات على هاتفك ولا ترسل للهيئة؛ أسألك قبل أن أحكم");
+    if(severe){msg("agent","يا "+profile.name+"، ساعتك تشير إلى "+sig.map(x=>x.t).join(" و")+" في هذا الحر. اجلس الآن في الظل، وسأطلب لك الفريق الطبي إن لم تتحسن خلال دقيقتين.");speak({fr:"Votre montre indique un signal inquiétant. Asseyez-vous à l'ombre, je reste avec vous.",en:"Your watch shows a worrying signal. Sit in the shade, I am with you.",ar:"ساعتك تشير إلى إشارة مقلقة. اجلس في الظل وأنا معك."}[profile.speakLang]||"",{lang:profile.speakLang});
+      card(head("🩺","إشارة من تطبيق الصحة","متابعة")+`<div>${sig.map(x=>x.t).join(" · ")} · الحر ${site().temp}°</div><div class="acts"><button class="primary" data-say="عندي ألم في صدري وضيق نفس">أحتاج مساعدة</button><button data-say="شربت وارتحت">جلست وارتحت</button></div>`)}
+    else{msg("agent","يا "+profile.name+"، ساعتك تشير إلى "+sig.map(x=>x.t).join(" و")+". كيف تشعر الآن؟");speak({fr:"Votre montre signale un pouls élevé. Comment vous sentez-vous ?",en:"Your watch shows a high pulse. How do you feel?",ar:"ساعتك تشير إلى نبض مرتفع. كيف تشعر الآن؟"}[profile.speakLang]||"",{lang:profile.speakLang});TOOLS.wellbeing_checkin.run({})}}
+  const hot=site().temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();
+  if(m0>=limit&&!wb.reminded&&wb.body==="ok"){wb.reminded=true;log("care","تذكير الماء: مر "+m0+" د منذ آخر شرب","الحد في هذا الحر "+limit+" د");TOOLS.hydration_rest.run({need:"water"});speak({fr:"Il est temps de boire un peu d'eau.",en:"Time to drink some water.",ar:"حان وقت شرب الماء."}[profile.speakLang]||"",{lang:profile.speakLang})}}
+let breathRun=0;
+function breathing(){
+  const id=++breathRun;const SL=profile.speakLang||"ar";const L=profile.readLang||"ar";
+  const T={ar:{t:"تنفس معي",inh:"شهيق من الأنف",exh:"زفير من الفم",done:"أحسنت. كيف تشعر الآن؟",intro:"دقيقة واحدة. تابع الدائرة بعينك: تتوسع مع الشهيق أربع ثوان، وتنكمش مع الزفير ست ثوان، بلا حبس."},
+    fr:{t:"Respirez avec moi",inh:"Inspirez par le nez",exh:"Expirez par la bouche",done:"Très bien. Comment vous sentez-vous ?",intro:"Une minute. Suivez le cercle : il s'ouvre à l'inspiration, quatre secondes, et se referme à l'expiration, six secondes."},
+    en:{t:"Breathe with me",inh:"Breathe in through the nose",exh:"Breathe out through the mouth",done:"Well done. How do you feel now?",intro:"One minute. Follow the circle: it opens as you breathe in for four seconds and closes as you breathe out for six."}};
+  const X=T[L]||T.ar,S=T[SL]||X;const dh=["سبحان الله","الحمد لله","الله أكبر","لا إله إلا الله","أستغفر الله","اللهم صل على محمد"];
+  log("care","بدأ تمرين التنفس البطيء","6 أنفاس في الدقيقة · عد صوتي بـ"+(LANGS[SL]||""));
+  const c=card(head("🫧",X.t,"دقيقة واحدة")+`<div style="font-size:.84rem;color:var(--muted)">${esc(X.intro)}</div><div class="breath"><div class="orb"></div><div class="bphase">…</div><div class="bcount"></div><div class="bdhikr"></div></div><div class="acts"><button data-stop="1">إيقاف</button><button data-dhikr="1">ذكر مع الزفير</button></div>`);
+  const orb=c.querySelector(".orb"),ph=c.querySelector(".bphase"),cnt=c.querySelector(".bcount"),dk=c.querySelector(".bdhikr");let stop=false,withDhikr=false;
+  c.querySelector("[data-stop]").addEventListener("click",()=>{stop=true;stopSpeak();ph.textContent=X.done;c.querySelector("[data-stop]").hidden=true});
+  c.querySelector("[data-dhikr]").addEventListener("click",e=>{withDhikr=!withDhikr;e.target.setAttribute("aria-pressed",withDhikr)});
+  const tick=async(sec)=>{for(let i=sec;i>=1;i--){if(stop||id!==breathRun)return;cnt.textContent=i;await wait(1000)}};
+  (async()=>{await speak(S.intro,{lang:SL});if(stop||id!==breathRun)return;
+    for(let n=0;n<6;n++){if(stop||id!==breathRun)return;
+      orb.classList.remove("out");orb.classList.add("in");ph.textContent=X.inh;dk.textContent="";speak(S.inh,{lang:SL});try{navigator.vibrate&&navigator.vibrate(30)}catch(_){}
+      await tick(4);if(stop||id!==breathRun)return;
+      orb.classList.remove("in");orb.classList.add("out");ph.textContent=X.exh;if(withDhikr)dk.textContent=dh[n%dh.length];speak(S.exh,{lang:SL});try{navigator.vibrate&&navigator.vibrate([20,40,20])}catch(_){}
+      await tick(6)}
+    if(stop||id!==breathRun)return;ph.textContent=X.done;cnt.textContent="";c.querySelector("[data-stop]").hidden=true;speak(S.done,{lang:SL});wb.mind="calm";wbRender();log("care","اكتمل تمرين التنفس","6 دورات · مؤشر النفس: هادئ")})();
+  return{started:true,cycles:6,inhale_s:4,exhale_s:6}
+}
+function remaining(){return profile.rawdah.waitMin}
+const TOOLS={
+  get_density:{agent:"nav",desc:"يعيد مستوى الكثافة اللحظي (1 خفيفة، 2 متوسطة، 3 عالية) لمناطق الحرم الحالي: المطاف والمسعى في مكة أو مسار السلام في المدينة. استخدمه قبل اقتراح وقت الطواف أو السعي أو زيارة الروضة.",
+    run(){log("nav","استدعاء: مؤشر كثافة "+(state.site==="makkah"?"المطاف والمسعى":"مسار السلام"));
+      const d=site().density;card(head(ICON.crowd,"الكثافة الآن",site().name)+`<div class="rows">${d.map(([n,l])=>`<div class="row"><span>${esc(n)}</span><span class="lvl ${LVL[l][1]}">${LVL[l][0]}</span><div class="bar"><i class="${LVL[l][1]}" style="width:${LVL[l][2]}%"></i></div></div>`).join("")}</div><small style="color:var(--muted)">تحديث قبل دقيقة · مصدر: خدمة الكثافة اللحظية في الهيئة</small>`);
+      return Object.fromEntries(d.map(([n,l])=>[n,LVL[l][0]]))}},
+  get_prayer_hall_occupancy:{agent:"nav",desc:"يعيد نسبة إشغال المصليات (بالمئة) لكل دور، لاختيار المصلى الأقل ازدحاما قبل الصلاة.",
+    run(){log("nav","استدعاء: إشغال المصليات");const h=site().halls;
+      card(head(ICON.pray,"إشغال المصليات","قبل الصلاة")+`<div class="rows">${h.map(([n,p])=>`<div class="row"><span>${esc(n)}</span><span style="font-variant-numeric:tabular-nums">${p}%</span><div class="bar"><i class="${p>85?"l3":p>60?"l2":"l1"}" style="width:${p}%"></i></div></div>`).join("")}</div>`);
+      return Object.fromEntries(h.map(([n,p])=>[n,p+"%"]))}},
+  find_nearest:{agent:"nav",desc:"يبحث في الخريطة التفاعلية للهيئة عن أقرب نقطة خدمة من فئة محددة ويعرض للضيف بطاقة مسار. الفئات: cart (عربات), zamzam, wc (دورات مياه), medical, lost (التائهين والمفقودات), kids (ضيافة الأطفال), lift (مصاعد), pray (مصليات كبار السن وذوي الإعاقة), library, gate. يعيد الاسم والمسافة بالمتر والموقع.",
+    schema:{type:"object",properties:{category:{type:"string",enum:Object.keys(CATS)}},required:["category"]},
+    run({category}){const c=String(category in CATS?category:"gate");log("nav","استدعاء: الخريطة التفاعلية","فئة: "+CATS[c]);
+      const list0=site().places[c]||site().places.gate;const list=arguments[0]&&arguments[0].alt&&list0.length>1?list0.slice(1).concat(list0[0]):list0;const [n,d,w]=list[0];state.lastDest=n;state.lastDist=d;
+      card(head(ICON.map,"أقرب "+CATS[c],d+" م · "+walk(d)+" د مشيا")+`<div><b>${esc(n)}</b>${w?`<br><span style="color:var(--muted)">${esc(w)}</span>`:""}</div>${svgMap(d)}<div class="acts"><button class="primary" data-say="ابدأ الإرشاد الصوتي إلى ${esc(n)}">ابدأ الإرشاد</button>${list[1]?`<button data-say="أعطني البديل التالي لـ${CATS[c]}">بديل: ${esc(list[1][0])} (${list[1][1]} م)</button>`:""}</div>`);
+      return{nearest:n,distance_m:d,where:w,alternatives:list.slice(1).map(x=>({name:x[0],distance_m:x[1]}))}}},
+  request_cart:{agent:"svc",desc:"يرسل طلب عربة (كرسي متحرك مع دافع أو عربة كهربائية) إلى أقرب نقطة عربات ويعيد رقم تذكرة ووقت الوصول المتوقع. استخدمه عندما يطلب الضيف عربة أو يصعب عليه المشي. نوع العربة: wheelchair أو electric.",
+    schema:{type:"object",properties:{kind:{type:"string",enum:["wheelchair","electric"]},note:{type:"string"}}},
+    run({kind}){const k=kind==="electric"?"عربة كهربائية":"كرسي متحرك مع دافع";log("svc","استدعاء: طلب عربة","نوع: "+k);
+      const id="CART-"+Math.floor(1000+Math.random()*9000);const eta=4+Math.floor(Math.random()*5);const [n,d]=site().places.cart[0];
+      card(head(ICON.cart,"طلب عربة أرسل",n)+`<dl class="kv"><dt>النوع</dt><dd>${k}</dd><dt>نقطة الانطلاق</dt><dd>${esc(n)} (${d} م)</dd><dt>الوصول المتوقع</dt><dd>${eta} دقائق</dd></dl><div class="ticket">رقم الطلب <b>${id}</b><br><small style="color:var(--muted)">اعرض الرقم لمشرف العربات، وسيصلك تنبيه عند اقتراب الدافع</small></div><div class="acts"><button data-say="أين وصل طلبي ${id}؟">تتبع الطلب</button><button data-say="ألغ الطلب ${id}">إلغاء</button></div>`);
+      log("svc","أرسل الطلب إلى مقدم الخدمة","تذكرة "+id+" · لوحة الجهات التشغيلية محدثة");
+      return{ticket:id,eta_min:eta,pickup:n,kind:k}}},
+  report_lost:{agent:"svc",desc:"يفتح بلاغا في مكاتب التائهين والمفقودات: شخص تائه (person) أو غرض مفقود (item). يعيد رقم البلاغ والمكتب الأقرب. اجمع الوصف أولا إن لم يكن موجودا.",
+    schema:{type:"object",properties:{type:{type:"string",enum:["person","item"]},description:{type:"string"}},required:["type","description"]},
+    run({type,description}){const p=type==="person";log("svc","استدعاء: بلاغ "+(p?"شخص تائه":"غرض مفقود"),String(description||""));
+      const id=(p?"LP-":"LI-")+Math.floor(10000+Math.random()*89999);const [n,d,w]=site().places.lost[0];
+      card(head(ICON.lost,p?"بلاغ تائه فتح":"بلاغ مفقودات فتح",n)+`<dl class="kv"><dt>الوصف</dt><dd>${esc(description||"")}</dd><dt>المكتب</dt><dd>${esc(n)}، ${esc(w)} (${d} م)</dd>${p?`<dt>التنبيه</dt><dd>وصل إلى فرق التائهين في جميع الأبواب</dd>`:""}</dl><div class="ticket">رقم البلاغ <b>${id}</b></div><div class="acts"><button class="primary" data-say="دلني على مكتب التائهين">دلني على المكتب</button></div>`);
+      log("svc","أبلغ الجهة المختصة","بلاغ "+id);return{report:id,office:n,distance_m:d}}},
+  book_children_center:{agent:"svc",desc:"يحجز مكانا في مركز ضيافة الأطفال أثناء صلاة محددة ويعيد رقم الحجز. المدخلات: عدد الأطفال، الصلاة.",
+    schema:{type:"object",properties:{children:{type:"number"},prayer:{type:"string"}},required:["children"]},
+    run({children,prayer}){const c=Number(children)||1;log("svc","استدعاء: حجز مركز ضيافة الأطفال",c+" طفل");
+      const id="KID-"+Math.floor(100+Math.random()*900);const [n,d,w]=site().places.kids[0];
+      card(head(ICON.kids,"حجز ضيافة الأطفال",n)+`<dl class="kv"><dt>الأطفال</dt><dd>${c}</dd><dt>الصلاة</dt><dd>${esc(prayer||"القادمة")}</dd><dt>الموقع</dt><dd>${esc(w)} (${d} م)</dd></dl><div class="ticket">رقم الحجز <b>${id}</b><br><small style="color:var(--muted)">أحضر هوية ولي الأمر عند التسليم والاستلام</small></div>`);
+      return{booking:id,center:n,distance_m:d}}},
+  sermon_translation:{agent:"rite",desc:"يصل الضيف ببث ترجمة الخطبة والدروس من منصة منارة الحرمين بلغته (يدعم 37+ لغة) ويعيد تردد البث وقناة التطبيق. المدخل: رمز اللغة مثل ur, en, id, tr, fr.",
+    schema:{type:"object",properties:{lang:{type:"string"}}},
+    run({lang}){const l=String(lang||state.lang);const name=LANGS[l]||l;log("rite","استدعاء: منارة الحرمين (ترجمة)","لغة: "+name);
+      card(head(ICON.tr,"ترجمة الخطبة بلغتك",name)+`<dl class="kv"><dt>القناة</dt><dd>منارة الحرمين · ${esc(name)}</dd><dt>FM داخل الحرم</dt><dd>${(89+Object.keys(LANGS).indexOf(l)*1.4).toFixed(1)} MHz</dd><dt>القادم</dt><dd>خطبة الجمعة · ترجمة فورية</dd></dl><div class="acts"><button class="primary" data-say="شغل البث">تشغيل البث</button><button data-say="أين سماعات ضعاف السمع؟">سماعات ضعاف السمع</button></div>`);
+      return{platform:"منارة الحرمين",language:name,live:true}}},
+  get_lessons_and_prayers:{agent:"rite",desc:"يعيد مواقيت الصلاة اليوم وجدول الدروس العلمية في الحرم الحالي مع أماكنها.",
+    run(){log("rite","استدعاء: مواقيت الصلاة وجدول الدروس");
+      card(head(ICON.cal,"اليوم في "+site().name,"")+`<dl class="kv">${PRAYERS.map(([n,t])=>`<dt>${n}</dt><dd>${t}</dd>`).join("")}</dl><div style="margin-top:6px;font-weight:600">الدروس العلمية</div><dl class="kv">${LESSONS.map(([t,n,w])=>`<dt>${t}</dt><dd>${esc(n)}<br><span style="color:var(--muted)">${esc(w)}</span></dd>`).join("")}</dl>`);
+      return{prayers:Object.fromEntries(PRAYERS),lessons:LESSONS.map(([t,n,w])=>({time:t,title:n,where:w}))}}},
+  book_visit:{agent:"svc",desc:"يحجز موعدا عبر بوابة الزيارات للمكتبة أو معرض عمارة الحرمين أو مجمع كسوة الكعبة ويعيد رقم الحجز. المدخل: place (library, exhibition, kiswa) والوقت المفضل.",
+    schema:{type:"object",properties:{place:{type:"string",enum:["library","exhibition","kiswa"]},time:{type:"string"}},required:["place"]},
+    run({place,time}){const P={library:"مكتبة الحرم",exhibition:"معرض عمارة الحرمين الشريفين",kiswa:"مجمع الملك عبدالعزيز لكسوة الكعبة"};const n=P[place]||P.library;log("svc","استدعاء: بوابة الزيارات",n);
+      const id="VIS-"+Math.floor(1000+Math.random()*9000);
+      card(head(ICON.book,"حجز زيارة",n)+`<dl class="kv"><dt>الموعد</dt><dd>${esc(time||"غدا 10:00 صباحا")}</dd><dt>المدة</dt><dd>45 دقيقة · مرشد بلغتك</dd></dl><div class="ticket">رقم الحجز <b>${id}</b></div>`);
+      return{booking:id,place:n}}},
+  accessibility_services:{agent:"care",desc:"يعيد خدمات ذوي الإعاقة المتاحة الآن: لغة الإشارة للخطب، سماعات ضعاف السمع، مصاحف برايل وقلم قارئ، عصي بيضاء، مصليات مخصصة، وأماكن الحصول عليها. المدخل: need (deaf, blind, mobility).",
+    schema:{type:"object",properties:{need:{type:"string",enum:["deaf","blind","mobility"]}}},
+    run({need}){const N={deaf:["للصم وضعاف السمع",["مترجم لغة الإشارة للخطبة والدروس","المصلى المخصص، توسعة الملك فهد"],["سماعات ضعاف السمع","مكاتب الإرشاد عند الأبواب الرئيسية"]],blind:["لضعاف البصر",["مصاحف برايل ومصاحف بقلم قارئ","مكتب خدمات ذوي الإعاقة، بوابة 64"],["عصي بيضاء ومرافق للطواف","نقاط الإرشاد"]],mobility:["لذوي الإعاقة الحركية",["عربات ومسارات خاصة بالطواف والسعي","الدور الأول والسطح"],["مصليات مخصصة قريبة من المصاعد","بوابة 64 وبوابة 1"]]};const x=N[need]||N.mobility;log("care","استدعاء: خدمات ذوي الإعاقة",x[0]);
+      card(head(ICON.cart,"خدمات "+x[0],"")+`<dl class="kv">${x.slice(1).map(([a,b])=>`<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join("")}</dl><div class="acts"><button class="primary" data-say="دلني على أقرب مصلى مخصص">أقرب مصلى مخصص</button></div>`);
+      return{services:x.slice(1).map(([a,b])=>({service:a,where:b}))}}},
+  emergency:{agent:"care",desc:"حالة طارئة صحية أو أمنية: يرسل بلاغا فوريا لأقرب مركز للهلال الأحمر أو مركز طبي تابع للهيئة ويعرض أقصر مسار. استخدمه فورا عند أي إغماء أو ألم شديد أو خطر.",
+    schema:{type:"object",properties:{description:{type:"string"}}},
+    run({description}){wb.body="pain";wbRender();log("care","استدعاء: بلاغ طوارئ","أولوية قصوى");const [n,d,w]=site().places.medical[0];const id="EMG-"+Math.floor(100+Math.random()*900);
+      card(head(ICON.med,"بلاغ طوارئ أرسل",n)+`<dl class="kv"><dt>الحالة</dt><dd>${esc(description||"طلب مساعدة عاجلة")}</dd><dt>أقرب مركز</dt><dd>${esc(n)}، ${esc(w)} (${d} م)</dd><dt>الفريق</dt><dd>في الطريق إليك · موقعك مشارك</dd></dl><div class="ticket">رقم البلاغ <b>${id}</b></div>${svgMap(d)}`,"alert crit");
+      return{report:id,center:n,distance_m:d,team_dispatched:true}}},
+  update_preferences:{agent:"sup",desc:"يحفظ تفضيلا أو حاجة دائمة ذكرها الضيف في ملفه ليخدمه بها لاحقا دون أن يعيدها. المدخلات (اختيارية): mobility (walk, slow, cart)، kids (عدد الأطفال)، quiet (0/1)، lessons (0/1)، rest (0/1)، hearing (0/1)، tawafFloor (0/1)، stage (arrive بعد الوصول، tawaf إذا قال إنه أتم الطواف، saee إذا قال إنه أتم السعي). مرحلة النسك تؤخذ فقط مما يقوله الضيف، لا تستنتجها.",
+    schema:{type:"object",properties:{mobility:{type:"string",enum:["walk","slow","cart"]},kids:{type:"number"},quiet:{type:"number"},lessons:{type:"number"},rest:{type:"number"},hearing:{type:"number"},tawafFloor:{type:"number"},stage:{type:"string",enum:["arrive","tawaf","saee"]}}},
+    run(input){const ch=[];for(const k of ["mobility","kids","quiet","lessons","rest","hearing","tawafFloor","stage"]){if(input[k]!==undefined&&input[k]!==null){profile[k]=(k==="mobility"||k==="stage")?String(input[k]):Number(input[k]);SRC[k]="من حديثه";ch.push(k)}}
+      saveProfile();renderKnown();log("sup","حدث ملف الضيف","حفظ: "+ch.join("، "));
+      card(head("👤","حفظت هذا في ملفك","")+`<div>${profileText().filter(x=>ch.includes(x[2])).map(x=>x[0]+": "+esc(x[1])).join(" · ")}</div><small style="color:var(--muted)">تستطيع تعديله من زر الملف في الأعلى</small>`);
+      return{saved:ch}}},
+  family_locate:{agent:"svc",desc:"يعيد موقع كل فرد من عائلة الضيف يشارك موقعه (من مجموعة كنف)، والمسافة بالمتر عنه، وآخر تحديث. استخدمه أولا عندما يسأل الضيف عن أحد من عائلته أو يقول إنه ضاع عنه، قبل فتح بلاغ تائه.",
+    run(){log("svc","استدعاء: مواقع العائلة (مجموعة كنف)",profile.family.filter(f=>f.sharing).length+" يشاركون");
+      const s=site();const pos=famPositions();
+      card(head("👨‍👩‍👧","عائلتك الآن","مجموعة كنف")+`<div class="rows">${pos.map(f=>`<div class="row"><span><b>${esc(f.name)}</b> <span style="color:var(--muted)">${esc(f.rel)}</span><br><span style="color:var(--muted)">${f.sharing?esc(f.where)+" · قبل "+f.ago+" د":"لا يشارك موقعه · "+esc(f.phone)}</span></span><span style="font-variant-numeric:tabular-nums">${f.sharing?f.dist+" م":""}</span></div>`).join("")}</div>${svgFamily(pos)}<div class="acts"><button class="primary" data-say="حدد نقطة لقاء لنا كلنا">نقطة لقاء قريبة</button><button data-say="نلتقي في الفندق">نلتقي في الفندق</button><button data-say="أرسل موقعي ليوسف">أرسل موقعي ليوسف</button><button data-say="اتصل بيوسف">اتصال</button></div>`);
+      return pos.map(f=>({name:f.name,relation:f.rel,sharing:!!f.sharing,distance_m:f.sharing?f.dist:null,where:f.sharing?f.where:null,phone:f.phone}))}},
+  set_meeting_point:{agent:"nav",desc:"يحدد نقطة لقاء للعائلة ويرسل المسار إليها لكل فرد يشارك موقعه. place: nearest (أقرب نقطة واضحة من الخريطة التفاعلية، للقاء سريع داخل الحرم) أو home (السكن/الفندق، الأنسب بعد الصلاة أو عند تعب الضيف أو قرب موعد الرجوع). اختر home تلقائيا إن طلب الضيف الفندق أو كان متعبا أو كان الوقت متأخرا. يعيد اسم النقطة ووقت وصول كل فرد.",
+    schema:{type:"object",properties:{place:{type:"string",enum:["nearest","home"]}}},
+    run({place}){const s=site();const home=place==="home";
+      if(home){log("nav","استدعاء: نقطة اللقاء في السكن",HOME().home);const [g,d]=s.places.gate[0];state.lastDest="الفندق";state.lastDist=d+(HOME().dist||600);const hd=HOME().dist||600;const me=walk(d+hd),y=walk(d+hd+90),k=walk(d+hd+140);
+        card(head("🏨","نلتقي في الفندق","أرسل للجميع")+`<dl class="kv"><dt>المكان</dt><dd>${esc(HOME().home)}</dd><dt>أنت</dt><dd>من ${esc(g)}، نحو ${me} دقيقة</dd><dt>يوسف</dt><dd>نحو ${y} دقيقة</dd><dt>خديجة والأطفال</dt><dd>نحو ${k} دقيقة</dd></dl><div>وصل كل واحد مساره من مكانه، وسأخبرك عند وصولهم.</div>${svgMap(d+200)}<div class="acts"><button class="primary" data-say="ابدأ الإرشاد إلى الفندق">ابدأ الإرشاد</button><button data-say="بل نلتقي في نقطة قريبة داخل الحرم">نقطة قريبة بدلا منه</button></div>`);
+        return{meeting_point:HOME().home,eta_min:{me,يوسف:y,خديجة:k},sent_to:profile.family.filter(f=>f.sharing).map(f=>f.name)}}
+      log("nav","استدعاء: نقطة لقاء من الخريطة التفاعلية","أقرب نقطة واضحة للجميع");const [n,d,w]=s.places.gate[1];state.lastDest=n;state.lastDist=d;
+      card(head(ICON.map,"نقطة اللقاء: "+n,"أرسلت للجميع")+`<div>${esc(w||"نقطة واضحة ومظللة")}. أنت على بعد ${d} م، ويوسف ${d+90} م، وخديجة ${d+140} م. وصلهم المسار على هواتفهم.</div>${svgMap(d)}<div class="acts"><button class="primary" data-say="ابدأ الإرشاد إلى نقطة اللقاء">ابدأ الإرشاد</button><button data-say="نلتقي في الفندق">بل في الفندق</button></div>`);
+      return{meeting_point:n,where:w,distances_m:{me:d,يوسف:d+90,خديجة:d+140},sent_to:profile.family.filter(f=>f.sharing).map(f=>f.name)}}},
+  share_location:{agent:"svc",desc:"يرسل موقع الضيف الحالي (البوابة والدور ونقطة الخريطة) إلى فرد من عائلته برسالة، أو يبدأ اتصالا به. المدخلات: member (الاسم)، mode (share أو call).",
+    schema:{type:"object",properties:{member:{type:"string"},mode:{type:"string",enum:["share","call"]}},required:["member"]},
+    run({member,mode}){const f=profile.family.find(x=>x.name.includes(String(member||"")))||profile.family[0];const call=mode==="call";log("svc",call?"اتصال بفرد من العائلة":"إرسال الموقع لفرد من العائلة",f.name);
+      card(head(call?"📞":"📍",call?"اتصال بـ"+f.name:"أرسل موقعك إلى "+f.name,f.phone)+`<div>${call?"جار الاتصال… إن لم يرد سأرسل له موقعك برسالة.":"وصلته رسالة: «أنا عند "+esc(site().spot)+"، "+esc(site().name)+"» مع رابط الخريطة."}</div>`);
+      return{to:f.name,phone:f.phone,mode:call?"call":"shared",location:site().spot}}},
+  go_home:{agent:"nav",desc:"يرشد الضيف إلى مكان سكنه (محدد تلقائيا من أول ليلة أو مدخل في ملفه) بأقصر مسار من موقعه الحالي، ويعيد اسم السكن والمسافة والباب الأنسب للخروج.",
+    run(){log("nav","استدعاء: المسار إلى السكن",HOME().home);const s=site();const [g,d]=s.places.gate[0];state.lastDest="الفندق";state.lastDist=d+(HOME().dist||600);
+      card(head("🏨","طريق العودة إلى السكن","")+`<dl class="kv"><dt>السكن</dt><dd>${esc(HOME().home)}</dd><dt>الخروج</dt><dd>${esc(g)}، ${d} م من موقعك</dd><dt>المشي</dt><dd>نحو ${walk(d+(HOME().dist||600))} دقيقة، مع استراحة مظللة في المنتصف</dd></dl>${svgMap(d+200)}<div class="acts"><button class="primary" data-say="ابدأ الإرشاد إلى السكن">ابدأ الإرشاد</button><button data-say="أرسل طريق العودة ليوسف">أرسله ليوسف</button></div>`);
+      return{home:HOME().home,exit_gate:g,distance_m:d+(HOME().dist||600)}}},
+  start_guidance:{agent:"nav",desc:"يبدأ الإرشاد الصوتي خطوة بخطوة إلى وجهة محددة باسمها (كما أعادتها find_nearest أو set_meeting_point أو go_home)، بلغة الضيف. استخدمه عندما يقول الضيف ابدأ الإرشاد أو دلني أو وجهني.",
+    schema:{type:"object",properties:{destination:{type:"string"},distance_m:{type:"number"}},required:["destination"]},
+    run({destination,distance_m}){return guidance(String(destination||"الوجهة"),Number(distance_m)||150)}},
+  plan_prayer:{agent:"svc",desc:"ينفذ خطة الصلاة دفعة واحدة: يحجز للأطفال في مركز ضيافة الأطفال للصلاة القادمة ثم يرسل المسار إلى المصلى الأقل إشغالا المناسب لملف الضيف. استخدمه عندما يوافق الضيف على اقتراح الصلاة.",
+    run(){const r1=TOOLS.book_children_center.run({children:profile.kids||1,prayer:"العصر"});const r2=TOOLS.find_nearest.run({category:"pray"});return{children:r1,hall:r2}}},
+  confirm_home:{agent:"sup",desc:"يؤكد أو يصحح مكان السكن الذي استنتجه كنف من مبيت الضيف. المدخلات: confirmed (1 أو 0)، home (اسم السكن الصحيح إن ذكره الضيف).",
+    schema:{type:"object",properties:{confirmed:{type:"number"},home:{type:"string"}}},
+    run({confirmed,home}){if(Number(confirmed)){HOME().confirmed=1;SRC.home="حدده كنف من مبيتك وأكدته أنت";log("sup","أكد الضيف السكن",HOME().home);
+        card(head("🏨","اعتمدت سكنك","مؤكد")+`<div>${esc(HOME().home)}. سأستخدمه لطريق العودة ونقطة اللقاء والتذكير بالرجوع.</div>`)}
+      else{if(home){HOME().home=String(home);HOME().confirmed=1;SRC.home="أدخله بنفسه"}else{HOME().confirmed=0;SRC.home="غير مؤكد"}log("sup","الضيف صحح السكن",HOME().home);
+        card(head("🏨",home?"حدثت سكنك":"أين سكنك؟","")+`<div>${home?esc(HOME().home):"اكتب لي اسم الفندق أو الحي، أو افتح ملفك وعدله، وحتى ذلك لن أعتمد أي سكن."}</div>`)}
+      saveProfile();renderKnown();return{home:HOME().home,confirmed:!!HOME().confirmed}}},
+  sign_interpreter:{agent:"care",desc:"يطلب مترجم لغة إشارة من خدمة إرشاد الهيئة (مكالمة فيديو أو حضور لأقرب نقطة إرشاد) للضيف الأصم أو ضعيف السمع عندما لا تكفي الإشارات المحدودة التي يفهمها كنف. يعيد زمن الاستجابة المتوقع.",
+    schema:{type:"object",properties:{mode:{type:"string",enum:["video","inperson"]}}},
+    run({mode}){const m=mode==="inperson"?"حضور":"فيديو";log("care","استدعاء: الإرشاد بلغة الإشارة (الهيئة)","طلب مترجم "+m);
+      card(head("🤟","مترجم إشارة من الهيئة","إرشاد الهيئة بلغة الإشارة")+`<dl class="kv"><dt>الطريقة</dt><dd>${m==="فيديو"?"مكالمة فيديو داخل كنف":"مرشد يأتيك عند أقرب نقطة إرشاد"}</dd><dt>الاستجابة</dt><dd>نحو ${m==="فيديو"?"دقيقتين":"8 دقائق"}</dd><dt>حتى يصل</dt><dd>أكمل معي بالكتابة أو بالإشارات التي أفهمها</dd></dl><div class="acts"><button class="primary" data-say="${m==="فيديو"?"أبغى مرشدا يحضر إلي":"أبغى مكالمة فيديو مع المترجم"}">${m==="فيديو"?"بدلا منه: حضور مرشد":"بدلا منه: مكالمة فيديو"}</button></div>`);
+      return{requested:m,eta_min:m==="فيديو"?2:8}}},
+  medication:{agent:"care",desc:"تذكير فقط بالدواء الذي ذكره الضيف بنفسه ومواعيده؛ لا يقترح كنف دواء ولا جرعة ولا يقرأ سجله الطبي: action=add يسجل دواء ومواعيده، action=taken يسجل أنه أخذه ويزيل التنبيه، action=due يذكره بموعد الآن مع الماء وأقرب مكان جلوس، action=status يعرض الأدوية ومواعيدها. المدخلات: action, name, times (مثل 08:00).",
+    schema:{type:"object",properties:{action:{type:"string",enum:["add","taken","due","status"]},name:{type:"string"},times:{type:"array",items:{type:"string"}}},required:["action"]},
+    run({action,name,times}){const s=site();
+      if(action==="add"){const m={name:String(name||"دواء"),times:Array.isArray(times)&&times.length?times.map(String):["08:00"],withFood:0};profile.meds.push(m);saveProfile();renderKnown();log("care","سجل دواء من حديثه",m.name+" · "+m.times.join("، "));
+        card(head("💊","سجلت الدواء","من حديثك")+`<dl class="kv"><dt>الدواء</dt><dd>${esc(m.name)}</dd><dt>المواعيد</dt><dd>${esc(m.times.join(" و "))}</dd><dt>الخصوصية</dt><dd>يبقى على هاتفك، ولا يرسل للهيئة</dd></dl>`);return{added:m}}
+      if(action==="taken"){const n=wb.medDue?wb.medDue.name:(name||"الدواء");wb.medDue=null;wb.answered=Date.now();wbRender();log("care","أخذ "+n,"أزيل التنبيه، والموعد التالي محفوظ");card(head("💊","الحمد لله، سجلت أنك أخذت "+esc(n),"")+`<div>الموعد التالي ${esc(nextDose())}، وسأذكرك به بالصوت.</div>`);return{taken:n}}
+      if(action==="due"){const m=profile.meds[0]||{name:String(name||"الدواء"),withFood:1};wb.medDue={name:m.name,at:Date.now()};wbRender();const z=(s.places.zamzam||[])[0];const near=z?{name:z[0],dist:z[1]}:null;
+        log("care","حان موعد "+m.name,"تذكير بالصوت مع الماء ومكان جلوس");
+        card(head("💊","حان موعد "+esc(m.name),"من حديثك")+`<div>تذكير فقط بما ذكرته لي. الماء: ${near?esc(near.name)+" على بعد "+near.dist+" م":"أقرب زمزم قريب"}.</div><div class="acts"><button class="primary" data-say="أخذت الدواء">أخذته</button><button data-say="ذكرني بالدواء بعد ربع ساعة">بعد ربع ساعة</button></div>`);return{due:m.name}}
+      log("care","حالة الدواء",profile.meds.map(m=>m.name+" "+m.times.join("/")).join("، ")||"لا دواء مسجل");
+      card(head("💊","أدويتك كما ذكرتها لي","")+(profile.meds.length?`<dl class="kv">${profile.meds.map(m=>`<dt>${esc(m.name)}</dt><dd>${esc(m.times.join(" و "))}</dd>`).join("")}<dt>التالي</dt><dd>${esc(nextDose())}</dd></dl>`:`<div>لم تذكر لي دواء بعد. قل لي اسمه وموعده وأذكرك به.</div>`));return{meds:profile.meds}}},
+  set_reminder:{agent:"sup",desc:"يضبط تذكيرا للضيف قبل حدث (درس، موعد الروضة، صلاة، استلام الأطفال) بعدد دقائق. يعيد تأكيدا.",
+    schema:{type:"object",properties:{event:{type:"string"},minutes_before:{type:"number"}},required:["event"]},
+    run({event,minutes_before}){const m=Number(minutes_before)||10;log("sup","ضبط تذكير",String(event)+" · قبله بـ"+m+" د");
+      card(head("⏰","تذكير مضبوط","")+`<dl class="kv"><dt>الحدث</dt><dd>${esc(String(event||""))}</dd><dt>التنبيه</dt><dd>قبله بـ${m} دقائق، صوتا ورسالة</dd></dl>`);return{reminder:String(event),minutes_before:m}}},
+  track_request:{agent:"svc",desc:"يتتبع حالة طلب سابق برقم التذكرة (عربة أو بلاغ) أو يلغيه. المدخلات: ticket، action (status أو cancel).",
+    schema:{type:"object",properties:{ticket:{type:"string"},action:{type:"string",enum:["status","cancel"]}}},
+    run({ticket,action}){const t=String(ticket||"الطلب");const cancel=action==="cancel";log("svc",cancel?"إلغاء طلب":"تتبع طلب",t);
+      card(head(ICON.tick,cancel?"ألغي الطلب "+t:"حالة الطلب "+t,"")+`<div>${cancel?"أبلغت مقدم الخدمة، ولن تحسب عليك أي رسوم. أطلبه لك مجددا متى شئت.":"الدافع في الطريق إليك، على بعد نحو 60 مترا، يصل خلال دقيقتين. اسمه سعيد ويرتدي سترة خضراء."}</div>`);
+      return{ticket:t,status:cancel?"cancelled":"on_the_way",eta_min:cancel?null:2}}},
+  play_stream:{agent:"rite",desc:"يشغل بث ترجمة الخطبة أو الدرس من منارة الحرمين بلغة الضيف داخل التطبيق.",
+    run(){log("rite","تشغيل بث منارة الحرمين",LANGS[state.lang]||"");card(head("▶️","البث يعمل","منارة الحرمين · "+(LANGS[state.lang]||"العربية"))+`<div>ترجمة فورية بلغتك. ضع السماعة وسأخفض الصوت تلقائيا عند الأذان.</div>`);return{playing:true,language:LANGS[state.lang]}}},
+  set_mind_ok:{agent:"care",desc:"يسجل أن الضيف بخير ويعيد مؤشر النفس إلى هادئ.",run(){wb.mind="calm";wb.answered=Date.now();if(health.hr>=110&&!health.moving){health.hr=96}healthAsked=false;wbRender();log("care","الضيف بخير","الحالة: عافية جيدة بحسب إجاباته");return{ok:true}}},
+  reset_body:{agent:"care",desc:"يسجل أن الضيف شرب واستراح ويعيد مؤشر الجسد إلى بخير.",run(){wb.body="ok";wb.lastDrink=Date.now();wb.reminded=false;wb.answered=Date.now();health.hr=82;health.rr=17;health.spo2=97;health.ts=Date.now();healthAsked=false;wbRender();log("care","شرب واستراح","بدأ عد الماء من جديد");return{ok:true}}},
+  wellbeing_checkin:{agent:"care",desc:"يسأل الضيف كيف يشعر الآن (بخير، متعب، عطشان، متوتر، ألم) ويعرض أزرارا سريعة، ويحدث مؤشر العافية. استخدمه بعد وقت طويل من المشي أو الانتظار أو عندما يبدو الضيف منهكا.",
+    run(){log("care","فحص عافية: كيف تشعر الآن؟","مؤشر الجسد والنفس");
+      card(head("💚","كيف تشعر الآن يا "+profile.name+"؟","فحص عافية")+`<div class="muted">من تطبيق الصحة بإذنك: ${healthLine()} · الحر ${site().temp}°</div><div>زر واحد يكفي، وأرتب الباقي.</div><div class="acts"><button class="primary" data-say="أنا بخير الحمد لله">بخير</button><button data-say="أنا تعبان">متعب</button><button data-say="أنا عطشان">عطشان</button><button data-say="أحس بتوتر">متوتر</button><button data-say="عندي ألم في صدري وضيق نفس">ألم</button></div>`);
+      return{asked:true}}},
+  hydration_rest:{agent:"care",desc:"خطة الجسد: يقترح الماء والظل والراحة الآن بحسب الحرارة والوقت منذ آخر شرب أو جلوس وملف الضيف، ويعيد ضبط مؤشر العافية. المدخل: need (water, rest, both).",
+    schema:{type:"object",properties:{need:{type:"string",enum:["water","rest","both"]}}},
+    run({need}){const s=site();const n=need||"both";wb.body=n==="water"?"thirsty":"tired";wb.answered=Date.now();wbRender();log("care","خطة الجسد: "+(n==="water"?"ماء":n==="rest"?"راحة":"ماء وراحة"),"الحرارة "+s.temp+"° · بحسب ما قاله الضيف");
+      const z=s.places.zamzam[0],r=s.places.rest[0];
+      card(head("💧","وقت الماء والراحة","خطة الجسد")+`<dl class="kv">${n!=="rest"?`<dt>ماء</dt><dd>${esc(z[0])} (${z[1]} م)، كوبان على مهل</dd>`:""}${n!=="water"?`<dt>راحة</dt><dd>${esc(r[0])} (${r[1]} م)، 10 دقائق في الظل</dd>`:""}<dt>لماذا الآن</dt><dd>الحرارة ${s.temp}°، والعطش عند كبار السن لا يُحس به مبكرا</dd></dl><div class="acts"><button class="primary" data-say="دلني على أقرب زمزم">دلني</button><button data-say="شربت وارتحت">شربت وارتحت</button></div>`,"alert");
+      return{water:z[0],rest:r[0],temp:s.temp}}},
+  waiting_mode:{agent:"care",desc:"وضع الانتظار عند الروضة الشريفة: يعرض يقين الموعد المحجوز عبر كنف، الوقت المتوقع من كثافة مسار السلام، أقرب مكان جلوس مظلل، ويعد بتنبيه قبل الدور. استخدمه تلقائيا عندما يكون الضيف في المسجد النبوي وله موعد روضة قادم.",
+    run(){const s=site();const d=s.density[0][1];const w=remaining();log("care","وضع الانتظار: موعد الروضة محجوز عبر كنف","الدور محفوظ · انتظار متوقع "+w+" د · كثافة "+LVL[d][0]);
+      card(head("🕌","وضع الانتظار: دورك محفوظ","روضة · "+profile.rawdah.slot)+`<div class="big">${w} دقيقة</div><div>الوقت المتوقع للوصول إلى الروضة من كثافة مسار السلام (${LVL[d][0]} الآن). موعدك ${profile.rawdah.slot} مؤكد، ولن يفوتك بمشيئة الله ما دام هاتفك معك. الدخول بالتفويج، فاجلس مرتاحا حتى أنبهك.</div><dl class="kv" style="margin-top:6px"><dt>اجلس هنا</dt><dd>${esc(s.places.rest[0][0])} (${s.places.rest[0][1]} م)، ماء وظل</dd><dt>سأنبهك</dt><dd>عندما يحين تحرك فوجك، صوتا واهتزازا</dd></dl><div class="acts"><button class="primary" data-say="أجلس وأنتظر تنبيهك">أجلس وأنتظر تنبيهك</button><button data-say="تنفس معي">تنفس معي</button><button data-say="أذكار وآداب الروضة">أذكار وآداب الروضة</button></div>`,"wait");
+      return{slot:profile.rawdah.slot,wait_min:w,density:LVL[d][0],rest:s.places.rest[0][0]}}},
+  start_breathing:{agent:"care",desc:"يبدأ تمرين تنفس بطيء لمدة دقيقة (شهيق 4 ثوان، زفير 6 ثوان، بلا حبس) بدائرة تتوسع وتنكمش وعد صوتي بلغة سماع الضيف، مع ذكر اختياري مع الزفير. للتهدئة عند الانتظار أو القلق أو التفرق. ليس علاجا: عند ألم صدر أو ضيق نفس شديد استدع emergency بدلا منه.",
+    run(){state.stressed=false;return breathing()}},
+  rawdah_guide:{agent:"rite",desc:"يعرض أذكار دخول المسجد النبوي والسلام على النبي وآداب الروضة باختصار بلغة قراءة الضيف، ويقرؤها بالصوت بلغة سماعه. استخدمه أثناء الانتظار.",
+    run(){log("rite","أذكار وآداب الروضة من مصادر الهيئة","قراءة بالعربية، صوت بالفرنسية");
+      card(head("📿","قبل أن تدخل الروضة","دقيقتان")+`<dl class="kv"><dt>عند الباب</dt><dd>بسم الله، والصلاة والسلام على رسول الله، اللهم افتح لي أبواب رحمتك</dd><dt>عند القبر</dt><dd>السلام عليك يا رسول الله ورحمة الله وبركاته، ثم السلام على صاحبيه، بصوت خافت ودون توقف طويل</dd><dt>في الروضة</dt><dd>ركعتان إن وجدت مكانا، ودعاء قصير، ثم أفسح لمن بعدك</dd><dt>تجنب</dt><dd>رفع الصوت، التصوير، الزحام على الشباك، المسح على الجدران</dd></dl><div class="acts"><button class="primary" data-say="اقرأ لي الأذكار بالصوت">اقرأها لي بالصوت</button></div>`);
+      return{sections:["عند الباب","عند القبر","في الروضة","تجنب"]}}},
+  rawdah_permit:{agent:"rite",desc:"يقرأ حالة تصريح زيارة الروضة الشريفة من نسك (خدمة خارجية) ويعيد الوقت المحجوز والباب الموصى به وحالة مسار السلام. للمسجد النبوي فقط.",
+    run(){log("rite","استدعاء: تصريح الروضة (نسك، خدمة خارجية)");const d=site().density[0][1];
+      card(head(ICON.pray,"تصريح الروضة الشريفة","نسك")+`<dl class="kv"><dt>الحالة</dt><dd>مؤكد</dd><dt>الوقت</dt><dd>اليوم 21:30 إلى 22:00</dd><dt>الدخول</dt><dd>باب السلام ثم مسار السلام</dd><dt>الكثافة الآن</dt><dd><span class="lvl ${LVL[d][1]}">${LVL[d][0]}</span></dd></dl><div class="acts"><button class="primary" data-say="ذكرني قبل موعد الروضة بنصف ساعة">ذكرني قبل الموعد</button></div>`);
+      return{status:"confirmed",slot:"21:30-22:00",gate:"باب السلام",density:LVL[d][0]}}}
+};
+
+/* ---------- proactive layer ---------- */
+function prayerPlan(){const s=site();const halls=s.halls.slice().sort((a,b)=>a[1]-b[1]);const best=halls[0];
+  const why=[profile.quiet?"هادئ":"",profile.mobility!=="walk"?"قريب من المصعد":""].filter(Boolean).join(" و");
+  log("rite","استباقي: العصر بعد 20 دقيقة",`اختار ${best[0]} (${best[1]}% إشغال)${why?" لأنه "+why:""}${profile.kids?" واقترح ضيافة الأطفال":""}`);
+  card(head(ICON.pray,"العصر بعد 20 دقيقة","استباقي")+`<div>مصلاك الأنسب الآن <b>${esc(best[0])}</b> (${best[1]}% إشغال)${why?"، "+why:""}، على بعد ${s.places.pray[0][1]} م.${profile.kids?" ومركز ضيافة الأطفال في طريقك، فيه أماكن لـ"+(profile.kids===1?"حفيدك":"حفيديك")+".":""}</div><div class="acts"><button class="primary" data-say="${profile.kids?"احجز لأطفالي في ضيافة الأطفال ودلني على المصلى":"دلني على المصلى"}">${profile.kids?"احجز ودلني":"دلني"}</button><button data-say="أين أصلي العصر؟">مصلى آخر</button></div>`,"alert")}
+function proactive(){
+  const s=site();
+  if(HOME().auto&&!HOME().confirmed){log("sup","استباقي: استنتج السكن من مبيت الليلة الماضية ويطلب التأكيد",HOME().home);
+    card(head("🏨","هل هذا سكنك؟","يحتاج تأكيدك")+`<div>لاحظت أنك بت الليلة الماضية في <b>${esc(HOME().home)}</b>. أعتمده سكنا لك لأدلك على طريق العودة ونقطة اللقاء؟</div><div class="acts"><button class="primary" data-say="نعم هذا سكني">نعم، هذا سكني</button><button data-say="لا، سكني في مكان آخر">لا، مكان آخر</button></div>`,"alert")}
+  if(state.site==="madinah"&&profile.rawdah){TOOLS.waiting_mode.run()}
+  wb.body="ok";wb.mind="calm";wb.lastDrink=Date.now();wb.reminded=false;wb.answered=0;wbRender();log("care","بدأ عد الماء من فتح التطبيق","يذكره بعد "+(s.temp>=40?30:45)+" دقيقة في هذا الحر، ويعيد العد عندما يقول شربت");
+  if(s.temp>=38){log("care","خطة الجسد الاستباقية","الحرارة "+s.temp+"° · عمره "+profile.age+" · "+(profile.rest?"يريد تذكير الراحة":""));
+    card(head("💚","عافيتك اليوم","الجسد")+`<div>الحرارة ${s.temp}° وأنت في الساحات المكشوفة. الزم الظل، واشرب قبل أن تعطش، وخذ المصعد بدل السلالم. أقرب ظل وزمزم على بعد ${s.places.zamzam[0][1]} م.</div><div class="acts"><button class="primary" data-say="دلني على أقرب زمزم">أقرب زمزم</button><button data-say="أين أقرب مكان مكيف؟">مكان مكيف</button><button data-say="كيف حالي الجسدية؟">كيف حالي</button></div>`,"alert")}
+  const hi=s.density.find(x=>x[1]===3);
+  if(hi){log("nav","تنبيه استباقي: كثافة عالية",hi[0]);
+    card(head(ICON.crowd,"الكثافة عالية في "+hi[0],"استباقي")+`<div>${state.site==="makkah"?"الأفضل تأجيل الطواف 40 دقيقة أو الطواف من الدور الأول.":"مسار السلام مزدحم الآن، وموعد تصريحك بعد ساعتين فلا داعي للتوجه الآن."}</div><div class="acts"><button class="primary" data-say="متى أفضل وقت ${state.site==="makkah"?"للطواف":"للروضة"}؟">أفضل وقت</button></div>`,"alert")}
+  if(profile.mobility!=="walk"||profile.age>=65){log("svc","استباقي من الملف: "+(profile.mobility==="cart"?"يحتاج عربة":"يتعب من المشي"),"العمر "+profile.age);
+    card(head(ICON.cart,profile.mobility==="cart"?"عربتك جاهزة للطلب":"مسار قصير يناسبك","من ملفك")+`<div>${profile.mobility==="cart"?"أقرب نقطة عربات على بعد "+s.places.cart[0][1]+" م، وأستطيع طلبها الآن لتصلك مكانك.":"أقرب مصلى مخصص ومصعد على بعد "+s.places.pray[0][1]+" م، والمسار عبر المصاعد لا السلالم."}</div><div class="acts"><button class="primary" data-say="اطلب لي عربة">اطلب عربة</button><button data-say="دلني على المصلى المخصص">المصلى المخصص</button></div>`,"alert")}
+  prayerPlan();
+  if(state.site==="makkah"&&profile.stage==="tawaf"){log("rite","استباقي مما قاله في المحادثة: أتم الطواف وبقي السعي",profile.tawafFloor?"يفضل الدور الأول":"");
+    card(head(ICON.pray,"بقي عليك السعي","كما أخبرتني")+`<div>كثافة المسعى ${LVL[s.density[1][1]][0]} الآن${profile.tawafFloor?"، والدور الأول الذي تفضله أخف":""}. الصفا على بعد ${s.places.zamzam[0][1]} م.</div><div class="acts"><button class="primary" data-say="دلني على الصفا من الدور الأول">دلني على الصفا</button><button data-say="أبغى أرتاح شوي قبل السعي">أرتاح أولا</button></div>`,"alert")}
+  if(profile.lessons){const L=LESSONS[1];log("rite","استباقي من الملف: يحب الدروس",L[1]);
+    card(head(ICON.book,"درس يناسبك "+L[0],"من ملفك")+`<div>${L[1]} في ${L[2]}. أذكرك قبله بعشر دقائق؟</div><div class="acts"><button class="primary" data-say="ذكرني قبل درس ${L[1]} بعشر دقائق">ذكرني</button></div>`)}
+  const far=famPositions().find(f=>f.sharing&&f.dist>=300);
+  if(far&&s.density.some(x=>x[1]===3)){log("svc","استباقي من مجموعة كنف: تفرقت العائلة",far.name+" على بعد "+far.dist+" م في كثافة عالية");
+    card(head("👨‍👩‍👧","تفرقتم؟ "+far.name+" على بعد "+far.dist+" م","مجموعة كنف")+`<div>الكثافة عالية بينكما. أحدد نقطة لقاء قريبة، أم تلتقون في الفندق بعد الصلاة؟</div><div class="acts"><button class="primary" data-say="حدد نقطة لقاء لنا كلنا">نقطة قريبة</button><button data-say="نلتقي في الفندق">في الفندق</button><button data-say="وين عائلتي الآن؟">أين الجميع</button></div>`,"alert")}
+  if(profile.hearing){log("care","استباقي من الملف: ضعف سمع","سماعات وترجمة");
+    card(head(ICON.tr,"سماعات ضعاف السمع","من ملفك")+`<div>تستلمها من مكتب الإرشاد عند أقرب باب، وتصلك الخطبة صوتا واضحا بلغتك.</div><div class="acts"><button class="primary" data-say="أين سماعات ضعاف السمع؟">أين أستلمها</button></div>`)}
+}
+
+/* ---------- agent: real (sample) or scripted router ---------- */
+function instructions(){
+  const s=site();const L=LANGS[state.lang]||"العربية";
+  return `أنت «كنف»، طبقة ذكية تفهم ضيف الرحمن وتصل احتياجاته بخدمات الهيئة في محادثة واحدة، لتقابل كل حاجة بعناية في وقتها وتصبح كل خدمة فرصة للوقاية (نعرف الضيف، نعرف المنصة، نكاملها). ترعى ثلاثة أبعاد لضيف الرحمن: عافية الجسد (الحر، الماء، الراحة، الدواء، إشارات تطبيق الصحة)، سكينة النفس (الهدوء، الانتظار، التوتر، التنفس)، وطيب الرحلة أي جودة حياته (الطريق، العائلة، الوقت، خدمات الهيئة كلها في مكان واحد وبكلمة واحدة) ويرافقه داخل ${s.name} ويتكامل مع خدمات الهيئة العامة للعناية بشؤون المسجد الحرام والمسجد النبوي. اكتب ردك بلغة القراءة التي يفضلها الضيف (${LANGS[profile.readLang]||"العربية"}) إلا إذا كتب هو بلغة أخرى فأجبه بها. ثم أضف في آخر الرد سطرا يبدأ بـ ||| فيه الرد نفسه مترجما إلى لغة السماع التي يفضلها (${LANGS[profile.speakLang]||"الفرنسية"})، لأن التطبيق يقرؤه له بالصوت. كن موجزا جدا (جملتان على الأكثر)، دافئا ومحترما، ولا تخترع معلومات: كل معلومة عن أماكن أو أرقام أو حالات تأتي من الأدوات فقط. استدع الأداة المناسبة مباشرة بدل أن تسأل أسئلة كثيرة، واسأل سؤالا واحدا فقط إن كان ضروريا. في الطوارئ استدع emergency فورا. الضيف يسمع ردك بالصوت، فاجعله قصيرا ومسموعا. راقب نبرته: إن دلت كتابته على توتر أو غضب أو تعب (تعجب متكرر، حروف ممدودة، كلمات ضيق) فابدأ بجملة تطمين قصيرة باسمه ثم نفذ الحل فورا دون أسئلة، وبعد الحل اعرض عليه start_breathing أو مكان جلوس. إذا قال ابدأ الإرشاد أو دلني فاستدع start_guidance بالوجهة الأخيرة. بعد استدعاء أداة، لا تكرر تفاصيلها (الضيف يرى بطاقتها)، بل أضف الخطوة التالية أو نصيحة قصيرة. السياق: موقع الضيف المحدد تلقائيا ${s.name}، ${s.spot}، ${s.city}، الحرارة ${s.temp}°، الوقت ${$("#clock").textContent}، ملف الضيف (استخدمه في كل قرار، وناده باسمه أحيانا): ${profileText().map(([k,v])=>k+": "+v).join("، ")}. ${state.site==="madinah"?"الضيف ينتظر دوره في الروضة الشريفة، موعده "+profile.rawdah.slot+" محجوز عبر كنف، والدخول بالتفويج، والانتظار المتوقع نحو "+profile.rawdah.waitMin+" دقيقة: اعتن براحته وهدوئه (الجلوس، الماء، التنفس البطيء بـ start_breathing، الأذكار بـ rawdah_guide) ولا تجعله يقف في الطابور. ":""}مؤشر عافيته الآن: ${wbState().t} (${wbState().w}). دواؤه كما ذكره بنفسه: ${profile.meds.map(m=>m.name+" "+m.times.join(" و ")).join("، ")||"لا دواء"}${wb.medDue?" (موعد "+wb.medDue.name+" حان ولم يأخذه بعد)":""}؛ إذا قال إنه أخذه فاستدع medication بـ action=taken، وإذا ذكر دواء جديدا فسجله بـ action=add. لا تقترح أبدا دواء أو جرعة أو بديلا، ولا تجب عن أسئلة طبية عن الأدوية؛ وجهه إلى المركز الطبي بـ find_nearest أو emergency. ${state.signMode?"الضيف في وضع الإشارة (أصم أو ضعيف سمع): اكتب له نصا قصيرا وواضحا، ولا تعتمد على الصوت، وإن احتاج ما يتجاوز الإشارات البسيطة فاستدع sign_interpreter. ":""}قراءات تطبيق الصحة بإذنه: ${healthLine()} (إشارة أولية لا تشخيص؛ نبض مرتفع مع مشي طبيعي، واسأله قبل أن تحكم، وفي الأكسجين المنخفض أو النبض المرتفع بلا حركة في الحر استدع emergency). عائلته في مجموعة كنف: ${profile.family.map(f=>f.name+" ("+f.rel+(f.sharing?"، يشارك موقعه":"، لا يشارك")+")").join("، ")}. سكنه: ${HOME().home}${HOME().auto&&!HOME().confirmed?" (استنتجه كنف من مبيته ولم يؤكده بعد؛ إن أكده فاستدع confirm_home)":" (مؤكد)"}. إذا سأل عن أحد عائلته أو قال إنه ضاع عنه فاستدع family_locate أولا، وافتح بلاغ تائه فقط إن لم يكن يشارك موقعه أو طلب الضيف ذلك. إذا ذكر الضيف تفضيلا جديدا أو حاجة دائمة (لا يقدر يمشي، معه أطفال، يحب الدروس، ضعف سمع) فاستدع update_preferences لحفظه ثم أكمل. الكثافة: ${s.density.map(x=>x[0]+" "+LVL[x[1]][0]).join("، ")}.`;
+}
+function sampleTools(){
+  return Object.entries(TOOLS).filter(([n])=>state.site==="madinah"||n!=="rawdah_permit").map(([name,t])=>({name,description:t.desc,...(t.schema?{inputSchema:t.schema}:{}),execute:(input)=>t.run(input||{})}));
+}
+const ROUTES=[
+ [/كيف حالي|فحص عافية|كيف أشعر|كيف اشعر/i,"wellbeing_checkin",()=>({})],
+ [/أنا بخير|انا بخير|الحمد لله بخير/i,"set_mind_ok",()=>({})],
+ [/شربت وارتحت|شربت|ارتحت|استرحت/i,"reset_body",()=>({})],
+ [/عطشان|عطشانة|أبغى ماء|ابغى ماء|ماء بارد/i,"hydration_rest",()=>({need:"water"})],
+ [/مكالمة فيديو مع المترجم|مترجم إشارة|مترجم لغة الإشارة|interprète/i,"sign_interpreter",()=>({mode:"video"})],
+ [/مرشدا يحضر|مرشد يحضر/i,"sign_interpreter",()=>({mode:"inperson"})],
+ [/الصورة لافتة|الصورة باب|لافتة باب/i,"find_nearest",()=>({category:"gate"})],
+ [/الصورة علبة دوا|علبة دوا/i,"medication",()=>({action:"add",name:"الدواء الذي في الصورة",times:["08:00"]})],
+ [/الصورة لمكان ضعت|ضعت فيه/i,"go_home",()=>({})],
+ [/أخذت الدوا|اخذت الدوا|أخذت دوا|اخذت دوا|أخذته|اخذته|شربت الدوا|أخذت حبوب|اخذت حبوب/i,"medication",()=>({action:"taken"})],
+ [/ذكرني بالدوا/i,"set_reminder",()=>({event:"الدواء",minutes_before:15})],
+ [/آخذ|اخذ|عندي دوا|أتناول|اتناول|أشرب دوا|اشرب دوا/i,"medication",t=>{const m=t.match(/((?:دواء|دوا|حبوب|علاج)\s+\S+)/);const h=t.match(/(\d{1,2})/);return{action:"add",name:m?m[1]:"دواء",times:h?[String((+h[1]>=1&&+h[1]<=6)?+h[1]+12:+h[1]).padStart(2,"0")+":00"]:["08:00"]}}],
+ [/دوا|أدوي|ادوي|حبوب|علاج|médicament|medicine/i,"medication",()=>({action:"status"})],
+ [/تعبان|تعبانة|متعب|أنا متعبة|منهك|رجولي تعبت/i,"hydration_rest",()=>({need:"both"})],
+ [/تنفس|نفس معي|توتر|متوتر|قلقان|قلق|ضايق|خايف|مرتبك|أهدأ|اهدأ|اهدا/i,"start_breathing",()=>({})],
+ [/أذكار|اذكار|آداب الروضة|اداب الروضة|اقرأ لي/i,"rawdah_guide",()=>({})],
+ [/أجلس وأنتظر|اجلس وانتظر|أنتظر تنبيهك|انتظر تنبيهك/i,"set_reminder",()=>({event:"دورك في الروضة",minutes_before:10})],
+ [/وضع الانتظار|كم باقي|كم بقي|متى دوري|وين دوري/i,"waiting_mode",()=>({})],
+ [/احجز.*(ضيافة|أطفال|اطفال).*(دلني|المصلى)/i,"plan_prayer",()=>({})],
+ [/نعم.*(سكني|هذا الفندق|سكن)|هذا سكني|أيوه سكني/i,"confirm_home",()=>({confirmed:1})],
+ [/لا.*(سكني|مكان آخر|فندق ثاني|فندق آخر)/i,"confirm_home",()=>({confirmed:0})],
+ [/(خلصت|أتممت|انتهيت|كملت|أكملت).*(طواف|الطواف)|طفت/i,"update_preferences",()=>({stage:"tawaf"})],
+ [/ذكرني|ذكريني|نبهني|تذكير/i,"set_reminder",m=>({event:m.replace(/^ذكرني\s*(قبل)?\s*/,"").replace(/\s*ب?(عشر|نصف|ربع|خمس)?\s*(دقائق|ساعة|دقيقة)?$/,"").trim()||"الحدث",minutes_before:/نصف ساعة/.test(m)?30:/ربع/.test(m)?15:/خمس/.test(m)?5:10})],
+ [/وصل طلبي|تتبع|وين طلبي|أين طلبي/i,"track_request",m=>({ticket:(m.match(/[A-Z]{2,4}-\d+/)||["طلبك"])[0],action:"status"})],
+ [/ألغ|الغ|إلغاء|الغاء/i,"track_request",m=>({ticket:(m.match(/[A-Z]{2,4}-\d+/)||["طلبك"])[0],action:"cancel"})],
+ [/شغل البث|شغل الترجمة|ابدأ البث/i,"play_stream",()=>({})],
+ [/البديل التالي|بديل آخر|غيره/i,"find_nearest",m=>({category:Object.keys(CATS).find(k=>m.includes(CATS[k]))||"gate",alt:1})],
+ [/مكتب.*(تائه|مفقود)/i,"find_nearest",()=>({category:"lost"})],
+ [/مصلى مخصص|المصلى المخصص|مصليات كبار السن/i,"find_nearest",()=>({category:"pray"})],
+ [/أرتاح|ارتاح|استراحة|أجلس|اجلس|مقعد|تعبت/i,"find_nearest",()=>({category:"rest"})],
+ [/الصفا|المروة|المسعى|السعي|مسار السلام/i,"find_nearest",()=>({category:"saee"})],
+ [/(نلتقي|نتجمع|نقطة لقاء|لقاء).*(فندق|سكن)|(فندق|سكن).*(نلتقي|نتجمع|نقطة لقاء)/i,"set_meeting_point",()=>({place:"home"})],
+ [/نقطة لقاء|نلتقي|نتجمع|نقطة قريبة|meeting/i,"set_meeting_point",()=>({place:"nearest"})],
+ [/أرسل موقعي|ارسل موقعي|شارك موقعي|اتصل ب|كلم /i,"share_location",m=>({member:(m.match(/(يوسف|خديجة|آدم|ليلى)/)||["يوسف"])[0],mode:/اتصل|كلم/.test(m)?"call":"share"})],
+ [/(وين|أين|اين|فين).*(عائلتي|أهلي|اهلي|ابني|يوسف|خديجة|آدم|ليلى|الأطفال|الاطفال|أحفادي)|يوسف.*(وين|أين|اين)/i,"family_locate",()=>({})],
+ [/(بعدت|ابتعدت|تفرقت|تفرقنا|انفصلت|ضعت).*(عائلتي|أهلي|اهلي|عن)|(عائلتي|أهلي|اهلي).*(بعدوا|راحوا|تفرق)/i,"family_locate",()=>({})],
+ [/(ضاع|ضايع|تاه|تائه|فقدت).*(يوسف|خديجة|آدم|ليلى|ابني|حفيدي|زوجة|ولدي|بنتي|أحفادي)|(يوسف|خديجة|آدم|ليلى|ابني|حفيدي).*(ضاع|ضايع|تاه)/i,"family_locate",()=>({})],
+ [/سكن|فندق|أرجع|ارجع|العودة|البيت|نرجع|hotel/i,"go_home",()=>({})],
+ [/ما أقدر أمشي|ما اقدر امشي|أتعب|اتعب|رجلي|ركبتي/i,"update_preferences",()=>({mobility:"cart"})],
+ [/ضعيف.*سمع|ما أسمع|ما اسمع/i,"update_preferences",()=>({hearing:1})],
+ [/معي.*(طفل|أطفال|اطفال|ولد|بنت)|عندي.*(طفل|أطفال|اطفال)/i,"update_preferences",m=>({kids:(m.match(/\d+/)||[2])[0]})],
+ [/خلصت.*سعي|أتممت.*سعي|انتهيت.*سعي/i,"update_preferences",()=>({stage:"saee"})],
+ [/طوار|إسعاف|أغمي|اغمي|يغمى|ألم شديد|الم شديد|نزيف|ضايق|اختناق|emergency|faint|help/i,"emergency",m=>({description:m})],
+ [/عربة|عربه|كرسي|wheelchair|cart|أمشي|امشي|تعب/i,"request_cart",()=>({kind:"wheelchair"})],
+ [/ضاع|ضايع|تاه|تائه|فقدت|مفقود|lost/i,"report_lost",m=>({type:/ولد|بنت|طفل|أم|أب|زوج|جد|شخص|child|son|daughter|mother|father/i.test(m)?"person":"item",description:m})],
+ [/أطفال|اطفال|طفل|ضيافة|kids|child/i,"book_children_center",m=>({children:Number((m.match(/\d+/)||[profile.kids||1])[0])||profile.kids||1,prayer:(m.match(/(الفجر|الظهر|العصر|المغرب|العشاء)/)||[""])[0]})],
+ [/ترجم|خطبة|اردو|urdu|english|translat|سماعة/i,"sermon_translation",()=>({lang:state.lang})],
+ [/روضة|الروضه|تصريح|rawdah/i,"rawdah_permit",()=>({})],
+ [/كثاف|زحم|زحام|ازدحام|وقت.*(طواف|سعي|روضة)|crowd|busy/i,"get_density",()=>({})],
+ [/مصل(ى|ي)|مكان.*(صلاة|أصلي)|إشغال|اشغال|أصلي|اصلي/i,"get_prayer_hall_occupancy",()=>({})],
+ [/إشارة|اشارة|أصم|اصم|صم\b|برايل|كفيف|ضعاف|إعاقة|اعاقة/i,"accessibility_services",m=>({need:/إشارة|اشارة|أصم|اصم|صم\b|سمع/.test(m)?"deaf":/برايل|كفيف|بصر/.test(m)?"blind":"mobility"})],
+ [/زمزم|ماء|مويه|عطش/i,"find_nearest",()=>({category:"zamzam"})],
+ [/حمام|دورة|دورات|وضوء|toilet/i,"find_nearest",()=>({category:"wc"})],
+ [/مصعد|سلم|سلالم|elevator|lift/i,"find_nearest",()=>({category:"lift"})],
+ [/طبي|عيادة|صيدلية|دواء|هلال|doctor|clinic/i,"find_nearest",()=>({category:"medical"})],
+ [/مكتب.*(تائه|مفقود)/i,"find_nearest",()=>({category:"lost"})],
+ [/مكيف|ظل|بارد/i,"find_nearest",()=>({category:"lift"})],
+ [/مكتبة|معرض|كسوة|زيارة|متحف/i,"book_visit",m=>({place:/كسوة/.test(m)?"kiswa":/معرض|متحف/.test(m)?"exhibition":"library"})],
+ [/درس|دروس|صلاة|الصلاة|أذان|اذان|موعد|متى/i,"get_lessons_and_prayers",()=>({})],
+ [/باب|بوابة|مخرج|gate|exit/i,"find_nearest",()=>({category:"gate"})],
+ [/مصلى مخصص|كبار السن/i,"find_nearest",()=>({category:"pray"})],
+];
+const FOLLOW={sign_interpreter:"سأبقى معك حتى يصل، وأكتب لك كل شيء.",medication:"",wellbeing_checkin:"",set_mind_ok:"الحمد لله. أنا معك إن احتجت شيئا.",reset_body:"ممتاز، الحمد لله.",hydration_rest:"لا تنتظر العطش في هذا الحر، وأخبرني عندما تشرب وترتاح.",start_breathing:"تابع الدائرة، وأنا معك. إن شعرت بألم في الصدر أو ضيق نفس شديد فقل لي فورا.",rawdah_guide:"خذ وقتك، وسأذكرك بها عند باب السلام.",waiting_mode:"اجلس مرتاحا، ودورك محفوظ. سأنبهك قبل انتقال فوجك.",plan_prayer:"حجزت لهما ورسمت لك الطريق. سأذكرك بالخروج قبل الإقامة بعشر دقائق، وباستلامهما بعد الصلاة.",confirm_home:"شكرا، لن أسألك عنه مرة أخرى.",set_reminder:"سأنبهك في وقته بالصوت.",track_request:"إن تأخر أكثر من ذلك أخبرني وأتابعه لك.",play_stream:"استمتع، وأوقفه بكلمة «أوقف البث».",family_locate:"إن أردت أحدد لكم نقطة لقاء وأرسلها للجميع، أو أرسل موقعك مباشرة.",set_meeting_point:"سأنبهك عند وصول كل واحد منهم، وأدلك بالصوت إن أردت.",share_location:"تم. سأخبرك عندما يرى الرسالة.",go_home:"سأبقى معك بالصوت حتى الفندق، وأذكرك بالماء في المنتصف.",update_preferences:"حفظتها، ولن أسألك عنها مرة أخرى. سأراعيها في كل ما أقترحه عليك.",emergency:"الفريق في الطريق. ابق مكانك وشغل الصوت لأدلك خطوة بخطوة.",request_cart:"سيصلك تنبيه عند اقتراب الدافع. هل تريد أن أختار لك مصلى قريبا من المصعد بعدها؟",report_lost:"سأبلغك فور أي خبر. إن أردت، أرشدك الآن إلى المكتب ليكون قريبا منك.",book_children_center:"تم. سأذكرك بالاستلام بعد الصلاة بخمس دقائق.",sermon_translation:"وصلت القناة. سأنبهك قبل الخطبة بدقيقتين.",rawdah_permit:"سأنبهك قبل موعدك، والأفضل الوصول قبله بعشر دقائق من باب السلام.",get_density:state=>state.site==="makkah"?"الأفضل تأجيل الطواف قليلا أو الطواف من الدور الأول حيث الكثافة أخف.":"الكثافة على مسار السلام عالية الآن، والأفضل الانتظار إلى موعد تصريحك.",get_prayer_hall_occupancy:"الأقل إشغالا الآن مذكور أعلاه، وأستطيع إرشادك إليه بأقصر مسار.",accessibility_services:"أستطيع إرشادك إلى أي منها الآن.",find_nearest:"اضغط «ابدأ الإرشاد» وسأدلك خطوة بخطوة بالصوت.",book_visit:"تم الحجز. سأرسل لك المسار قبل الموعد بربع ساعة.",get_lessons_and_prayers:"هل أذكرك قبل الدرس الذي يناسبك؟"};
+function tone(text){const t=String(text);
+  const marks=[];if(/[!؟?]{2,}/.test(t))marks.push("علامات تعجب أو استفهام متكررة");if(/([\u0621-\u064Aa-z])\1{2,}/i.test(t))marks.push("حروف ممدودة");
+  if(/معصب|غضبان|زعلان|ضايق|متضايق|توتر|متوتر|خايف|مو قادر|ماقدر|ما قدرت|تعبت|زهقت|طفشت|محد يرد|ما أحد|ماحد|خلاص|أبغى أطلع|ابغى اطلع|كرهت|مو معقول|وين الناس|ساعدوني|الحقوني/.test(t))marks.push("كلمات ضيق أو غضب");
+  if(/j'en peux plus|ras le bol|n'en peux plus|personne ne|c'est pas possible|au secours|aidez-moi|énervé|enerve|stressé|stresse|inquiet|fatigué/i.test(t))marks.push("كلمات ضيق بالفرنسية");
+  const lat=t.replace(/[^A-Za-z]/g,"");if(lat.length>8&&lat.replace(/[^A-Z]/g,"").length/lat.length>0.6)marks.push("كتابة بحروف كبيرة");
+  return marks}
+function detectLang(text){return /[a-z]{3,}/i.test(text)&&!/[\u0600-\u06FF]/.test(text)?(/[éèêàçùôâîûœ]|\b(je|où|est|les|mon|ma|mes|vous|pour|comment|famille|hôtel|hotel|retour|prière|chariot|aide|bonjour|merci|on)\b/i.test(text)?"fr":"en"):/[\u0679\u067E\u0686\u0688\u0691\u06BA\u06BE\u06C1\u06CC\u06D2]/.test(text)?"ur":/[\u0600-\u06FF]/.test(text)?"ar":null}
+async function scripted(text){
+  log("sup","قرأ الطلب والسياق","يصنف النية ويختار الوكيل");
+  await wait(500);
+  if(/ابدأ الإرشاد|ابدا الارشاد|وجهني|دلني على الطريق|commencer le guidage|guide-moi|guidez-moi|start guidance|guide me/i.test(text)){
+    const m=text.match(/إلى (.+)$|vers (.+)$|to (.+)$/);const dest=(m&&(m[1]||m[2]||m[3]))||state.lastDest||"الوجهة";
+    log("sup","وجه إلى وكيل الإرشاد","أداة: start_guidance");await wait(300);guidance(dest.replace(/^نقطة اللقاء$/,state.lastDest||dest),state.lastDist||150);
+    return pick({ar:"أرشدك بالصوت خطوة بخطوة، وأعيد الحساب إن تغير المسار.",fr:"Je vous guide par la voix, étape par étape.",en:"I will guide you by voice, step by step."})}
+  if(state.lang==="fr"){const fr=FR_ROUTES.find(([re])=>re.test(text));
+    if(!fr){log("sup","لم يحدد خدمة، يجيب بالفرنسية");return pick({ar:GENERIC.ar,fr:GENERIC.fr,en:GENERIC.en})}
+    const spec=fr[1];const name=Array.isArray(spec)?spec[0]:spec;const args=Array.isArray(spec)?spec[1]:(name==="report_lost"?{type:"person",description:text}:name==="share_location"?{member:"يوسف"}:name==="book_children_center"?{children:2}:name==="request_cart"?{kind:"wheelchair"}:{});
+    const t=TOOLS[name];log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name+" · الرد بالفرنسية");await wait(400);t.run(args);return pick({ar:follow(name),fr:FOLLOW_FR[name]||"C'est fait.",en:FOLLOW_FR[name]||"Done."})}
+  const r=ROUTES.find(([re])=>re.test(text));
+  if(!r){log("sup","لم يحدد خدمة، يجيب من المعرفة العامة");return pick(GENERIC)}
+  const [,name,args]=r;const t=TOOLS[name];
+  log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name);
+  await wait(400);t.run(args(text));
+  return pick({ar:follow(name),fr:FOLLOW_FR[name]||follow(name),en:FOLLOW_FR[name]||follow(name)});
+}
+function follow(name){const f=FOLLOW[name];return typeof f==="function"?f(state):(f||"تم.")}
+const GENERIC={ar:"أستطيع مساعدتك في: الإرشاد لأقرب خدمة، الكثافة والمصليات، طلب عربة، عائلتك، التائهين والمفقودات، ضيافة الأطفال، ترجمة الخطبة، الدروس والمواقيت، العودة للسكن، والطوارئ. ماذا تحتاج؟",fr:"Je peux vous aider : trouver le service le plus proche, l'affluence et les salles de prière, un chariot, votre famille, les objets perdus, la garderie, la traduction du sermon, les cours et horaires, le retour à l'hôtel, et les urgences. Que souhaitez-vous ?",en:"I can help with: the nearest service, crowd levels and prayer halls, a cart, your family, lost and found, the children's centre, sermon translation, lessons and prayer times, the way back to your hotel, and emergencies. What do you need?"};
+/* text in the guest's reading language (or the language he wrote in), speech in his listening language */
+function pick(v){const tl=state.lang!=="ar"&&state.lang!==profile.readLang?state.lang:profile.readLang;const sl=profile.speakLang||tl;return{text:v[tl]||v.ar,say:v[sl]||v[tl]||v.ar,sayLang:sl}}
+const FOLLOW_FR={wellbeing_checkin:"",set_mind_ok:"Dieu merci. Je suis là si vous avez besoin de quelque chose.",reset_body:"Parfait, Dieu merci.",hydration_rest:"N'attendez pas d'avoir soif par cette chaleur, et dites-moi quand vous avez bu et reposé.",start_breathing:"Suivez le cercle, je suis avec vous. En cas de douleur dans la poitrine ou de gêne respiratoire forte, dites-le-moi tout de suite.",rawdah_guide:"Prenez votre temps, je vous les rappellerai à Bab As-Salam.",waiting_mode:"Asseyez-vous tranquillement, votre tour est réservé. Je vous préviens avant que votre groupe ne se déplace.",emergency:"L'équipe arrive. Restez où vous êtes, je vous guide par la voix.",request_cart:"Vous serez prévenu quand le chariot approche. Je vous choisis ensuite une salle de prière près de l'ascenseur ?",report_lost:"Je vous préviens dès qu'il y a du nouveau. Je peux vous guider au bureau maintenant.",family_locate:"Je peux fixer un point de rencontre pour tous, ou envoyer votre position directement.",set_meeting_point:"Je vous préviens quand chacun arrive, et je vous guide par la voix si vous voulez.",share_location:"C'est fait. Je vous dirai quand il aura vu le message.",go_home:"Je reste avec vous par la voix jusqu'à l'hôtel, avec un rappel pour boire à mi-chemin.",get_density:"Mieux vaut attendre un peu ou faire le tawaf au premier étage, moins dense.",get_prayer_hall_occupancy:"La salle la moins occupée est ci-dessus, je peux vous y guider par le chemin le plus court.",find_nearest:"Appuyez sur « ابدأ الإرشاد » et je vous guide pas à pas par la voix.",sermon_translation:"Canal connecté. Je vous préviens deux minutes avant le sermon.",book_children_center:"Réservé. Je vous rappelle de les récupérer cinq minutes après la prière.",get_lessons_and_prayers:"Voulez-vous un rappel avant le cours qui vous convient ?",accessibility_services:"Je peux vous guider vers l'un de ces services maintenant.",book_visit:"Réservé. Je vous envoie l'itinéraire un quart d'heure avant.",update_preferences:"C'est noté, je ne vous le redemanderai plus.",rawdah_permit:"Je vous préviens avant votre créneau ; arrivez dix minutes avant par Bab As-Salam."};
+const FR_ROUTES=[[/respir|stress|anxi|calme|peur|inquiet/i,"start_breathing"],[/invocation|adab|rawda|roudha/i,"rawdah_guide"],[/urgence|malaise|évanoui|evanoui|secours|aide vite/i,"emergency"],[/chariot|fauteuil|marcher|fatigu/i,"request_cart"],[/(rencontr|retrouv|rendez-vous).*(hôtel|hotel)|(hôtel|hotel).*(rencontr|retrouv|rendez-vous)/i,["set_meeting_point",{place:"home"}]],[/point de rencontr|retrouv|rendez-vous/i,["set_meeting_point",{place:"nearest"}]],[/où (est|sont) (ma|mon|mes) (famille|fils|petits|enfants)|famille|youssef|khadija|perdu mon fils|perdu ma/i,"family_locate"],[/éloigné|eloigne|séparé|separe|perdu ma famille/i,"family_locate"],[/perdu|égaré|egare/i,"report_lost"],[/hôtel|hotel|retour|rentrer|logement/i,"go_home"],[/prier|prière|priere|salle/i,"get_prayer_hall_occupancy"],[/foule|monde|affluence|tawaf|sa'i|sai\b/i,"get_density"],[/enfants|garderie/i,"book_children_center"],[/sermon|traduction|traduire/i,"sermon_translation"],[/zamzam|eau|boire/i,["find_nearest",{category:"zamzam"}]],[/toilettes/i,["find_nearest",{category:"wc"}]],[/ascenseur/i,["find_nearest",{category:"lift"}]],[/médecin|medecin|clinique|pharmacie/i,["find_nearest",{category:"medical"}]],[/cours|horaires|prière de/i,"get_lessons_and_prayers"],[/porte|sortie/i,["find_nearest",{category:"gate"}]]];
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+
+async function ask(text,img){
+  if(state.busy||!text.trim())return;
+  state.busy=true;send.disabled=true;box.value="";
+  const um=msg("user",text);if(img){const im=document.createElement("img");im.src=URL.createObjectURL(img);im.alt="صورة من الكاميرا";um.appendChild(im);feed.scrollTop=feed.scrollHeight}
+  typing(true);t0=Date.now();
+  {const d=detectLang(text);if(d&&d!==state.lang){state.lang=d;msg("sys","تعرف كنف على لغتك: "+(LANGS[d]||d))}}
+  const tm=tone(text);state.stressed=tm.length>0;if(state.stressed){wb.mind="stressed";wb.answered=Date.now();wbRender()}
+  if(state.stressed){log("care","رصد توتر من أسلوب الكتابة",tm.join("، ")+" · نبرة الرد: تطمين ثم حل فوري");
+    const P=pick({ar:profile.name+"، أنا معك الآن وسأحل لك هذا فورا.",fr:profile.name+", je suis là, je m'en occupe tout de suite.",en:profile.name+", I am here, I will handle this right now."});
+    card(head("🤲",P.text,"")+`<div style="color:var(--muted)">خذ نفسا هادئا وأنا أرتب لك الأمر.</div>`,"alert");speak(P.say,{lang:P.sayLang,rate:0.88})}
+  let reply="";
+  try{
+    if(state.sample&&state.toolsOK){
+      log("sup","أرسل الطلب إلى النموذج اللغوي مع أدوات الهيئة","Claude يختار الأداة بنفسه");
+      state.turns.push({role:"user",content:text});
+      const opts={tools:sampleTools(),modelTier:"quick"};if(img&&state.imagesOK){opts.images=[img];log("sup","أرسل الصورة مع الطلب","Claude يقرأ الصورة بنفسه")}
+      const r=await state.sample([{role:"user",content:instructions()},...state.turns.slice(-8)],opts);
+      const raw=r.text.trim();state.turns.push({role:"assistant",content:raw});
+      const parts=raw.split(/\n?\|\|\|\s*/);reply={text:parts[0].trim(),say:(parts[1]||parts[0]).trim(),sayLang:parts[1]?profile.speakLang:(detectLang(parts[0])||profile.speakLang)};
+    }else reply=img?await scriptedImage(text):await scripted(text);
+  }catch(e){
+    if(e&&e.code==="not_granted"||e&&e.code==="sampling_disabled"||e&&e.code==="tools_unavailable"){state.sample=null;setMode(false);reply=await scripted(text)}
+    else if(e&&e.code==="rate_limited"){reply="الخدمة مشغولة لحظة، جرب بعد قليل."}
+    else{reply=(e&&e.text)||await scripted(text)}
+  }
+  typing(false);if(reply){const R=typeof reply==="string"?{text:reply,say:reply,sayLang:detectLang(reply)||profile.speakLang}:reply;if(R.text){if(state.signMode)R.text=R.text.replace(/بالصوت/g,"نصا على الشاشة").replace(/وأدلك بالصوت/g,"وأدلك نصا");msg("bot",R.text);if(!/الإرشاد|guid/i.test(R.text))speak(R.say,{lang:R.sayLang})}}
+  if(state.stressed&&!/تنفس|respir/i.test(text)){card(head("🫧","هل أهدئ معك دقيقة؟","بعد ما رتبنا الأمر")+`<div>تمرين تنفس قصير بالدائرة، أو مكان جلوس هادئ وماء.</div><div class="acts"><button class="primary" data-say="تنفس معي">تنفس معي</button><button data-say="أبغى أرتاح شوي">مكان أجلس فيه</button></div>`);state.stressed=false}
+  state.busy=false;send.disabled=false;box.focus();
+}
+
+/* ---------- wiring ---------- */
+function setMode(live){$("#modeTag").innerHTML=live?"الوضع: <b>وكيل مباشر (Claude يختار الأدوات)</b>":"الوضع: <b>محاكاة موجهة</b>"}
+function renderQuick(){
+  const q=state.site==="makkah"?["بعدت عن عائلتي","وين أقرب عربة؟","دوائي","متى أفضل وقت للسعي؟","أين أصلي العصر؟","Comment rentrer à l'hôtel ?"]:["تنفس معي","أذكار وآداب الروضة","كم باقي على دوري؟","دوائي","بعدت عن عائلتي","وين أقرب زمزم؟","Où est ma famille ?"];
+  $("#quick").innerHTML=q.map(x=>`<button class="q" type="button">${esc(x)}</button>`).join("");
+}
+function start(){
+  feed.innerHTML="";trace.innerHTML='<div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div>';state.turns=[];t0=Date.now();
+  const s=site();$("#subline").textContent="عناية تفهمك";
+  $("#locText").textContent="جار تحديد موقعك…";setTimeout(()=>{$("#locText").innerHTML="موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot);},700);
+  log("sup","حدد موقع الضيف تلقائيا",s.name+" · "+s.spot);$(".sb span:last-child").textContent=s.city+" · "+s.temp+"°";
+  msg("sys","أهلا "+profile.name+" في "+s.name+". أعرف موقعك ووقتك والكثافة حولك، وأتذكر ما تفضله، وأكلمك بلغتك.");
+  renderKnown();
+  proactive();renderQuick();
+}
+$("#agents").innerHTML=AGENTS.map(([id,n,d])=>`<div class="ag" data-id="${id}"><b>${n}</b><span>${d}</span></div>`).join("");
+$("#svcTable tbody").innerHTML=SERVICES.map(([n,d,s])=>`<tr><td>${esc(n)}</td><td>${esc(d)}</td><td><span class="st ${s}">${s==="sim"?"محاكاة":"خارجي"}</span></td></tr>`).join("");
+document.addEventListener("click",e=>{const b=e.target.closest(".chip[data-k=\"site\"]");if(!b)return;const k=b.dataset.k,v=b.dataset.v;
+  if(k==="site"){state.site=v;document.querySelectorAll('[data-k="site"]').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));start();return}
+  const on=b.getAttribute("aria-pressed")!=="true";document.querySelectorAll(`[data-k="${k}"]`).forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed",on);
+});
+$("#quick").addEventListener("click",e=>{const b=e.target.closest(".q");if(b)ask(b.textContent)});
+feed.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b)ask(b.dataset.say)});
+$("#wb").addEventListener("click",()=>ask("كيف حالي الجسدية؟"));
+form.addEventListener("submit",e=>{e.preventDefault();ask(box.value)});
+/* ---------- input modes: voice, image, text ---------- */
+function setInputMode(m){["mVoice","mImage","mText"].forEach(id=>$("#"+id).classList.toggle("on",id===m))}
+$("#mText").addEventListener("click",()=>{setInputMode("mText");box.focus()});
+$("#mImage").addEventListener("click",()=>{setInputMode("mImage");$("#imgIn").click()});
+$("#imgIn").addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;e.target.value="";
+  log("sup","وصلت صورة من الكاميرا",state.imagesOK?"ترسل إلى الوكيل المباشر":"محاكاة قراءة الصورة");
+  await ask("أرسلت صورة، ماذا ترى فيها وبماذا تنصحني؟",f);setInputMode("mText")});
+async function scriptedImage(text){
+  // بلا نموذج رؤية في وضع المحاكاة: نسأل الضيف عن نوع الصورة ونكمل من حديثه
+  card(head("🖼️","وصلتني الصورة","محاكاة")+`<div>في النسخة الحقيقية يقرؤها الوكيل بنفسه. الآن أخبرني ما فيها لأكمل:</div><div class="acts"><button class="primary" data-say="الصورة لافتة باب في الحرم">لافتة أو باب</button><button data-say="الصورة علبة دوائي">علبة دواء</button><button data-say="الصورة لمكان ضعت فيه">مكان ضعت فيه</button></div>`);
+  return pick({ar:"وصلتني الصورة. أخبرني ما فيها لأساعدك بدقة.",fr:"J'ai bien reçu la photo. Dites-moi ce qu'elle montre pour vous aider précisément.",en:"I received the photo. Tell me what it shows so I can help precisely."})}
+/* ---------- sign-language stream mode (simulation of a limited on-device sign recogniser) ---------- */
+const SIGNS=[["ماء","وين أقرب زمزم؟"],["مساعدة","أحتاج مساعدة"],["دواء","دوائي"],["ضعت","دلني على الفندق"],["عائلتي","بعدت عن عائلتي"],["طبيب","وين أقرب مركز طبي؟"]];
+let camStream=null;
+function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}}
+async function openSignMode(){
+  state.signMode=true;setInputMode("mSign");if(!profile.hearing){profile.hearing=1;saveProfile();renderKnown()}
+  try{speechSynthesis.cancel()}catch(_){}
+  log("care","وضع الإشارة: الكاميرا الأمامية","تعرف محدود على الجهاز، والرد نصا واهتزازا، والبيانات لا تغادر الهاتف");
+  const c=card(head("🤟","وضع الإشارة","بث الكاميرا · على الجهاز")+`<div class="cam"><video autoplay muted playsinline></video><div class="ph">جار فتح الكاميرا الأمامية…</div><div class="dotrec"></div><div class="hud">أراقب يديك… أفهم ست إشارات الآن، وأسألك قبل التنفيذ</div></div><div style="font-size:.76rem;color:var(--muted);margin-top:6px">محاكاة التعرف (في النسخة الحقيقية يتعرف النموذج بنفسه):</div><div class="signs">${SIGNS.map(([k])=>`<button type="button" data-sign="${k}">🤟 ${k}</button>`).join("")}</div><div class="acts"><button data-say="أبغى مكالمة فيديو مع المترجم">مترجم إشارة من الهيئة</button><button type="button" id="signOff">إيقاف الوضع</button></div>`);
+  const v=c.querySelector("video"),ph=c.querySelector(".ph");
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});v.srcObject=camStream;ph.remove()}
+  catch(e){log("care","البث المباشر محجوب في هذا العارض ("+(e&&e.name||"")+")","بديل: لقطة من كاميرا الجوال");
+    ph.innerHTML=`<div>البث المباشر محجوب في هذا العارض.<br>التقط إشارتك بكاميرا الجوال وسأقرؤها:</div><button type="button" class="chip" id="snapBtn" style="margin-top:8px;background:var(--gold);border-color:var(--gold);color:#1d1f1b">📷 التقط إشارة</button><input type="file" accept="image/*" capture="user" hidden id="snapIn">`;
+    const si=ph.querySelector("#snapIn");ph.querySelector("#snapBtn").addEventListener("click",()=>si.click());
+    si.addEventListener("change",ev=>{const f=ev.target.files&&ev.target.files[0];if(!f)return;const url=URL.createObjectURL(f);
+      const img=document.createElement("img");img.src=url;img.alt="لقطة الإشارة";img.style.cssText="width:100%;height:100%;object-fit:cover;position:absolute;inset:0";v.replaceWith(img);ph.remove();
+      c.querySelector(".hud").textContent="وصلت اللقطة. اختر الإشارة التي أديتها (محاكاة التعرف):";log("care","لقطة إشارة من كاميرا الجوال","التعرف محاكاة بالأزرار")})}
+  c.querySelectorAll("[data-sign]").forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.sign;const ph2=SIGNS.find(x=>x[0]===k)[1];const conf=(86+Math.floor(Math.random()*12));
+    log("care","تعرف على إشارة «"+k+"»","ثقة "+conf+"% · يطلب التأكيد قبل التنفيذ");
+    c.querySelector(".hud").textContent="فهمت: «"+k+"» ("+conf+"%)";
+    card(head("🤟","فهمت إشارة «"+k+"»","ثقة "+conf+"%")+`<div>هل تقصد: ${esc(ph2)}</div><div class="acts"><button class="primary" data-say="${esc(ph2)}">نعم</button><button type="button" data-retry="1">لا</button></div>`).querySelector("[data-retry]").addEventListener("click",ev=>{ev.target.closest(".card").remove();c.querySelector(".hud").textContent="حسنا، أعد الإشارة ببطء أمام الكاميرا";log("care","لم يؤكد الإشارة","يعيد المحاولة")})}));
+  c.querySelector("#signOff").addEventListener("click",()=>{state.signMode=false;stopCam();c.querySelector(".hud").textContent="توقف الوضع";c.querySelector(".dotrec").remove();setInputMode("mText");log("care","أوقف وضع الإشارة","")})}
+$("#mSign").addEventListener("click",()=>{if(state.signMode){setInputMode("mSign");return}openSignMode()});
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+$("#mVoice").addEventListener("click",()=>{
+  if(rec){try{rec.stop()}catch(_){}return}
+  if(!SR){setInputMode("mVoice");const ph=state.site==="makkah"?"وين أقرب عربة؟":"كم باقي على دوري؟";msg("sys","التعرف الصوتي غير متاح في هذا المتصفح، محاكاة: سمعت «"+ph+"»");log("sup","محاكاة إدخال صوتي",ph);ask(ph);setInputMode("mText");return}
+  rec=new SR();rec.lang={ar:"ar-SA",fr:"fr-FR",en:"en-US",ur:"ur-PK",id:"id-ID",tr:"tr-TR"}[state.lang]||"ar-SA";rec.interimResults=true;rec.maxAlternatives=1;
+  const b=$("#mVoice");b.classList.add("rec");setInputMode("mVoice");box.placeholder="أستمع إليك…";
+  rec.onresult=ev=>{let t="";for(const r of ev.results)t+=r[0].transcript;box.value=t;if(ev.results[ev.results.length-1].isFinal){log("sup","إدخال صوتي",t);ask(t)}};
+  rec.onerror=ev=>{if(ev.error==="no-speech"||ev.error==="aborted"){msg("sys","لم أسمع شيئا، اضغط الميكروفون وتحدث");return}
+    const ph=state.site==="makkah"?"وين أقرب عربة؟":"كم باقي على دوري؟";msg("sys","الميكروفون غير متاح هنا ("+ev.error+")، محاكاة: سمعت «"+ph+"»");log("sup","محاكاة إدخال صوتي",ph);setTimeout(()=>ask(ph),50)};
+  rec.onend=()=>{b.classList.remove("rec");box.placeholder="اكتب أو تحدث… مثل: وين أقرب عربة؟";rec=null;setInputMode("mText")};
+  try{rec.start()}catch(_){rec=null;b.classList.remove("rec")}});
+function advanceStage(){if(state.site!=="madinah"){msg("sys","انقلي الموقع إلى المسجد النبوي أولا");return}
+  const s=site();const [n,d]=s.places.saee[0];state.lastDest=n;state.lastDist=d;log("care","تنبيه: حان تحرك فوجك","اتبع المنظمين · العائلة أبلغت بنقطة اللقاء");try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(_){}
+  card(head("🔔","حان تحرك فوجك","روضة · "+profile.rawdah.slot)+`<div>انهض على مهل واتبع المنظمين. باب السلام على بعد ${d} م. العائلة أُبلغت بنقطة اللقاء بعد الخروج.</div><div class="acts"><button class="primary" data-say="ابدأ الإرشاد إلى باب السلام">ابدأ الإرشاد</button><button data-say="أذكار وآداب الروضة">الأذكار</button></div>`,"wait");
+  const F={fr:"C'est le moment de rejoindre votre groupe. Levez-vous tranquillement et suivez les organisateurs.",en:"It is time to move with your group. Get up slowly and follow the organisers.",ar:"حان تحرك فوجك. انهض على مهل واتبع المنظمين."};speak(F[profile.speakLang]||F.ar,{lang:profile.speakLang})}
+$("#simRawdah").addEventListener("click",advanceStage);
+$("#simThirst").addEventListener("click",()=>{wb.lastDrink=Date.now()-40*60000;wb.reminded=false;wbRender()});
+$("#simPulse").addEventListener("click",()=>{health.permitted=true;health.watch=true;health.hr=114;health.rr=19;health.spo2=96;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
+$("#simSpo2").addEventListener("click",()=>{health.permitted=true;health.watch=true;health.hr=104;health.rr=25;health.spo2=91;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
+$("#simMed").addEventListener("click",()=>{const m=profile.meds[0];msg("agent","يا "+profile.name+"، حان موعد "+(m?m.name:"الدواء")+".");speak({fr:"C'est l'heure de votre médicament. Asseyez-vous et buvez un peu d'eau.",en:"It is time for your medicine. Sit down and drink some water.",ar:"حان موعد دوائك. اجلس واشرب قليلا من الماء."}[profile.speakLang]||"",{lang:profile.speakLang});TOOLS.medication.run({action:"due"})});
+$("#simNoWatch").addEventListener("click",()=>{health.watch=!health.watch;health.permitted=health.watch;healthAsked=false;wbRender()});
+$("#simPrayer").addEventListener("click",()=>{msg("sys","قبل العصر بعشرين دقيقة");prayerPlan()});
+$("#resetBtn").addEventListener("click",()=>{stopSpeak();start()});
+$("#voiceBtn").addEventListener("click",()=>{voice.on=!voice.on;$("#voiceBtn").setAttribute("aria-pressed",voice.on);$("#voiceBtn").textContent=voice.on?"🔊":"🔇";if(!voice.on)stopSpeak();else speak({fr:"Le son est activé.",en:"Voice is on.",ar:"الصوت مفعل."}[profile.speakLang]||"الصوت مفعل.")});
+if(voice.ok){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=voiceStatus}catch(_){}}else{$("#voiceBtn").textContent="🔇";$("#voiceBtn").disabled=true;$("#voiceBtn").title="المتصفح لا يدعم النطق"}
+$("#profBtn").addEventListener("click",()=>{$("#sheet").hidden=!$("#sheet").hidden});
+$("#sheetClose").addEventListener("click",()=>{$("#sheet").hidden=true;start()});
+$("#sheet").addEventListener("click",e=>{const b=e.target.closest(".opts button");if(!b)return;
+  const grp=b.closest(".opts[data-pref]");
+  if(grp){const k=grp.dataset.pref;profile[k]=(k==="kids")?Number(b.dataset.v):b.dataset.v}
+  else{const k=b.dataset.pref;profile[k]=b.getAttribute("aria-pressed")==="true"?0:1}
+  SRC[grp?grp.dataset.pref:b.dataset.pref]="أدخله بنفسه";saveProfile();renderKnown()});
+$("#famList").addEventListener("click",e=>{const sw=e.target.closest(".sw");const rm=e.target.closest(".rm");
+  if(sw){const f=profile.family[Number(sw.dataset.i)];f.sharing=f.sharing?0:1}
+  else if(rm){profile.family.splice(Number(rm.dataset.rm),1)}else return;
+  SRC.family="أضافهم بنفسه";saveProfile();renderKnown()});
+$("#famAdd").addEventListener("click",()=>{const n=["فاطمة","سعيد","مريم"][profile.family.length%3];profile.family.push({name:n,rel:"من العائلة",phone:"+212 6 00 00 00 "+(10+profile.family.length),sharing:1});saveProfile();renderKnown()});
+$("#homeAuto").addEventListener("click",()=>{HOME().home=DEFAULT_PROFILE.homes[state.site].home;HOME().auto=1;HOME().confirmed=0;SRC.home="استنتجه كنف، بانتظار تأكيدك";saveProfile();renderKnown();$("#sheet").hidden=true;start()});
+$("#pHome").addEventListener("change",e=>{HOME().home=e.target.value.trim()||DEFAULT_PROFILE.homes[state.site].home;HOME().confirmed=1;HOME().auto=0;SRC.home="أدخله بنفسه";saveProfile();renderKnown()});
+$("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
+$("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||DEFAULT_PROFILE.age;saveProfile();renderKnown()});
+function clock(){const d=new Date();$("#clock").textContent=d.toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})}
+clock();setInterval(clock,30000);setInterval(wbRender,30000);
+
+start();voiceStatus();setTimeout(voiceStatus,1500);
+(async()=>{
+  try{const s=window.claude&&window.claude.use?await window.claude.use("sample"):null;
+    if(s){const lim=await s.limits().catch(()=>null);state.sample=s;state.toolsOK=!!(lim&&lim.tools);state.imagesOK=!!(lim&&lim.images);setMode(state.toolsOK);if(!state.toolsOK)state.sample=null}
+    else setMode(false)}
+  catch(_){setMode(false)}
+})();
+})();
+</script>
