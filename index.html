@@ -413,7 +413,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 const $=s=>document.querySelector(s);
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
 const state={site:"makkah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
-const DEFAULT_PROFILE={name:"عبدالرحمن",age:68,from:"فاس، المغرب",langs:"العربية والفرنسية",readLang:"ar",speakLang:"fr",rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"slow",kids:2,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:0,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
+const DEFAULT_PROFILE={name:"عبدالرحمن",age:68,from:"فاس، المغرب",langs:"العربية والفرنسية",readLang:"ar",speakLang:"fr",rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"slow",kids:2,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:1,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
   family:[{name:"يوسف",rel:"ابنه",phone:"+212 6 61 23 45 78",sharing:1},{name:"خديجة",rel:"زوجة ابنه",phone:"+212 6 62 98 76 54",sharing:1},{name:"آدم وليلى",rel:"حفيداه (9 و6)",phone:"مع والدتهما",sharing:0}]};
 const profile=Object.assign({},DEFAULT_PROFILE);
 const SRC={name:"من حسابه",age:"من حسابه",from:"من حسابه",langs:"من حسابه",family:"أضافهم بنفسه",home:"حدده كنف من مبيتك وأكدته أنت",mobility:"من حديثه",kids:"من حسابه",tawafFloor:"من سلوكه",quiet:"من حديثه",lessons:"من سلوكه",rest:"أدخله بنفسه",hearing:"أدخله بنفسه",stage:"قاله في المحادثة",meds:"قاله في المحادثة، ولا يقرأ كنف سجله الطبي"};
@@ -940,7 +940,7 @@ function proactive(){
   if(far&&s.density.some(x=>x[1]===3)){log("svc","استباقي من مجموعة كنف: تفرقت العائلة",far.name+" على بعد "+far.dist+" م في كثافة عالية");
     card(head("👨‍👩‍👧","تفرقتم؟ "+far.name+" على بعد "+far.dist+" م","مجموعة كنف")+`<div>الكثافة عالية بينكما. أحدد نقطة لقاء قريبة، أم تلتقون في الفندق بعد الصلاة؟</div><div class="acts"><button class="primary" data-say="حدد نقطة لقاء لنا كلنا">نقطة قريبة</button><button data-say="نلتقي في الفندق">في الفندق</button><button data-say="وين عائلتي الآن؟">أين الجميع</button></div>`,"alert")}
   if(profile.hearing){log("care","استباقي من الملف: ضعف سمع","سماعات وترجمة");
-    card(head(ICON.tr,"سماعات ضعاف السمع","من ملفك")+`<div>تستلمها من مكتب الإرشاد عند أقرب باب، وتصلك الخطبة صوتا واضحا بلغتك.</div><div class="acts"><button class="primary" data-say="أين سماعات ضعاف السمع؟">أين أستلمها</button></div>`)}
+    card(head(ICON.tr,"سماعات ضعاف السمع","من ملفك")+`<div>تستلمها من مكتب الإرشاد عند أقرب باب، وتصلك الخطبة صوتا واضحا بلغتك. وأرد عليك نصا واهتزازا، وإن أردت أن يفهمك من حولك فاستخدم وضع الإشارة من الزر ✋.</div><div class="acts"><button class="primary" data-say="أين سماعات ضعاف السمع؟">أين أستلمها</button><button data-say="مترجم إشارة">مترجم إشارة</button></div>`)}
 }
 
 /* ---------- agent: real (sample) or scripted router ---------- */
