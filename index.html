@@ -428,6 +428,8 @@ const DEFAULT_PROFILE={name:"عبدالرحمن",gender:"m",age:68,from:"فاس�
 const profile=Object.assign({},DEFAULT_PROFILE);
 const SRC={name:"من حسابه",gender:"من حسابه",age:"من حسابه",from:"من حسابه",langs:"من حسابه",family:"أضافهم بنفسه",home:"حدده كنف من مبيتك وأكدته أنت",mobility:"من حديثه",kids:"من حسابه",tawafFloor:"من سلوكه",quiet:"من حديثه",lessons:"من سلوكه",rest:"أدخله بنفسه",hearing:"أدخله بنفسه",stage:"قاله في المحادثة",meds:"قاله في المحادثة، ولا يقرأ كنف سجله الطبي"};
 try{Object.assign(profile,JSON.parse(localStorage.getItem("hafi.profile")||"{}"))}catch(_){}
+/* migration: profiles saved before v93 spoke French by default; the agent now speaks English unless the guest chose otherwise after v93 */
+if(profile.pv!==93){if(profile.speakLang==="fr")profile.speakLang="en";if(!profile.gender)profile.gender="m";profile.pv=93;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(!Array.isArray(profile.family)||!profile.family.length)profile.family=DEFAULT_PROFILE.family.map(f=>Object.assign({},f));
 if(!profile.homes||!profile.homes.makkah||!profile.homes.madinah)profile.homes=JSON.parse(JSON.stringify(DEFAULT_PROFILE.homes));
 function HOME(){return profile.homes[state.site]||profile.homes.makkah}if(!profile.from)profile.from=DEFAULT_PROFILE.from;if(!profile.readLang)profile.readLang="ar";if(!profile.rawdah)profile.rawdah=DEFAULT_PROFILE.rawdah;if(!Array.isArray(profile.meds))profile.meds=DEFAULT_PROFILE.meds.map(m=>Object.assign({},m));if(!profile.speakLang)profile.speakLang="fr";
