@@ -1203,6 +1203,7 @@ const ROUTES=[
  [/نقطة لقاء|نلتقي|نتجمع|نقطة قريبة|meeting/i,"set_meeting_point",()=>({place:"nearest"})],
  [/أرسل موقعي|ارسل موقعي|شارك موقعي|اتصل ب|كلم /i,"share_location",m=>({member:(m.match(/(يوسف|خديجة|آدم|ليلى)/)||["يوسف"])[0],mode:/اتصل|كلم/.test(m)?"call":"share"})],
  [/(وين|أين|اين|فين).*(عائلتي|أهلي|اهلي|الأطفال|الاطفال|أحفادي|الجماعة)/i,"family_locate",()=>({})],
+ [/من معي|مين معي|من متصل|مين متصل|المتصلين|المتصلون|مجموعتي|(يوسف|خديجة|سمية|سميه)\s*(متصل|متصلة|موجود|موجودة)/i,"family_locate",()=>({})],
  [/(وين|أين|اين|فين|où est)\s+(\S+)/i,"family_locate",t=>{const m=t.match(/(?:وين|أين|اين|فين|où est)\s+(\S+)/i);return {member:m?m[1].replace(/[؟?]/g,""):undefined}},t=>{const m=t.match(/(?:وين|أين|اين|فين|où est)\s+(\S+)/i);const n=m&&m[1].replace(/[؟?]/g,"");if(!n)return false;const q=normAr(n);return livePeers().concat(famPositions()).some(p=>normAr(p.name).startsWith(q)||q.startsWith(normAr(p.name).split(" ")[0]))}],
  [/(ابني|ولدي|زوجتي|زوجة ابني|حفيدي|حفيدتي|بنتي).*(وين|أين|اين|فين)|(وين|أين|اين|فين).*(ابني|ولدي|زوجتي|زوجة ابني|حفيدي|حفيدتي|بنتي)/i,"family_locate",t=>({member:/ابني|ولدي/.test(t)?"يوسف":/زوجة ابني/.test(t)?"خديجة":/حفيد|بنتي/.test(t)?"آدم":undefined})],
  [/(بعدت|ابتعدت|تفرقت|تفرقنا|انفصلت|ضعت).*(عائلتي|أهلي|اهلي|عن)|(عائلتي|أهلي|اهلي).*(بعدوا|راحوا|تفرق)/i,"family_locate",()=>({})],
