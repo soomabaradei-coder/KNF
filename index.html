@@ -568,6 +568,15 @@ function authMap(keys,hot){
 const MATAF={"المطاف":[["سطح المطاف",1,"92-91-2-84-65-66","50 - 60",1],["مطاف الدور الأول",2,"16-66-91-92","70 - 80",1],["مطاف الدور الأرضي",2,"3-4-21-15-30-33-37-94","70 - 80",1],["صحن المطاف",3,"1-3-5-19-40-79","55 - 65",0]],
  "المسعى":[["سطح المسعى",1,"الصفا 1 - 2","35 - 45",1],["المسعى الدور الأول",2,"المروة 1 - 2 - 4","45 - 55",1],["المسعى الدور الأرضي",3,"الصفا 3 - 5","55 - 65",0]]};
 const RING='<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"><path d="M12 8 L28 6 L34 16 L30 30 L14 34 L6 24 Z"/></svg>';
+/* ---------- intent gateway: a small server (Cloudflare Worker) that asks Claude which tool fits the guest's wording; the API key stays on the server ---------- */
+const LLM={url:"",load(){try{const q=new URLSearchParams(location.search);const u=q.get("llm");if(u!==null){if(u)localStorage.setItem("knf_llm",u);else localStorage.removeItem("knf_llm")}this.url=localStorage.getItem("knf_llm")||this.url}catch(_){}},
+  ok(){return !!this.url&&!state.offline},
+  async classify(text){if(!this.ok())return null;const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),7000);
+    try{const tools=Object.keys(TOOLS).map(k=>({name:k,desc:TOOLS[k].desc,schema:TOOLS[k].schema||{type:"object",properties:{}}}));
+      const r=await fetch(this.url,{method:"POST",headers:{"content-type":"application/json"},signal:ctl.signal,body:JSON.stringify({text,site:state.site,lang:state.lang,profile:profileText().map(([k,v])=>k+": "+v).join("، "),tools})});
+      if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(!j||!j.name||!TOOLS[j.name])return null;return [j.name,j.input||{}]}
+    catch(e){log("sup","بوابة الفهم غير متاحة الآن",(e.name==="AbortError"?"انتهت المهلة":String(e.message||e))+" · أكمل بالمطابقة المحلية");return null}finally{clearTimeout(t)}}};
+LLM.load();
 /* ---------- live readings from the Authority's public status endpoints (the same ones its own pages call) ---------- */
 const LIVE={base:"https://eservices.alharamain.gov.sa/haram-api/api/pry/",ep:{mataf:"TawafSaiStatus",salam:"salamStatus",halls:"prayerLocationsStatusHaramain"},data:{},at:{},st:{"1":1,"2":2,"3":3,"4":0},
   load(){try{const j=JSON.parse(localStorage.getItem("knf_live")||"null");if(j){this.data=j.data||{};this.at=j.at||{}}}catch(_){}},
@@ -1219,8 +1228,9 @@ async function scripted(text){
     const spec=fr[1];const name=Array.isArray(spec)?spec[0]:spec;const args=Array.isArray(spec)?spec[1]:(name==="report_lost"?{type:"person",description:text}:name==="share_location"?{member:"يوسف"}:name==="book_children_center"?{children:2}:name==="request_cart"?{kind:"wheelchair"}:{});
     const t=TOOLS[name];log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name+" · الرد بالفرنسية");await wait(400);t.run(args);return pick({ar:follow(name),fr:FOLLOW_FR[name]||"C'est fait.",en:FOLLOW_FR[name]||"Done."})}
   const r=ROUTES.find(([re,,,guard])=>re.test(text)&&(!guard||guard(text)));
-  if(!r){const fz=fuzzyIntent(text);
-    if(fz){const [fname,fargs]=fz;const ft=TOOLS[fname];log("sup","فهم النية تقريبيا: "+fname,"مطابقة بالكلمات المفتاحية");await wait(400);ft.run(fargs);
+  if(!r){let fz=null;if(LLM.ok()){typing(true);fz=await LLM.classify(text);if(fz)log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fz[0],"اختار الأداة من وصفها، والمفتاح على الخادم")}
+    if(!fz)fz=fuzzyIntent(text);
+    if(fz){const [fname,fargs]=fz;const ft=TOOLS[fname];if(!/عبر Claude/.test(trace.lastChild&&trace.lastChild.innerText||""))log("sup","فهم النية تقريبيا: "+fname,"مطابقة بالكلمات المفتاحية");await wait(400);ft.run(fargs);
       return pick({ar:follow(fname),fr:FOLLOW_FR[fname]||follow(fname),en:(typeof FOLLOW_EN[fname]==="function"?FOLLOW_EN[fname](state):FOLLOW_EN[fname])||follow(fname)})}
     log("sup","لم يحدد خدمة، يجيب من المعرفة العامة");return pick(GENERIC)}
   const [,name,args]=r;const t=TOOLS[name];
@@ -1322,7 +1332,7 @@ async function ask(text,img){
 }
 
 /* ---------- wiring ---------- */
-function setMode(live){$("#modeTag").innerHTML=live?"الوضع: <b>وكيل مباشر (Claude يختار الأدوات)</b>":"الوضع: <b>محاكاة موجهة</b>"}
+function setMode(live){$("#modeTag").innerHTML=live?"الوضع: <b>وكيل مباشر (Claude يختار الأدوات)</b>":(LLM.ok()?"الوضع: <b>محاكاة + فهم الصيغ عبر Claude</b>":"الوضع: <b>محاكاة موجهة</b>")}
 function renderQuick(){
   if(state.offline){$("#quick").innerHTML=["خطتي","محادثاتي","التقييم","وين أقرب زمزم؟","دلني على الفندق","أبغى عربة","تنفس معي","بعدت عن عائلتي","شغل البث"].map(x=>`<button class="q" type="button">${esc(x)}</button>`).join("");return}
   const q=state.site==="makkah"?["جهز رحلتي","أضف فردا","لوحة الحملة","التقييم","ماذا تعرف عني؟","الخريطة","المطوف الرقمي","بعدت عن عائلتي","وين أقرب عربة؟","دوائي","متى أفضل وقت للسعي؟","أين أصلي العصر؟","How do I get back to the hotel?"]:["جهز رحلتي","أضف فردا","لوحة الحملة","متى أسلم على النبي؟","كم باقي على دوري؟","أين أصلي المغرب؟","الدرس بعد المغرب","دلني على باب السلام","افتح صفحة مسار السلام","الخريطة","أذكار وآداب الروضة","بعدت عن عائلتي","التقييم","ماذا تعرف عني؟","Where is my family?"];
