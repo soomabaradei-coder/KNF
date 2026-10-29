@@ -1336,17 +1336,20 @@ function realSense(){
   navigator.geolocation.getCurrentPosition(async pos=>{
     const {latitude:la,longitude:lo}=pos.coords;const near=Object.keys(CENTER).map(k=>[k,kmBetween(la,lo,...CENTER[k])]).sort((a,b)=>a[1]-b[1])[0];if(near[1]<3&&near[0]!==state.site){log("sup","موقع الهاتف الحقيقي داخل "+SITES[near[0]].name,"تبديل الموقع تلقائيا");state.realTried=false;setSite(near[0]);return}
     const [ca,co]=CENTER[state.site];const km=kmBetween(la,lo,ca,co);state.real={la,lo,km};
-    if(km<1.5){log("sup","موقع الهاتف الحقيقي: داخل نطاق "+site().name,km.toFixed(2)+" كم من المركز")}
-    else{log("sup","موقع الهاتف الحقيقي يبعد "+Math.round(km)+" كم عن "+site().name,"أعرض سيناريو الحرم محاكاة، والطقس من موقعك الفعلي");
-      setTimeout(()=>$("#locText").insertAdjacentHTML("beforeend",' <span style="color:var(--muted)">(موقعك الفعلي يبعد '+Math.round(km)+' كم)</span>'),900)}
+    const dir=(()=>{const dLon=(lo-co)*Math.PI/180,p1=ca*Math.PI/180,p2=la*Math.PI/180;const y=Math.sin(dLon)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dLon);const b=(Math.atan2(y,x)*180/Math.PI+360)%360;return ["شمال","شمال شرق","شرق","جنوب شرق","جنوب","جنوب غرب","غرب","شمال غرب"][Math.round(b/45)%8]})();
+    const where=km<0.6?"داخل "+site().name+" أو ساحاته":km<1.5?"على بعد "+Math.round(km*1000)+" م "+dir+" "+site().name:"على بعد "+(km<10?km.toFixed(1):Math.round(km))+" كم "+dir+" "+site().name;
+    state.realWhere=where;
+    if(km<1.5){log("sup","موقع الهاتف الحقيقي: "+where,km.toFixed(2)+" كم من المركز")}
+    else{log("sup","موقع الهاتف الحقيقي: "+where,"الطقس من موقعك الفعلي")}
+    setTimeout(()=>{$("#locText").innerHTML="موقعك الآن: <b>"+esc(where)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>"},950);
     try{const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+la.toFixed(3)+"&longitude="+lo.toFixed(3)+"&current=temperature_2m,relative_humidity_2m&timezone=auto");const j=await r.json();
       const t=Math.round(j.current.temperature_2m),h=j.current.relative_humidity_2m;SITES[state.site].temp=t;$(".sb span:last-child").textContent=site().city+" · "+t+"°";wbRender();
       log("care","طقس حقيقي من موقع الهاتف",t+"° · رطوبة "+h+"% (Open-Meteo)")}catch(_){log("care","الطقس الحي غير متاح في هذا العارض","أبقي قيمة المحاكاة")}
-  },err=>{log("sup","تحديد الموقع الحقيقي غير متاح هنا ("+(err&&err.message||"")+")","أبقي موقع المحاكاة")},{timeout:6000,maximumAge:60000});}
+  },err=>{log("sup","تحديد الموقع الحقيقي غير متاح هنا ("+(err&&err.message||"")+")","أبقي موقع المحاكاة");setTimeout(()=>{$("#locText").insertAdjacentHTML("beforeend",' <span style="color:var(--muted)">(الجوال لم يأذن بالموقع: اسمح به من إعدادات المتصفح)</span>')},950)},{timeout:8000,maximumAge:60000});}
 function start(){
   THR.cur=null;feed.innerHTML="";trace.innerHTML='<div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div>';state.turns=[];t0=Date.now();
   const s=site();$("#subline").textContent="عناية تفهمك";
-  $("#locText").textContent="جار تحديد موقعك…";setTimeout(()=>{$("#locText").innerHTML="موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot);},700);
+  $("#locText").textContent="جار تحديد موقعك…";setTimeout(()=>{$("#locText").innerHTML=state.realWhere?"موقعك الآن: <b>"+esc(state.realWhere)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>":"موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot)+" <span style=\"color:var(--muted)\">(محاكاة حتى يأذن الجوال بالموقع)</span>";},700);
   log("sup","حدد موقع الضيف تلقائيا",s.name+" · "+s.spot);$(".sb span:last-child").textContent=s.city+" · "+s.temp+"°";
   realSense();
   if(state.judge&&!state.onboarded){onboard();renderKnown();renderQuick();return}
