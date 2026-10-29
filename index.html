@@ -1338,10 +1338,11 @@ function realSense(){
     const [ca,co]=CENTER[state.site];const km=kmBetween(la,lo,ca,co);state.real={la,lo,km};
     const dir=(()=>{const dLon=(lo-co)*Math.PI/180,p1=ca*Math.PI/180,p2=la*Math.PI/180;const y=Math.sin(dLon)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dLon);const b=(Math.atan2(y,x)*180/Math.PI+360)%360;return ["شمال","شمال شرق","شرق","جنوب شرق","جنوب","جنوب غرب","غرب","شمال غرب"][Math.round(b/45)%8]})();
     const where=km<0.6?"داخل "+site().name+" أو ساحاته":km<1.5?"على بعد "+Math.round(km*1000)+" م "+dir+" "+site().name:"على بعد "+(km<10?km.toFixed(1):Math.round(km))+" كم "+dir+" "+site().name;
-    state.realWhere=where;
+    const entry=state.site==="makkah"?"باب الملك عبدالعزيز (1)":(profile.gender==="f"?"مداخل النساء في الجهة الشمالية":"باب السلام (1)، وللروضة بالتصريح ساحات باب مكة (37)");
+    state.realWhere=where+" · مدخلك: "+entry;
     if(km<1.5){log("sup","موقع الهاتف الحقيقي: "+where,km.toFixed(2)+" كم من المركز")}
     else{log("sup","موقع الهاتف الحقيقي: "+where,"الطقس من موقعك الفعلي")}
-    setTimeout(()=>{$("#locText").innerHTML="موقعك الآن: <b>"+esc(where)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>"},950);
+    setTimeout(()=>{$("#locText").innerHTML="موقعك الآن: <b>"+esc(state.realWhere)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>"+(state.groupCode?" · مجموعة <b>"+esc(state.groupCode)+"</b>":"")},950);
     try{const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+la.toFixed(3)+"&longitude="+lo.toFixed(3)+"&current=temperature_2m,relative_humidity_2m&timezone=auto");const j=await r.json();
       const t=Math.round(j.current.temperature_2m),h=j.current.relative_humidity_2m;SITES[state.site].temp=t;$(".sb span:last-child").textContent=site().city+" · "+t+"°";wbRender();
       log("care","طقس حقيقي من موقع الهاتف",t+"° · رطوبة "+h+"% (Open-Meteo)")}catch(_){log("care","الطقس الحي غير متاح في هذا العارض","أبقي قيمة المحاكاة")}
