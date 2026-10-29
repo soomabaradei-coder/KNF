@@ -1232,6 +1232,9 @@ function detectLang(text){return /[a-z]{3,}/i.test(text)&&!/[\u0600-\u06FF]/.tes
 async function scripted(text){
   log("sup","قرأ الطلب والسياق","يصنف النية ويختار الوكيل");
   await wait(500);
+  /* with the gateway available, free-form sentences go to Claude first; short commands and quick chips stay local for speed */
+  if(LLM.ok()){const words=text.trim().split(/\s+/).length;const isChip=[...document.querySelectorAll("#quick .q")].some(b=>b.innerText.trim()===text.trim())||/^(التقييم|نتائج التقييم|الخريطة|خطتي|محادثاتي|المطوف الرقمي|لوحة الحملة|جهز رحلتي|أضف فردا)$/.test(text.trim());
+    if(!isChip&&words>=4){const g=await viaGateway(text);if(g)return g}}
   if(/^\s*(دلني|أرشدني|ارشدني|وجهني|دليني)\s*[.؟!]?\s*$/i.test(text)&&!state.lastDest){
     log("sup","طلب إرشاد بلا وجهة","يعرض الخريطة ويسأل إلى أين");await wait(300);TOOLS.show_map.run({});
     return pick({ar:"إلى أين أدلك؟ هذه خريطتك الآن: اختر أقرب عربة أو زمزم أو قل لي اسم المكان.",fr:"Où voulez-vous aller ? Voici votre carte.",en:"Where to? Here is your map."})}
