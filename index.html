@@ -575,7 +575,7 @@ const LLM={url:"",load(){try{const q=new URLSearchParams(location.search);const 
   async classify(text){if(!this.ok())return null;const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),7000);
     try{const tools=Object.keys(TOOLS).map(k=>({name:k,desc:TOOLS[k].desc,schema:TOOLS[k].schema||{type:"object",properties:{}}}));
       const r=await fetch(this.url,{method:"POST",headers:{"content-type":"application/json"},signal:ctl.signal,body:JSON.stringify({text,site:state.site,lang:state.lang,profile:profileText().map(([k,v])=>k+": "+v).join("، "),tools})});
-      if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(!j||!j.name||!TOOLS[j.name])return null;return [j.name,j.input||{}]}
+      if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(!j||!j.name||!TOOLS[j.name])return null;this.reply=j.reply||"";return [j.name,j.input||{}]}
     catch(e){log("sup","بوابة الفهم غير متاحة الآن",(e.name==="AbortError"?"انتهت المهلة":String(e.message||e))+" · أكمل بالمطابقة المحلية");return null}finally{clearTimeout(t)}}};
 LLM.load();
 /* ---------- live readings from the Authority's public status endpoints (the same ones its own pages call) ---------- */
@@ -1061,10 +1061,13 @@ const TOOLS={
       const z=s.places.zamzam[0],r=s.places.rest[0];
       card(head("💧","وقت الماء والراحة","خطة الجسد")+`<dl class="kv">${n!=="rest"?`<dt>ماء</dt><dd>${esc(z[0])} (${z[1]} م)، كوبان على مهل</dd>`:""}${n!=="water"?`<dt>راحة</dt><dd>${esc(r[0])} (${r[1]} م)، 10 دقائق في الظل</dd>`:""}<dt>لماذا الآن</dt><dd>الحرارة ${s.temp}°، والعطش عند كبار السن لا يُحس به مبكرا</dd></dl><div class="acts"><button class="primary" data-say="دلني على أقرب زمزم">دلني</button><button data-say="شربت وارتحت">شربت وارتحت</button></div>`,"alert");
       return{water:z[0],rest:r[0],temp:s.temp}}},
-  waiting_mode:{agent:"care",desc:"وضع الانتظار عند الروضة الشريفة: يعرض يقين الموعد المحجوز عبر كنف، الوقت المتوقع من كثافة مسار السلام، أقرب مكان جلوس مظلل، ويعد بتنبيه قبل الدور. استخدمه تلقائيا عندما يكون الضيف في المسجد النبوي وله موعد روضة قادم.",
-    run(){const s=site();const d=liveLvl("salam");const w=remaining();log("care","وضع الانتظار: موعد الروضة محجوز عبر كنف","الدور محفوظ · انتظار متوقع "+w+" د · كثافة "+lvlText(d));
-      card(head("🕌","وضع الانتظار: دورك محفوظ","روضة · "+profile.rawdah.slot)+`<div class="big">${w} دقيقة</div><div>الوقت المتوقع للدخول إلى الروضة حسب جدول التفويج. نقطة التجمع: الساحات الجنوبية أمام باب مكة (37). موعدك ${profile.rawdah.slot} مؤكد، ولن يفوتك بمشيئة الله ما دام هاتفك معك. الدخول بالتفويج، فاجلس مرتاحا حتى أنبهك.</div><dl class="kv" style="margin-top:6px"><dt>اجلس هنا</dt><dd>${esc(s.places.rest[0][0])} (${s.places.rest[0][1]} م)، ماء وظل</dd><dt>سأنبهك</dt><dd>عندما يحين تحرك فوجك، صوتا واهتزازا</dd></dl><div class="acts"><button class="primary" data-say="أجلس وأنتظر تنبيهك">أجلس وأنتظر تنبيهك</button><button data-say="تنفس معي">تنفس معي</button><button data-say="أذكار وآداب الروضة">أذكار وآداب الروضة</button></div>`,"wait");
-      return{slot:profile.rawdah.slot,wait_min:w,density:lvlText(d),rest:s.places.rest[0][0]}}},
+  waiting_mode:{agent:"care",desc:"موعد الروضة الشريفة القادم: يحسب للضيف متى يخرج من سكنه ليصل إلى نقطة التجمع (الساحات الجنوبية أمام باب مكة 37) قبل الموعد بنصف ساعة لا أكثر، حتى لا ينتظر في الحر، ويذكره بما يأخذه معه، ويعد بتنبيه وقت الخروج. عند نقطة التجمع يتولاه مرشدو الهيئة. استخدمه تلقائيا عندما يكون الضيف في المسجد النبوي وله موعد روضة قادم.",
+    run(){const s=site();const H=HOME();const slow=profile.mobility!=="walk"||(+profile.age||0)>=60;const slot=profile.rawdah.slot||"21:30";
+      const toGate=walk(H.dist+90)+(slow?8:0);const lead=30;const [hh,mm]=slot.split(":").map(Number);const leaveMin=hh*60+mm-lead-toGate;const leave=String(Math.floor(((leaveMin%1440)+1440)%1440/60)).padStart(2,"0")+":"+String(((leaveMin%60)+60)%60).padStart(2,"0");
+      const now=new Date();const nowMin=now.getHours()*60+now.getMinutes();const untilLeave=leaveMin-nowMin;
+      log("care","موعد الروضة: حسب وقت الخروج من السكن","الموعد "+slot+" · الطريق "+toGate+" د"+(slow?" بالعربة":"")+" · الوصول قبل الموعد بـ"+lead+" د · الخروج "+leave);
+      card(head("🕌","موعدك في الروضة "+slot,untilLeave>0?"لا تتوجه الآن":"حان وقت التوجه")+`<div class="big">${untilLeave>0?"اخرج من السكن "+leave:"تحرك الآن"}</div><div>${untilLeave>0?"بقي "+(untilLeave>=60?Math.floor(untilLeave/60)+" ساعة و"+(untilLeave%60)+" دقيقة":untilLeave+" دقيقة")+" حتى وقت الخروج. ":""}الطريق من ${esc(H.home)} إلى نقطة التجمع أمام باب مكة (37) نحو ${toGate} دقيقة${slow?" بالعربة من مركز عربات الرجال عند باب 21":""}، وتصل قبل موعدك بنصف ساعة، وهناك يتولاك مرشدو الهيئة بالتفويج فلا تنتظر في الساحات المكشوفة أكثر من ذلك.</div><dl class="kv" style="margin-top:6px"><dt>خذ معك</dt><dd>تصريحك على الجوال، ماء، كيسا لحذائك${profile.meds&&profile.meds.length?"، ودواءك":""}</dd><dt>قبل الخروج</dt><dd>الوضوء ودورة المياه، فلا عودة بعد بوابة التحقق</dd><dt>سأنبهك</dt><dd>قبل وقت الخروج بعشر دقائق، صوتا واهتزازا</dd></dl><div class="acts"><button class="primary" data-say="${untilLeave>0?"ذكرني قبل الخروج إلى الروضة الساعة "+leave:"دلني على نقطة التجمع"}">${untilLeave>0?"نبهني وقت الخروج":"ابدأ الإرشاد إلى نقطة التجمع"}</button><button data-say="أذكار وآداب الروضة">أذكار وآداب الروضة</button></div>`,"wait");
+      return{slot,leave_at:leave,route_min:toGate,arrive_before_min:lead,assembly:"الساحات الجنوبية أمام باب مكة (37)"}}},
   start_breathing:{agent:"care",desc:"يبدأ تمرين تنفس بطيء لمدة دقيقة (شهيق 4 ثوان، زفير 6 ثوان، بلا حبس) بدائرة تتوسع وتنكمش وعد صوتي بلغة سماع الضيف، مع ذكر اختياري مع الزفير. للتهدئة عند الانتظار أو القلق أو التفرق. ليس علاجا: عند ألم صدر أو ضيق نفس شديد استدع emergency بدلا منه.",
     run(){state.stressed=false;return breathing()}},
   rawdah_guide:{agent:"rite",desc:"يعرض أذكار دخول المسجد النبوي والسلام على النبي وآداب الروضة باختصار بلغة قراءة الضيف، ويقرؤها بالصوت بلغة سماعه. استخدمه أثناء الانتظار.",
@@ -1222,6 +1225,9 @@ function tone(text){const t=String(text);
   if(/j'en peux plus|ras le bol|n'en peux plus|personne ne|c'est pas possible|au secours|aidez-moi|énervé|enerve|stressé|stresse|inquiet|fatigué/i.test(t))marks.push("كلمات ضيق بالفرنسية");
   const lat=t.replace(/[^A-Za-z]/g,"");if(lat.length>8&&lat.replace(/[^A-Z]/g,"").length/lat.length>0.6)marks.push("كتابة بحروف كبيرة");
   return marks}
+async function viaGateway(text){if(!LLM.ok())return null;typing(true);const fz=await LLM.classify(text);if(!fz)return null;const [fname,fargs]=fz;const ft=TOOLS[fname];log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fname,"اختار الأداة من وصفها، والمفتاح على الخادم");await wait(300);ft.run(fargs);
+  const rp=LLM.reply||"";LLM.reply="";if(rp){const rl=detectLang(rp)||state.lang||"ar";return {text:rp,say:rp,sayLang:rl}}
+  return pick({ar:follow(fname),fr:FOLLOW_FR[fname]||follow(fname),en:(typeof FOLLOW_EN[fname]==="function"?FOLLOW_EN[fname](state):FOLLOW_EN[fname])||follow(fname)})}
 function detectLang(text){return /[a-z]{3,}/i.test(text)&&!/[\u0600-\u06FF]/.test(text)?(()=>{if(/[éèêàçùôâîûœ]/.test(text))return "fr";const fr=(text.match(/\b(je|où|ou|est|les|mon|ma|mes|vous|pour|comment|famille|hôtel|retour|prière|chariot|aide|bonjour|merci|moi|vers|le|la|guidez|chemin|aller|emmène|emmenez|suis|avec|une|des|du)\b/gi)||[]).length;const en=(text.match(/\b(the|where|is|are|my|to|how|can|i|need|want|please|me|you|a|an|of|in|what|when|which|take|get|near|nearest|help|family|hotel|back|guide)\b/gi)||[]).length;return fr>en?"fr":"en"})():/[\u0679\u067E\u0686\u0688\u0691\u06BA\u06BE\u06C1\u06CC\u06D2]/.test(text)?"ur":/[\u0600-\u06FF]/.test(text)?"ar":null}
 async function scripted(text){
   log("sup","قرأ الطلب والسياق","يصنف النية ويختار الوكيل");
@@ -1234,17 +1240,18 @@ async function scripted(text){
     log("sup","وجه إلى وكيل الإرشاد","أداة: start_guidance");await wait(300);guidance(dest.replace(/^نقطة اللقاء$/,state.lastDest||dest),state.lastDist||150);
     return pick({ar:"أرشدك بالصوت خطوة بخطوة، وأعيد الحساب إن تغير المسار.",fr:"Je vous guide par la voix, étape par étape.",en:"I will guide you by voice, step by step."})}
   if(state.lang==="en"){const en=EN_ROUTES.find(([re])=>re.test(text));
-    if(!en){log("sup","لم يحدد خدمة، يجيب بالإنجليزية");return pick({ar:GENERIC.ar,fr:GENERIC.fr,en:GENERIC.en})}
+    if(!en){const g=await viaGateway(text);if(g)return g;log("sup","لم يحدد خدمة، يجيب بالإنجليزية");return pick({ar:GENERIC.ar,fr:GENERIC.fr,en:GENERIC.en})}
     const spec=en[1];const name=Array.isArray(spec)?spec[0]:spec;const args=Array.isArray(spec)?spec[1]:(name==="report_lost"?{type:"person",description:text}:name==="share_location"?{member:"يوسف"}:name==="book_children_center"?{children:2}:name==="request_cart"?{kind:"wheelchair"}:{});
     const t=TOOLS[name];log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name+" · الرد بالإنجليزية");await wait(400);t.run(args);const fe=FOLLOW_EN[name];const et=typeof fe==="function"?fe(state):fe;return pick({ar:follow(name),fr:FOLLOW_FR[name]||follow(name),en:et||follow(name)})}
   if(state.lang==="fr"){const fr=FR_ROUTES.find(([re])=>re.test(text));
-    if(!fr){log("sup","لم يحدد خدمة، يجيب بالفرنسية");return pick({ar:GENERIC.ar,fr:GENERIC.fr,en:GENERIC.en})}
+    if(!fr){const g=await viaGateway(text);if(g)return g;log("sup","لم يحدد خدمة، يجيب بالفرنسية");return pick({ar:GENERIC.ar,fr:GENERIC.fr,en:GENERIC.en})}
     const spec=fr[1];const name=Array.isArray(spec)?spec[0]:spec;const args=Array.isArray(spec)?spec[1]:(name==="report_lost"?{type:"person",description:text}:name==="share_location"?{member:"يوسف"}:name==="book_children_center"?{children:2}:name==="request_cart"?{kind:"wheelchair"}:{});
     const t=TOOLS[name];log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name+" · الرد بالفرنسية");await wait(400);t.run(args);return pick({ar:follow(name),fr:FOLLOW_FR[name]||"C'est fait.",en:FOLLOW_FR[name]||"Done."})}
   const r=ROUTES.find(([re,,,guard])=>re.test(text)&&(!guard||guard(text)));
   if(!r){let fz=null;if(LLM.ok()){typing(true);fz=await LLM.classify(text);if(fz)log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fz[0],"اختار الأداة من وصفها، والمفتاح على الخادم")}
     if(!fz)fz=fuzzyIntent(text);
-    if(fz){const [fname,fargs]=fz;const ft=TOOLS[fname];if(!/عبر Claude/.test(trace.lastChild&&trace.lastChild.innerText||""))log("sup","فهم النية تقريبيا: "+fname,"مطابقة بالكلمات المفتاحية");await wait(400);ft.run(fargs);
+    if(fz){const [fname,fargs]=fz;const ft=TOOLS[fname];const viaLLM=/عبر Claude/.test(trace.lastChild&&trace.lastChild.innerText||"");if(!viaLLM)log("sup","فهم النية تقريبيا: "+fname,"مطابقة بالكلمات المفتاحية");await wait(400);ft.run(fargs);
+      if(viaLLM&&LLM.reply){const rp=LLM.reply;LLM.reply="";const rl=detectLang(rp)||state.lang||"ar";return {text:rp,say:rp,sayLang:rl}}
       return pick({ar:follow(fname),fr:FOLLOW_FR[fname]||follow(fname),en:(typeof FOLLOW_EN[fname]==="function"?FOLLOW_EN[fname](state):FOLLOW_EN[fname])||follow(fname)})}
     log("sup","لم يحدد خدمة، يجيب من المعرفة العامة");return pick(GENERIC)}
   const [,name,args]=r;const t=TOOLS[name];
