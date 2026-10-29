@@ -420,6 +420,8 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 
 <script>
 (function(){
+/* ?reset=1 wipes everything this device remembers (profile, group, conversations, plan, readings) and reloads clean */
+{const q0=new URLSearchParams(location.search);if(q0.get("reset")==="1"){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(_){}q0.delete("reset");const u=location.pathname+(q0.toString()?"?"+q0.toString():"")+location.hash;location.replace(u);throw new Error("reset")}}
 "use strict";
 const $=s=>document.querySelector(s);
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
