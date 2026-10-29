@@ -759,8 +759,19 @@ function voiceStatus(){const el=$("#voiceStat");if(!el)return;let vs=[];try{vs=s
   el.innerHTML=!voice.ok?"المتصفح لا يدعم النطق (Web Speech)":`الأصوات في هذا الجهاز: ${vs.length}${ar.length?` · عربي: ${esc(ar.slice(0,2).join("، "))}`:" · <b style='color:var(--crit)'>لا يوجد صوت عربي مثبت</b>"}${fr?" · فرنسي متاح":""}${voice.err?` · <b style='color:var(--crit)'>خطأ: ${esc(voice.err)}</b>`:voice.spoke?" · نطق بنجاح":" · لم ينطق بعد، اضغط 🔊 ثم أرسل رسالة"}`}
 function stopSpeak(){try{speechSynthesis.cancel()}catch(_){}}
 let navRun=0;
+function liveMemberGuidance(f,id){
+  const first=f.name.split(" ")[0];const me=state.real;
+  const cur=()=>{const pr=(state.peers||[]).map(p=>p.presence||{}).find(p=>String(p.name||"")===f.name.replace(" (جهاز آخر)",""))||{la:f.la,lo:f.lo};const r=state.real;if(!r||typeof pr.la!=="number")return null;return {d:Math.round(kmBetween(r.la,r.lo,pr.la,pr.lo)*1000),dir:dirOf(r.la,r.lo,pr.la,pr.lo)}};
+  const c0=cur();log("nav","إرشاد حي إلى "+first,(c0?c0.d+" م "+c0.dir:"بلا موقع")+" · يتحدث من GPS الجهازين");
+  const c=card(head("🧭","الإرشاد إلى "+esc(first),c0?c0.d+" م · "+esc(c0.dir):"")+farNote()+`<div class="big" data-live-d>${c0?c0.d+" م":"…"}</div><div data-live-t>${c0?"اتجه نحو "+esc(c0.dir)+". المسافة تتحدث مع حركتكما.":"أنتظر موقعكما."}</div>${svgFamily([f])}<div class="acts"><button class="primary" data-say="أرسل موقعي لـ${esc(first)}">أرسل له موقعي</button><button data-say="اتصل بـ${esc(first)}">اتصال</button><button data-stop="1">إيقاف</button></div>`,"nav");
+  let stopped=false;c.querySelector("[data-stop]").addEventListener("click",()=>{stopped=true;stopSpeak();log("nav","أوقف الضيف الإرشاد","")});
+  if(c0)speak(first+" على بعد "+c0.d+" متر جهة "+c0.dir+". اتجه نحوه.");
+  let last=c0?c0.d:null;const t=setInterval(()=>{if(stopped||id!==navRun||!document.body.contains(c)){clearInterval(t);return}const k=cur();if(!k)return;c.querySelector("[data-live-d]").textContent=k.d+" م";c.querySelector("[data-live-t]").textContent="اتجه نحو "+k.dir+". "+(last!==null&&k.d<last?"تقترب.":last!==null&&k.d>last?"تبتعد، غير اتجاهك.":"");
+    if(k.d<=30){clearInterval(t);c.querySelector("[data-live-t]").textContent="وصلت، "+first+" قريب منك.";speak("وصلت. "+first+" قريب منك.");log("nav","وصل الضيف إلى "+first,k.d+" م")}else if(last!==null&&Math.abs(k.d-last)>=40){speak(first+" على بعد "+k.d+" متر جهة "+k.dir)}last=k.d},5000);
+  return{member:f.name,distance_m:c0?c0.d:null,direction:c0?c0.dir:null,live:true}}
 function guidance(dest,dist){
-  const id=++navRun;const s=site();const L=state.lang!=="ar"&&state.lang!==profile.readLang?state.lang:profile.readLang;const SL=profile.speakLang||L;
+  const id=++navRun;const s=site();
+  if(/^موقع /.test(dest)){const q=normAr(dest.replace(/^موقع /,"").split(" (")[0]);const f=livePeers().find(p=>p.sharing&&typeof p.la==="number"&&(normAr(p.name).startsWith(q)||q.startsWith(normAr(p.name).split(" ")[0])));if(f)return liveMemberGuidance(f,id)}const L=state.lang!=="ar"&&state.lang!==profile.readLang?state.lang:profile.readLang;const SL=profile.speakLang||L;
   const ALL={ar:{t:"الإرشاد الصوتي إلى "+dest,steps:["اتجه يمينا نحو "+s.places.gate[0][0]+"، "+Math.round(dist*0.3)+" مترا.","المصعد على يسارك، اصعد إلى الدور الأول وتجنب السلالم.","استمر مستقيما "+Math.round(dist*0.5)+" مترا، المسار أخف كثافة من "+(state.site==="makkah"?"المطاف":"مسار السلام")+".","وصلت. "+dest+" أمامك على بعد عشرة أمتار."],arrived:"وصلت بسلامة.",done:"اكتمل الإرشاد"},
     fr:{t:"Guidage vocal vers "+dest,steps:["Tournez à droite vers la porte principale, "+Math.round(dist*0.3)+" mètres.","L'ascenseur est à votre gauche, montez au premier étage, évitez les escaliers.","Continuez tout droit "+Math.round(dist*0.5)+" mètres, le passage est moins dense.","Vous êtes arrivé. Votre destination est devant vous, à dix mètres."],arrived:"Arrivé.",done:"Guidage terminé"},
     en:{t:"Voice guidance to "+dest,steps:["Turn right towards the main gate, "+Math.round(dist*0.3)+" metres.","The lift is on your left, go up to the first floor and avoid the stairs.","Continue straight "+Math.round(dist*0.5)+" metres, this path is less crowded.","You have arrived. Your destination is ten metres ahead."],arrived:"Arrived.",done:"Guidance complete"}};
@@ -1664,6 +1675,7 @@ $("#simSpo2").addEventListener("click",()=>{health.permitted=true;health.watch=t
     if(q.get("fresh")==="1"||h==="#judge"){state.onboarded=false;try{localStorage.removeItem("hafi.onboarded");localStorage.removeItem("hafi.profile")}catch(_){}}}}
 setNet();
 LIVE.load();LIVE.refresh();setInterval(()=>LIVE.refresh(),60000);
+window.__knf={state,renderLivePeers,livePeers};
 $("#simMed").addEventListener("click",()=>{const m=profile.meds[0];msg("agent","يا "+profile.name+"، حان موعد "+(m?m.name:"الدواء")+".");speak({fr:"C'est l'heure de votre médicament. Asseyez-vous et buvez un peu d'eau.",en:"It is time for your medicine. Sit down and drink some water.",ar:"حان موعد دوائك. اجلس واشرب قليلا من الماء."}[profile.speakLang]||"",{lang:profile.speakLang});TOOLS.medication.run({action:"due"})});
 $("#simNoWatch").addEventListener("click",()=>{health.watch=!health.watch;health.permitted=health.watch;healthAsked=false;wbRender()});
 $("#simPrayer").addEventListener("click",()=>{msg("sys","قبل العصر بعشرين دقيقة");prayerPlan()});
