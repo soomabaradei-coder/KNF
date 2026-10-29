@@ -1623,6 +1623,7 @@ $("#famInvite").addEventListener("click",()=>{$("#sheet").hidden=true;ask("أض�
 $("#famAdd").addEventListener("click",()=>{const n=["فاطمة","سعيد","مريم"][profile.family.length%3];profile.family.push({name:n,rel:"من العائلة",phone:"+212 6 00 00 00 "+(10+profile.family.length),sharing:1});saveProfile();renderKnown()});
 $("#homeAuto").addEventListener("click",()=>{HOME().home=DEFAULT_PROFILE.homes[state.site].home;HOME().auto=1;HOME().confirmed=0;SRC.home="استنتجه كنف، بانتظار تأكيدك";saveProfile();renderKnown();$("#sheet").hidden=true;start()});
 $("#pHome").addEventListener("change",e=>{HOME().home=e.target.value.trim()||DEFAULT_PROFILE.homes[state.site].home;HOME().confirmed=1;HOME().auto=0;SRC.home="أدخله بنفسه";saveProfile();renderKnown()});
+$("#pName").addEventListener("change",e=>{profile.selfNamed=true});
 $("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
 $("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||DEFAULT_PROFILE.age;saveProfile();renderKnown()});
 $("#pGender")&&$("#pGender").addEventListener("change",e=>{profile.gender=e.target.value;saveProfile();renderKnown()});
@@ -1670,7 +1671,7 @@ start();voiceStatus();setTimeout(voiceStatus,1500);
   try{const room=window.claude&&window.claude.use?await window.claude.use("room"):null;if(room)liveFamilyStart(room);else{const r=await mqttRoom();if(r)liveFamilyStart(r)}}catch(_){}
 })();
 /* ---------- group channel for self-hosted copies (GitHub Pages / inside the platform): a public MQTT broker over WebSocket. Demo only: open broker, anonymous, group code in the link ---------- */
-function groupCode(){const q=new URLSearchParams(location.search);let g=(q.get("g")||"").replace(/[^A-Za-z0-9]/g,"").toUpperCase();let prev="";try{prev=localStorage.getItem("knf_group")||""}catch(_){}if(g&&g!==prev)state.joinedViaLink=true;if(!g){g=prev}if(!g){g=Math.random().toString(36).slice(2,6).toUpperCase()}try{localStorage.setItem("knf_group",g)}catch(_){}return g}
+function groupCode(){const q=new URLSearchParams(location.search);let g=(q.get("g")||"").replace(/[^A-Za-z0-9]/g,"").toUpperCase();let prev="";try{prev=localStorage.getItem("knf_group")||""}catch(_){}if(g)state.joinedViaLink=true;if(!g){g=prev}if(!g){g=Math.random().toString(36).slice(2,6).toUpperCase()}try{localStorage.setItem("knf_group",g)}catch(_){}return g}
 async function mqttRoom(){
   if(LIVE.sandboxed()||state.offline||location.protocol==="file:")return null;
   const code=groupCode();state.groupCode=code;
@@ -1690,8 +1691,8 @@ async function mqttRoom(){
   setInterval(()=>{const now=Date.now();const gone=[];peers.forEach((p,id)=>{if(now-(+p.t||0)>150000){peers.delete(id);gone.push(p)}});if(gone.length)emit([],gone);pub()},20000);
   window.addEventListener("beforeunload",()=>{try{client.publish(topic+myId,"",{retain:true})}catch(_){}});
   log("svc","قناة المجموعة جاهزة (عرض تجريبي عبر خادم رسائل عام)","رمز المجموعة "+code+" · من يفتح الرابط بالرمز نفسه يظهر هنا");
-  if(state.joinedViaLink){setTimeout(()=>{const c=card(head("👨‍👩‍👧","انضممت إلى مجموعة "+code,"اكتب اسمك ليراك الآخرون")+`<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="nm" placeholder="اسمك" value="" style="flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2)"><button class="primary" type="button" data-ok="1">تم</button></div><small style="color:var(--muted)">الآن يظهر اسمك عند الآخرين، وتسأل: وين فلان؟</small>`);
-    c.querySelector("[data-ok]").addEventListener("click",()=>{const v=c.querySelector("input").value.trim();if(!v)return;profile.name=v;saveProfile();renderKnown();if(state.pushPresence)state.pushPresence();c.querySelector("div[style]").remove();c.querySelector("small").textContent="أنت الآن "+v+" في المجموعة.";log("svc","عرف الفرد نفسه للمجموعة",v)})},800)}
+  if(state.joinedViaLink&&!profile.selfNamed){setTimeout(()=>{const c=card(head("👨‍👩‍👧","انضممت إلى مجموعة "+code,"اكتب اسمك ليراك الآخرون")+`<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="nm" placeholder="اسمك" value="" style="flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2)"><button class="primary" type="button" data-ok="1">تم</button></div><small style="color:var(--muted)">الآن يظهر اسمك عند الآخرين، وتسأل: وين فلان؟</small>`);
+    c.querySelector("[data-ok]").addEventListener("click",()=>{const v=c.querySelector("input").value.trim();if(!v)return;profile.name=v;profile.selfNamed=true;saveProfile();renderKnown();if(state.pushPresence)state.pushPresence();c.querySelector("div[style]").remove();c.querySelector("small").textContent="أنت الآن "+v+" في المجموعة.";log("svc","عرف الفرد نفسه للمجموعة",v)})},800)}
   return{presence(p){mine=Object.assign({},p);pub()},onPeers(fn){handler=fn;emit()},code};
 }
 /* ---------- live family group: everyone who has this page open shares presence (name + GPS) ---------- */
