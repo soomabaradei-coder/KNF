@@ -79,7 +79,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .chip[aria-pressed="true"]{background:var(--kiswa);color:#f6f1e4;border-color:var(--kiswa)}
 .chip.sos{background:var(--crit);border-color:var(--crit);color:#fff;font-weight:800;letter-spacing:.04em;font-family:var(--mono);box-shadow:0 0 0 3px color-mix(in srgb,var(--crit) 25%,transparent)}
 .chip:focus-visible,.q:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.feed{flex:1;overflow-y:auto;padding:12px 12px 6px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.feed{flex:1;overflow-y:auto;padding:12px 12px 16px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){.feed{scroll-behavior:auto}}
 .msg{max-width:88%;padding:9px 12px;border-radius:16px;font-size:.92rem;white-space:pre-wrap;word-wrap:break-word}
 .msg.user{align-self:flex-start;background:var(--bubble-user);color:var(--bubble-user-fg);border-bottom-left-radius:4px}
@@ -521,7 +521,8 @@ const AGENTS=[["api","واجهة خدمات الهيئة","استدعاء الخ
 const site=()=>SITES[state.site];
 function el(h){const t=document.createElement("template");t.innerHTML=h.trim();return t.content.firstChild}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
-function push(node){feed.appendChild(node);feed.scrollTop=feed.scrollHeight;if(state.onboarded||!state.judge)THR.sched();return node}
+function scrollBottom(){feed.scrollTop=feed.scrollHeight}
+function push(node){feed.appendChild(node);scrollBottom();requestAnimationFrame(scrollBottom);setTimeout(scrollBottom,250);setTimeout(scrollBottom,700);if(state.onboarded||!state.judge)THR.sched();return node}
 /* ---------- saved conversations (threads): the guest returns to them, offline too ---------- */
 const THR={list:[],cur:null,
   load(){try{const j=JSON.parse(localStorage.getItem("knf_threads")||"null");if(j){this.list=j.list||[];this.cur=j.cur||null}}catch(_){}},
@@ -1096,7 +1097,7 @@ function sampleTools(){
 const ROUTES=[
  [/دلني على (باب مكة|نقطة التجمع|ساحات باب مكة|بوابة التفويج|تجمع الروضة)|وين (باب مكة|نقطة التجمع|بوابة التفويج)|أين (باب مكة|نقطة التجمع)/i,"start_guidance",()=>({destination:"ساحات باب مكة (37)، نقطة تجمع تصاريح الروضة",distance_m:330})],
  [/دلني على باب البقيع|وين باب البقيع|أين باب البقيع/i,"start_guidance",()=>({destination:"باب البقيع، نهاية مسار السلام",distance_m:420})],
- [/أضف فرد|اضف فرد|ضيف فرد|أضيف فرد|اضيف فرد|ادعو|أدعو|دعوة|شارك الرابط|ارسل الرابط|أرسل الرابط/i,"invite_member",()=>({})],
+ [/(أضف|اضف|ضيف|أضيف|اضيف|اضافة|إضافة|ادخل|أدخل|انضم|ينضم|يدخل|اربط|أربط)\s*(لي\s*)?(شخص|فرد|احد|أحد|واحد|عضو|زول|ابني|زوجتي|عائلتي|اهلي|أهلي|صاحبي|جماعتي|الحملة|الحمله)|ادعو|أدعو|دعوة|دعوه|شارك الرابط|ارسل الرابط|أرسل الرابط|رمز المجموعة|رمز المجموعه|كود المجموعة/i,"invite_member",()=>({})],
  [/محادثاتي|المحادثات السابقة|محادثه سابقه|محادثة سابقة|وين محادثة|رجعني لمحادثة|ارجع لمحادثة|افتح محادثة/i,"open_threads",()=>({})],
  [/(افتح|افتحي|فتح|اعرض|وريني|ابي|ابغى)\s*(لي\s*)?(صفح[ةه]|موقع|منص[ةه]|بوابة)\s*(الهيئ[ةه]|الحالة|الكثاف[ةه]|مسار السلام)|صفح[ةه] (مسار السلام|الكثاف[ةه]|الهيئ[ةه])|موقع الهيئ[ةه]|الحال[ةه] الرسمي[ةه]/i,"open_portal",t=>({page:/مصل|إشغال|اشغال/.test(t)?"halls":/خريط/.test(t)?"map":/خدمات/.test(t)?"services":/آداب|اداب|الروضة/.test(t)?"rawdah":/كثاف|سلام|حالة/.test(t)?"density":undefined})],
  [/كيف حالي|فحص عافية|كيف أشعر|كيف اشعر/i,"wellbeing_checkin",()=>({})],
@@ -1228,6 +1229,7 @@ async function scripted(text){
 /* ---------- fuzzy intent: normalized keyword scoring so dialect and spelling variants still reach a service ---------- */
 function normAr(t){return (t||"").toLowerCase().replace(/[\u064B-\u0652\u0640]/g,"").replace(/[أإآٱ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/[^\u0600-\u06FFa-z0-9\s]/g," ").replace(/\s+/g," ").trim()}
 const INTENTS=[
+ ["invite_member",["اضيف شخص","اضف شخص","اضيف فرد","اضافه شخص","اضافه فرد","ادعو","دعوه","شارك الرابط","رمز المجموعه","انضمام","ينضم","اربط جوال","جوال ثاني","جهاز ثاني"],["اضيف","اضف","شخص","فرد"],{}],
  ["open_portal",["صفحه الهيئه","موقع الهيئه","منصه الهيئه","الحاله الرسميه","صفحه مسار السلام","افتح الصفحه","افتح صفحه"],["افتح","وريني"],{}],
  ["mutawwif",["طواف","اطوف","نطوف","شوط","اشواط","مطوف","ادعيه","دعاء","عداد"],["بدا","بدي","بدن","وصل","ابدا","نبدا","جاهز","في المطاف","ادعي","كم"],{}],
  ["get_density",["زحمه","زحام","كثافه","ازدحام","مزدحم","فاضي","خفيف","افضل وقت","احسن وقت","متى اطوف","متى اروح","وقت الطواف","وقت السعي","مليان","اسلم على النبي","السلام على النبي","مسار السلام","ازور الروضه","متى الروضه","وقت الروضه","ابي اطوف","ابغى اطوف","ودي اطوف","اروح اطوف","انزل اطوف"],["ابي","ابغى","ودي","اروح","الحين","الان","ممكن"],{}],
@@ -1321,7 +1323,7 @@ async function ask(text,img){
 function setMode(live){$("#modeTag").innerHTML=live?"الوضع: <b>وكيل مباشر (Claude يختار الأدوات)</b>":"الوضع: <b>محاكاة موجهة</b>"}
 function renderQuick(){
   if(state.offline){$("#quick").innerHTML=["خطتي","محادثاتي","التقييم","وين أقرب زمزم؟","دلني على الفندق","أبغى عربة","تنفس معي","بعدت عن عائلتي","شغل البث"].map(x=>`<button class="q" type="button">${esc(x)}</button>`).join("");return}
-  const q=state.site==="makkah"?["جهز رحلتي","لوحة الحملة","التقييم","ماذا تعرف عني؟","الخريطة","المطوف الرقمي","بعدت عن عائلتي","وين أقرب عربة؟","دوائي","متى أفضل وقت للسعي؟","أين أصلي العصر؟","How do I get back to the hotel?"]:["جهز رحلتي","لوحة الحملة","متى أسلم على النبي؟","كم باقي على دوري؟","أين أصلي المغرب؟","الدرس بعد المغرب","دلني على باب السلام","افتح صفحة مسار السلام","الخريطة","أذكار وآداب الروضة","بعدت عن عائلتي","التقييم","ماذا تعرف عني؟","Where is my family?"];
+  const q=state.site==="makkah"?["جهز رحلتي","أضف فردا","لوحة الحملة","التقييم","ماذا تعرف عني؟","الخريطة","المطوف الرقمي","بعدت عن عائلتي","وين أقرب عربة؟","دوائي","متى أفضل وقت للسعي؟","أين أصلي العصر؟","How do I get back to the hotel?"]:["جهز رحلتي","أضف فردا","لوحة الحملة","متى أسلم على النبي؟","كم باقي على دوري؟","أين أصلي المغرب؟","الدرس بعد المغرب","دلني على باب السلام","افتح صفحة مسار السلام","الخريطة","أذكار وآداب الروضة","بعدت عن عائلتي","التقييم","ماذا تعرف عني؟","Where is my family?"];
   $("#quick").innerHTML=q.map(x=>`<button class="q" type="button">${esc(x)}</button>`).join("");
 }
 /* ---------- real phone signals when the page allows them: GPS and live weather (Open-Meteo). Elsewhere the demo values stay. ---------- */
