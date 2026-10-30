@@ -403,7 +403,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
         <p class="lead">الوكيل المشرف يقرأ الطلب وملف الضيف والسياق، يختار الوكيل المتخصص، وهذا يستدعي خدمة الهيئة المناسبة.</p>
         <div class="agents" id="agents"></div>
         <div class="simloc" id="voiceStat" style="margin-top:6px"></div>
-        <div class="simloc">لمحاكاة العرض: <button class="chip" id="simPrayer" type="button">اقترب وقت العصر</button> <button class="chip" id="simThirst" type="button">مرت 40 دقيقة بلا ماء</button> <button class="chip" id="simRawdah" type="button">حان تحرك الفوج (الروضة)</button> <button class="chip" id="simPulse" type="button">الساعة: نبض 114 بلا حركة</button> <button class="chip" id="simSpo2" type="button">الساعة: أكسجين 91%</button> <button class="chip" id="simNoWatch" type="button">بلا ساعة / بلا إذن</button> <button class="chip" id="simMed" type="button">حان موعد الدواء</button> <button class="chip" id="simNet" type="button" aria-pressed="false">انقطع الإنترنت</button></div>
+        <div class="simloc">لمحاكاة العرض: <button class="chip" id="simPrayer" type="button">اقترب وقت العصر</button> <button class="chip" id="simThirst" type="button">مرت 40 دقيقة بلا ماء</button> <button class="chip" id="simRawdah" type="button">حان تحرك الفوج (الروضة)</button> <button class="chip" id="simPulse" type="button">الساعة: نبض 114 بلا حركة</button> <button class="chip" id="simSpo2" type="button">الساعة: أكسجين 91%</button> <button class="chip" id="simNoWatch" type="button">بلا ساعة / بلا إذن</button> <button class="chip" id="simMed" type="button">حان موعد الدواء</button> <button class="chip" id="simNet" type="button" aria-pressed="false">انقطع الإنترنت</button> <a class="chip" id="dashLink" href="?dash=1" target="_blank" rel="noopener" style="text-decoration:none">لوحة الهيئة للقرار</a></div>
 
         <div style="height:10px"></div>
         <div class="trace" id="trace"><div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div></div>
@@ -425,6 +425,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 {const q0=new URLSearchParams(location.search);if(q0.get("reset")==="1"){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(_){}q0.delete("reset");const u=location.pathname+(q0.toString()?"?"+q0.toString():"")+location.hash;location.replace(u);throw new Error("reset")}}
 "use strict";
 const $=s=>document.querySelector(s);
+{const qd=new URLSearchParams(location.search);if(qd.get("dash")==="1"){dashPage();return}}
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
 const state={site:"madinah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
 const DEFAULT_PROFILE={name:"عبدالرحمن",gender:"m",age:68,from:"فاس، المغرب",langs:"العربية والإنجليزية",readLang:"ar",speakLang:"en",rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"slow",kids:2,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:1,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
@@ -496,7 +497,13 @@ const SITES={
 const CATS={guide:"مراكز الإرشاد",saee:"الصفا والمسعى",rest:"مكان للراحة",cart:"عربات",zamzam:"زمزم",wc:"دورات المياه",medical:"الرعاية الصحية",lost:"التائهين والمفقودات",kids:"ضيافة الأطفال",lift:"المصاعد والسلالم",pray:"مصليات ذوي الاحتياجات",library:"المكتبة",gate:"الأبواب"};
 const LVL=[null,["خفيفة","l1",30],["متوسطة","l2",62],["عالية","l3",94]];
 const LANGS={ar:"العربية",fr:"Français",en:"English",ur:"اردو",id:"Bahasa",tr:"Türkçe",ha:"Hausa",bn:"বাংলা"};
-const PRAYERS=[["الفجر","04:52"],["الظهر","12:08"],["العصر","15:31"],["المغرب","18:01"],["العشاء","19:31"]];
+let PRAYERS=[["الفجر","04:52"],["الظهر","12:08"],["العصر","15:31"],["المغرب","18:01"],["العشاء","19:31"]];
+/* real prayer times for today (Umm al-Qura calculation) for the current city; the static list above is only the fallback */
+async function loadPrayerTimes(){if(state.offline||(typeof LIVE!=="undefined"&&LIVE.sandboxed&&LIVE.sandboxed()))return;const city=state.site==="makkah"?"Makkah":"Medina";
+  try{const r=await fetch("https://api.aladhan.com/v1/timingsByCity?city="+city+"&country=Saudi%20Arabia&method=4",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();const T=j.data.timings;
+    PRAYERS=[["الفجر",T.Fajr.slice(0,5)],["الظهر",T.Dhuhr.slice(0,5)],["العصر",T.Asr.slice(0,5)],["المغرب",T.Maghrib.slice(0,5)],["العشاء",T.Isha.slice(0,5)]];state.prayersLive=true;
+    log("api","GET aladhan.com/v1/timingsByCity · 200","مواقيت اليوم لـ"+(state.site==="makkah"?"مكة":"المدينة")+" بحساب أم القرى: "+PRAYERS.map(p=>p[0]+" "+p[1]).join("، "))}
+  catch(e){log("api","مواقيت الصلاة الحية غير متاحة","أعمل بالجدول المحفوظ · "+(e.message||e))}}
 const LESSONS=[["بعد الفجر","شرح رياض الصالحين","الدور الأول، مصلى 3"],["بعد العصر","تفسير جزء عم","التوسعة، مصلى 7"],["بعد المغرب","الأربعون النووية","الساحة الشمالية"]];
 const SERVICES=[
  ["الخريطة التفاعلية الذكية (950+ نقطة، 13 فئة)","يحدد أقرب نقطة خدمة ويرسم المسار بحسب موقع الضيف","sim"],
@@ -600,10 +607,14 @@ function farNote(){const r=state.real;if(!r||!(r.km>0.8))return "";const slow=pr
 /* the agent's own advice after the Authority's status: timing from the clock and prayer times, care from the weather and the guest's profile, places from the interactive map */
 function advise(lv,what){const now=new Date();const mins=now.getHours()*60+now.getMinutes();const t=n=>{const p=PRAYERS.find(x=>x[0]===n);const [h,m]=p[1].split(":").map(Number);return h*60+m};
   const isha=t("العشاء"),fajr=t("الفجر");const beforeIsha=mins<isha-30&&mins>=fajr;const slow=profile.mobility!=="walk"||(+profile.age||0)>=60;const s=site();const hot=(s.temp||0)>=35&&mins>=t("الفجر")+120&&mins<t("المغرب");
+  const nextP=PRAYERS.map(p=>[p[0],t(p[0])]).find(p=>p[1]>mins)||[PRAYERS[0][0],t(PRAYERS[0][0])+1440];const toNext=nextP[1]-mins;
+  const lastP=PRAYERS.map(p=>[p[0],t(p[0])]).filter(p=>p[1]<=mins).pop();const sinceLast=lastP?mins-lastP[1]:999;
   let tip="";
-  if(lv===1)tip="الآن وقت مناسب، تحرك قبل أن تزيد الكثافة.";
-  else if(lv===2)tip=beforeIsha?"الأفضل بعد صلاة العشاء، عادة يكون أخف.":"تحرك الآن، أو انتظر قليلا بعد خروج المصلين إن كنت قرب صلاة.";
-  else tip=beforeIsha?"الأفضل الانتظار إلى ما بعد صلاة العشاء، عادة يكون أخف، وسأنبهك عندما تخف الكثافة.":"انتظر قليلا، وسأنبهك عندما تخف الكثافة.";
+  if(toNext<=40)tip="صلاة "+nextP[0]+" بعد "+toNext+" دقيقة؛ الأفضل أن تذهب بعدها بربع ساعة حين يخرج المصلون.";
+  else if(sinceLast<=20)tip="المصلون يخرجون الآن من صلاة "+lastP[0]+"؛ انتظر نحو "+(20-sinceLast+5)+" دقائق ثم تحرك.";
+  else if(lv===1)tip="الآن وقت مناسب، تحرك قبل أن تزيد الكثافة.";
+  else if(lv===2)tip=beforeIsha?"الأفضل بعد صلاة العشاء، عادة يكون أخف.":"تحرك الآن؛ لا صلاة قريبة، والكثافة متوسطة.";
+  else tip=beforeIsha?"الأفضل الانتظار إلى ما بعد صلاة العشاء، عادة يكون أخف، وسأنبهك عندما تخف الكثافة.":"الكثافة كثيفة الآن ولا صلاة قريبة؛ سأنبهك عندما تخف.";
   const care=[];if(hot)care.push("اشرب ماء قبل أن تتحرك؛ أقرب زمزم "+s.places.zamzam[0][0]+" ("+s.places.zamzam[0][1]+" م)");if(hot)care.push("امش تحت المظلات؛ أقرب مقاعد مظللة "+s.places.rest[0][0]+" ("+s.places.rest[0][1]+" م)");if(slow&&lv>=2)care.push("خذ العربة من مركزها لتقل مدة الوقوف");
   return `<div class="best"><b>اقتراحي:</b> ${esc(tip)}${care.length?"<br>"+care.map(esc).join("، ")+".":""}</div>`}
 function liveLvl(kind){if(kind==="salam")return LIVE.salam();const m=LIVE.mataf();if(!m)return null;const L=m[kind==="masaa"?"المسعى":"المطاف"];return L.length?L[0][1]:null}
@@ -713,24 +724,38 @@ const metrics={task:null,log:JSON.parse(localStorage.getItem("knf_metrics")||"[]
 function taskStart(text){if(metrics.task&&metrics.task.served)metrics.last=metrics.task;metrics.task={text,t0:Date.now(),turns:1,served:0}}
 function taskServed(tool){if(metrics.task&&!metrics.task.served){metrics.task.served=Date.now();metrics.task.tool=tool;metrics.task.secs=Math.round((metrics.task.served-metrics.task.t0)/1000)}}
 function saveMetrics(){try{localStorage.setItem("knf_metrics",JSON.stringify(metrics.log.slice(-200)))}catch(_){}}
-const SVQ=[["effort","الجهد الذي بذلته للوصول إلى ما تحتاج",["كبير","","","","قليل"]],["comfort","راحتك أثناء الرحلة الآن",["قليلة","","","","عالية"]],["calm","طمأنينتك",["قليلة","","","","عالية"]]];
+/* سؤال واحد بعد كل توصية: هل كانت توصية جيدة؟ ويحفظ الجواب مجهولا مع اسم الخدمة فقط */
 function surveyCard(ctx){
-  const t=(metrics.task&&metrics.task.served)?metrics.task:(metrics.last||metrics.task||{});const ans={};
-  log("care","التحقق من الأثر: استبيان قصير بعد المهمة",(t.secs!=null?"زمن الوصول للخدمة "+t.secs+" ث · ":"")+"ثلاثة مؤشرات وملاءمة التوصية");
-  const c=card(head("📊","دقيقة لتقييم التجربة","التحقق من الأثر · "+(ctx||"بعد المهمة"))+`<div style="font-size:.8rem;color:var(--muted)">اختر من ١ إلى ٥، ويحفظ التقييم على الجهاز لمقارنة التجربة مع كنف وبدونه.</div><div class="sv">${SVQ.map(([k,q,l])=>`<div class="q"><span>${q}</span><div class="sc" data-k="${k}">${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}" title="${l[n-1]}">${"٠١٢٣٤٥"[n]}</button>`).join("")}</div></div>`).join("")}<div class="q"><span>هل كانت التوصية مناسبة لك؟</span><div class="yn" data-k="fit"><button type="button" data-v="1">نعم</button><button type="button" data-v="0">لا</button></div></div></div><div class="acts"><button class="primary" type="button" data-send="1">إرسال التقييم</button><button type="button" data-skip="1">لاحقا</button></div>`,"care");
-  c.querySelectorAll("[data-k] button").forEach(b=>b.addEventListener("click",()=>{const g=b.parentElement;ans[g.dataset.k]=+b.dataset.v;g.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))}));
-  c.querySelector("[data-skip]").addEventListener("click",()=>c.remove());
-  c.querySelector("[data-send]").addEventListener("click",()=>{if(Object.keys(ans).length<3){c.querySelector(".acts").insertAdjacentHTML("afterbegin",'<span style="color:var(--crit);font-size:.8rem">أجب على المؤشرات الثلاثة أولا</span>');return}
-    const rec={at:Date.now(),task:t.text||ctx||"",tool:t.tool||"",secs:t.secs==null?null:t.secs,turns:t.turns||1,...ans};metrics.log.push(rec);saveMetrics();metrics.task=null;metrics.last=null;
-    log("care","حفظ تقييم الأثر",`جهد ${ans.effort} · راحة ${ans.comfort} · طمأنينة ${ans.calm}${ans.fit!=null?" · التوصية "+(ans.fit?"مناسبة":"غير مناسبة"):""}`);
-    c.querySelector(".sv").remove();c.querySelector(".acts").innerHTML='<span style="color:var(--ok);font-weight:700">✓ شكرا، حفظت تقييمك</span>';speak("شكرا لك، حفظت تقييمك",{lang:"ar"})});
+  const t=(metrics.task&&metrics.task.served)?metrics.task:(metrics.last||metrics.task||{});
+  log("care","التحقق من الأثر: سؤال واحد بعد التوصية",(t.secs!=null?"زمن الوصول للخدمة "+t.secs+" ث · ":"")+(ctx||""));
+  const c=card(head("📊","هل كانت توصية جيدة؟",ctx||"")+`<div class="sv"><div class="q"><div class="yn" data-k="fit"><button type="button" class="primary" data-v="1">نعم</button><button type="button" data-v="0">لا</button></div></div></div>`,"care");
+  c.querySelectorAll("[data-k] button").forEach(b=>b.addEventListener("click",()=>{const fit=+b.dataset.v;
+    const rec={at:Date.now(),tool:t.tool||"",svc:TOOL_AR[t.tool]||t.tool||"",site:state.site,secs:t.secs==null?null:t.secs,fit};metrics.log.push(rec);saveMetrics();metrics.task=null;metrics.last=null;EVT.pub();
+    log("care","حفظ التقييم","التوصية "+(fit?"جيدة":"غير جيدة")+(rec.svc?" · "+rec.svc:""));
+    c.querySelector(".sv").innerHTML='<span style="color:var(--ok);font-weight:700">✓ شكرا</span>'}));
   return c}
 function resultsCard(){
   const L=metrics.log;const avg=k=>{const v=L.filter(r=>r[k]!=null).map(r=>r[k]);return v.length?(v.reduce((a,b)=>a+b,0)/v.length):null};const f=v=>v==null?"—":(Math.round(v*10)/10).toString();
   const fit=L.filter(r=>r.fit!=null);const fitp=fit.length?Math.round(100*fit.filter(r=>r.fit).length/fit.length):null;
   log("care","عرض نتائج التحقق من الأثر",L.length+" تقييم محفوظ على الجهاز");
-  card(head("📈","نتائج التحقق من الأثر",L.length+" تقييم · محفوظ على هذا الجهاز")+`<div class="svres"><div><b>${f(avg("secs"))}</b><small>ثانية حتى الخدمة</small></div><div><b>${f(avg("turns"))}</b><small>خطوات للمهمة</small></div><div><b>${fitp==null?"—":fitp+"%"}</b><small>التوصية مناسبة</small></div><div><b>${f(avg("effort"))}</b><small>الجهد (٥ = قليل)</small></div><div><b>${f(avg("comfort"))}</b><small>الراحة</small></div><div><b>${f(avg("calm"))}</b><small>الطمأنينة</small></div></div><p class="note">حصيلة مجمعة ومجهولة من تقييم الضيوف بعد كل خدمة. تكمل استبيانات الموظفين وتقارير الزائر المتخفي التي يعتمدها المركز الهندسي، وتصل للهيئة دون أي بيانات شخصية.</p><div class="acts"><button type="button" data-clear="1">مسح النتائج</button></div>`,"care").querySelector("[data-clear]").addEventListener("click",ev=>{metrics.log=[];saveMetrics();ev.target.closest(".card").remove();log("care","مسح نتائج الأثر","")});
-  return{count:L.length,avg_secs:avg("secs"),avg_effort:avg("effort"),avg_comfort:avg("comfort"),avg_calm:avg("calm"),fit_pct:fitp}}
+  card(head("📈","نتائج التحقق من الأثر",L.length+" تقييم · محفوظ على هذا الجهاز")+`<div class="svres"><div><b>${L.length}</b><small>تقييم</small></div><div><b>${fitp==null?"—":fitp+"%"}</b><small>توصية جيدة</small></div><div><b>${f(avg("secs"))}</b><small>ثانية حتى الخدمة</small></div></div><p class="note">حصيلة مجمعة ومجهولة من سؤال واحد بعد كل توصية، تصل للهيئة مع اسم الخدمة فقط دون أي بيانات شخصية.</p><div class="acts"><a class="chip" href="?dash=1" target="_blank" rel="noopener">لوحة الهيئة</a><button type="button" data-clear="1">مسح النتائج</button></div>`,"care").querySelector("[data-clear]").addEventListener("click",ev=>{metrics.log=[];saveMetrics();ev.target.closest(".card").remove();log("care","مسح نتائج الأثر","")});
+  return{count:L.length,avg_secs:avg("secs"),fit_pct:fitp}}
+/* ---------- طبقة قياس الخدمات للهيئة: أي خدمة طلبت، متى، من أي منطقة، وبأي لغة. بلا أي بيانات شخصية ---------- */
+const TOOL_AR={get_density:"كثافة المسار",get_prayer_hall_occupancy:"إشغال المصليات",show_map:"الخريطة التفاعلية",find_nearest:"أقرب خدمة",my_location:"تحديد الموقع",invite_member:"إضافة فرد للعائلة",open_portal:"صفحة الهيئة",request_cart:"طلب عربة",report_lost:"بلاغ مفقود",book_children_center:"ضيافة الأطفال",sermon_translation:"ترجمة الخطبة",get_lessons_and_prayers:"الدروس والصلوات",book_visit:"حجز زيارة",accessibility_services:"خدمات ذوي الإعاقة",emergency:"طوارئ",family_locate:"موقع فرد العائلة",set_meeting_point:"نقطة لقاء",share_location:"مشاركة الموقع",go_home:"العودة للسكن",start_guidance:"الإرشاد خطوة بخطوة",plan_prayer:"خطة الصلاة",sign_interpreter:"مترجم إشارة",medication:"تذكير الدواء",set_reminder:"تذكير",track_request:"متابعة طلب",play_stream:"البث المباشر",hydration_rest:"ماء واستراحة",waiting_mode:"موعد الروضة",start_breathing:"تمرين تنفس",rawdah_guide:"دليل الروضة",rawdah_permit:"تصريح الروضة",trip_plan:"خطة الرحلة",mutawwif:"المطوف"};
+const EVT={list:[],client:null,id:null,
+  load(){try{this.list=JSON.parse(localStorage.getItem("knf_events")||"[]")}catch(_){this.list=[]}},
+  zone(){const r=state.real;if(!r||typeof r.km!=="number")return "بلا تحديد موقع";return r.km<0.6?"داخل المسجد وساحاته":r.km<1.5?"المنطقة المركزية":r.km<5?"داخل المدينة":"خارج المدينة"},
+  add(tool){if(!TOOL_AR[tool])return;const e={at:Date.now(),tool,svc:TOOL_AR[tool],site:state.site,lang:state.lang||"ar",zone:this.zone(),online:!state.offline,how:!state.busy?"اقتراح من الوكيل":state.fromChip?"زر سريع":"كتابة أو صوت"};
+    this.list.push(e);this.list=this.list.slice(-400);try{localStorage.setItem("knf_events",JSON.stringify(this.list))}catch(_){}this.pub()},
+  devId(){if(this.id)return this.id;try{let v=localStorage.getItem("knf_peer");if(!v){v="p"+Math.random().toString(36).slice(2,10);localStorage.setItem("knf_peer",v)}this.id=v}catch(_){this.id="p"+Date.now()}return this.id},
+  payload(){return JSON.stringify({dev:this.devId(),t:Date.now(),site:state.site,events:this.list.slice(-300),ratings:metrics.log.slice(-200)})},
+  async pub(){if(LIVE.sandboxed()||state.offline||location.protocol==="file:")return;
+    try{if(!this.client){if(!window.mqtt){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
+        this.client=mqtt.connect("wss://broker.emqx.io:8084/mqtt",{connectTimeout:8000,keepalive:60,clean:true,clientId:"knfe_"+this.devId()+"_"+Math.random().toString(36).slice(2,6)});
+        await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error("timeout")),9000);this.client.on("connect",()=>{clearTimeout(t);res()});this.client.on("error",()=>{clearTimeout(t);rej(new Error("mqtt"))})});
+        log("api","قناة قياس الخدمات جاهزة","تصل للوحة الهيئة الخدمة والوقت والمنطقة واللغة فقط، بلا بيانات شخصية")}
+      if(this.client.connected)this.client.publish("kanaf/demo/evt/"+this.devId(),this.payload(),{retain:true})}catch(e){this.client=null}}};
+EVT.load();
 function svgMap(dist){
   const s=state.site==="makkah";
   const px=Math.min(230,40+dist*0.6);
@@ -792,14 +817,26 @@ function guidance(dest,dist){
     ALL.ar.steps=[(slow?"استلم العربة من مركز عربات الرجال عند باب 21، ثم ":"")+"اتجه إلى الساحات الجنوبية أمام باب مكة (37)، نحو "+Math.round(dist)+" مترا عبر الساحات المظللة.","عند نقطة التجمع اعرض تصريحك على الجوال للمرشدين، وخذ حذاءك معك في كيس.","انتظر مع فوجك في المنطقة المخصصة؛ الدخول إلى الروضة بالتفويج عبر المسار المعتمد.","وصلت. مرشدو الهيئة يتولون إدخالك مع فوجك."];
     ALL.en.steps=[(slow?"Collect a cart at the men's cart centre by Gate 21, then ":"")+"head to the southern courtyards in front of Bab Makkah (Gate 37), about "+Math.round(dist)+" metres through the shaded courtyards.","At the assembly point show your permit on your phone to the guides, and keep your shoes with you in a bag.","Wait with your group in the designated area; entry to the Rawdah is in groups along the approved route.","You have arrived. The Authority's guides will take you in with your group."];
     ALL.fr.steps=[(slow?"Prenez un chariot au centre des chariots hommes près de la porte 21, puis ":"")+"dirigez-vous vers les cours sud devant Bab Makkah (porte 37), environ "+Math.round(dist)+" mètres par les cours ombragées.","Au point de rassemblement, montrez votre permis sur votre téléphone aux guides, et gardez vos chaussures dans un sac.","Attendez avec votre groupe dans la zone prévue ; l'entrée à la Rawdah se fait par groupes.","Vous êtes arrivé. Les guides de l'Autorité vous feront entrer avec votre groupe."]}
-  if(key==="prayw"){ALL.ar.steps=["اتجهي إلى الجهة الشمالية للمسجد، مداخل النساء، نحو "+Math.round(dist)+" مترا.","ادخلي في وقت النساء المحدد، وأظهري تصريح الروضة للمرشدات.","الصلاة في الروضة بالتفويج، ثم السلام على النبي من القسم المخصص للنساء.","وصلت. المرشدات يتولين إدخالك مع فوجك."]}
-  const c=card(head("🧭",X.t,walk(dist)+" د")+farNote()+(key?authMap([key],key):"")+`<div class="steps">${X.steps.map((st,i)=>`<div class="step" data-i="${i}"><i>${i+1}</i><span>${esc(st)}</span></div>`).join("")}</div><div class="acts"><button class="primary" data-next="1">${L==="fr"?"Étape atteinte, suivante":L==="en"?"Reached this step, next":"وصلت لهذه الخطوة، التالي"}</button><button data-stop="1">${L==="fr"?"Arrêter":L==="en"?"Stop":"إيقاف"}</button></div>`,"nav");
-  const rows=[...c.querySelectorAll(".step")];let stopped=false;let skip=null;
-  c.querySelector("[data-stop]").addEventListener("click",()=>{stopped=true;stopSpeak();c.querySelector("[data-stop]").textContent="توقف";c.querySelector("[data-next]").remove()});
+  if(key==="prayw"){ALL.ar.steps=["اتجهي إلى الجهة الشمالية للمسجد، مداخل النساء، نحو "+Math.round(dist)+" مترا.","ادخلي في وقت النساء المحدد، وأظهري تصريح الروضة للمرشدات.","الصلاة في الروضة بالتفويج، ثم السلام على النبي من القسم المخصص للنساء.","وصلت. المرشدات يتولين إدخالك مع فوجك."];
+    ALL.en.steps=["Head to the northern side of the mosque, the women's entrances, about "+Math.round(dist)+" metres.","Enter during the women's time slot and show your Rawdah permit to the female guides.","Prayer in the Rawdah is in groups, then greet the Prophet from the women's section.","You have arrived. The guides will take you in with your group."];
+    ALL.fr.steps=["Dirigez-vous vers le côté nord de la mosquée, les entrées des femmes, environ "+Math.round(dist)+" mètres.","Entrez pendant le créneau des femmes et montrez votre permis aux guides.","La prière dans la Rawdah se fait par groupes, puis le salut au Prophète depuis la section des femmes.","Vous êtes arrivée. Les guides vous feront entrer avec votre groupe."]}
+  /* مسار السلام على الرسول: كله في الدور الأرضي، للرجال، بلا تصريح، من باب السلام (1) إلى باب البقيع */
+  if(key==="gate"||key==="salam"){const D=Math.round(dist);
+    ALL.ar.steps=["اتجه إلى باب السلام (1) في الجهة الجنوبية الغربية من المسجد، نحو "+D+" مترا، والمسار كله في الدور الأرضي بلا سلالم ولا مصاعد.","ادخل من باب السلام وامش مع مسار السلام المحدد بالحواجز نحو الحجرة الشريفة؛ المسار للرجال وبلا تصريح، وخذ حذاءك معك في كيس.","قف مواجها للحجرة الشريفة وسلم على النبي صلى الله عليه وسلم، ثم على أبي بكر، ثم على عمر رضي الله عنهما، وامض مع الصف بلا توقف.","الخروج من باب البقيع. وصلت بسلامة."];
+    ALL.en.steps=["Head to Bab As-Salam (Gate 1) on the south-western side of the mosque, about "+D+" metres; the whole route is on the ground floor, no stairs or lifts.","Enter through Bab As-Salam and follow the barriered Salam path towards the Sacred Chamber; the path is for men, no permit needed, and keep your shoes with you in a bag.","Stand facing the Sacred Chamber and greet the Prophet, peace be upon him, then Abu Bakr, then Umar, and keep moving with the line.","Exit through Bab Al-Baqi. You have arrived safely."];
+    ALL.fr.steps=["Dirigez-vous vers Bab As-Salam (porte 1) au sud-ouest de la mosquée, environ "+D+" mètres ; tout le parcours est au rez-de-chaussée, sans escaliers ni ascenseurs.","Entrez par Bab As-Salam et suivez le parcours du Salam délimité par des barrières vers la Chambre sacrée ; réservé aux hommes, sans permis, et gardez vos chaussures dans un sac.","Face à la Chambre sacrée, saluez le Prophète, paix sur lui, puis Abu Bakr, puis Umar, et avancez avec la file sans vous arrêter.","Sortez par Bab Al-Baqi. Vous êtes arrivé."]}
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent||"");
+  const vnote=()=>!voice.ok?"المتصفح لا يدعم النطق، الخطوات نصا فقط":state.signMode?"وضع الإشارة: الخطوات نصا واهتزازا":!voice.on?"الصوت مكتوم، اضغط 🔊 في الأعلى لتسمع الخطوات":voice.err?"تعذر النطق ("+voice.err+")، اضغط «أعد نطق الخطوة»":"النطق بـ"+(LANGS[SL]||"العربية")+(ios?" · على الآيفون أغلق وضع الصامت":"");
+  const c=card(head("🧭",X.t,walk(dist)+" د")+farNote()+(key?authMap([key],key):"")+`<div class="steps">${X.steps.map((st,i)=>`<div class="step" data-i="${i}"><i>${i+1}</i><span>${esc(st)}</span></div>`).join("")}</div><div class="acts"><button class="primary" data-next="1">${L==="fr"?"Étape atteinte, suivante":L==="en"?"Reached this step, next":"وصلت لهذه الخطوة، التالي"}</button><button data-again="1">${L==="fr"?"Répéter l'étape":L==="en"?"Repeat step":"أعد نطق الخطوة"}</button><button data-stop="1">${L==="fr"?"Arrêter":L==="en"?"Stop":"إيقاف"}</button></div><div data-vnote style="color:var(--muted);font-size:.78rem;margin-top:6px">${esc(vnote())}</div>`,"nav");
+  const rows=[...c.querySelectorAll(".step")];let stopped=false;let skip=null;let cur=0;
+  const vn=()=>{const el=c.querySelector("[data-vnote]");if(el)el.textContent=vnote()};
+  c.querySelector("[data-stop]").addEventListener("click",()=>{stopped=true;stopSpeak();c.querySelector("[data-stop]").textContent="توقف";const nb=c.querySelector("[data-next]");if(nb)nb.remove();const ab=c.querySelector("[data-again]");if(ab)ab.remove()});
   c.querySelector("[data-next]").addEventListener("click",()=>{if(skip)skip()});
-  (async()=>{for(let i=0;i<X.steps.length;i++){if(stopped||id!==navRun)return;rows.forEach((r,j)=>{r.classList.toggle("now",j===i);r.classList.toggle("done",j<i)});
+  /* إعادة النطق تتم داخل لمسة الضيف نفسها، فتعمل حتى على الأجهزة التي تشترط لمسة قبل الصوت */
+  c.querySelector("[data-again]").addEventListener("click",()=>{if(!voice.on){voice.on=true;const vb=$("#voiceBtn");if(vb){vb.setAttribute("aria-pressed","true");vb.textContent="🔊"}}voice.err="";speak(S.steps[cur],{lang:SL,force:!state.signMode}).then(vn);vn()});
+  (async()=>{for(let i=0;i<X.steps.length;i++){if(stopped||id!==navRun)return;cur=i;rows.forEach((r,j)=>{r.classList.toggle("now",j===i);r.classList.toggle("done",j<i)});
       const sp=document.createElement("span");sp.className="spk";sp.innerHTML="<b></b><b></b><b></b>";rows[i].querySelector("span").appendChild(sp);
-      await speak(S.steps[i],{lang:SL});sp.remove();
+      await speak(S.steps[i],{lang:SL});sp.remove();vn();
       if(i<X.steps.length-1){await new Promise(r=>{skip=r;setTimeout(r,Math.min(12000,Math.max(5000,dist*25)))});skip=null;if(stopped||id!==navRun)return}}
     if(stopped||id!==navRun)return;rows.forEach(r=>{r.classList.remove("now");r.classList.add("done")});c.querySelector("[data-stop]").textContent=X.done;const nb=c.querySelector("[data-next]");if(nb)nb.remove();log("nav","وصل الضيف إلى الوجهة",dest);setTimeout(()=>surveyCard("بعد الوصول إلى "+dest),1200)})();
   return{started:true,destination:dest,steps:X.steps.length}
@@ -1489,6 +1526,7 @@ function portalUrl(a){return a&&a.url?(a.url[state.site]||a.url.makkah):null}
 function attachPortal(a,before){const u=portalUrl(a);if(!u||state.offline)return;const cards=[...feed.querySelectorAll(".card")].slice(before);const c=cards[cards.length-1];if(!c||c.querySelector(".pg"))return;
   c.insertAdjacentHTML("beforeend",`<a class="pg" href="${u}" target="_blank" rel="noopener" data-pg="${esc(a.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg><span>الصفحة الحية في منصة الهيئة: ${esc(a.name)}</span></a>`)}
 Object.keys(TOOLS).forEach(t=>{const a=apiFor(t);if(!a)return;const orig=TOOLS[t].run;TOOLS[t].run=function(input){log("api",a.ep.replace(/\{site\}/g,state.site),a.name+" · المستوى "+LVL_API[a.lvl]+" · محاكاة");const before=feed.querySelectorAll(".card").length;const r=orig.call(this,input||{});attachPortal(a,before);return r}});
+Object.keys(TOOLS).forEach(t=>{const orig=TOOLS[t].run;TOOLS[t].run=function(input){try{EVT.add(t)}catch(_){}return orig.call(this,input||{})}});
 feed.addEventListener("click",e=>{const g=e.target.closest("a.pg");if(g)log("api","فتح صفحة الهيئة الحية في المتصفح",g.dataset.pg+" · "+g.getAttribute("href"))});
 function renderSvc(){const tb=$("#svcTable tbody");if(!tb)return;tb.innerHTML=API.map(a=>{const lv=a.live&&a.live.some(k=>LIVE.fresh(k));return `<tr><td>${esc(a.name)}</td><td style="font-family:var(--mono);font-size:.72rem;direction:ltr;text-align:left">${esc(a.ep)}</td><td>${LVL_API[a.lvl]}</td><td>${a.tools.join("، ")}</td><td><span class="st ${lv?"ok":"sim"}">${lv?"حي · "+LIVE.when(a.live[0]):"محاكاة"}</span></td></tr>`}).join("")}
 renderSvc();
@@ -1687,6 +1725,7 @@ $("#simSpo2").addEventListener("click",()=>{health.permitted=true;health.watch=t
     if(q.get("fresh")==="1"||h==="#judge"){state.onboarded=false;try{localStorage.removeItem("hafi.onboarded");localStorage.removeItem("hafi.profile")}catch(_){}}}}
 setNet();
 LIVE.load();LIVE.refresh();setInterval(()=>LIVE.refresh(),60000);
+loadPrayerTimes();
 window.__knf={state,renderLivePeers,livePeers};
 $("#simMed").addEventListener("click",()=>{const m=profile.meds[0];msg("agent","يا "+profile.name+"، حان موعد "+(m?m.name:"الدواء")+".");speak({fr:"C'est l'heure de votre médicament. Asseyez-vous et buvez un peu d'eau.",en:"It is time for your medicine. Sit down and drink some water.",ar:"حان موعد دوائك. اجلس واشرب قليلا من الماء."}[profile.speakLang]||"",{lang:profile.speakLang});TOOLS.medication.run({action:"due"})});
 $("#simNoWatch").addEventListener("click",()=>{health.watch=!health.watch;health.permitted=health.watch;healthAsked=false;wbRender()});
@@ -1745,7 +1784,7 @@ const SCENES=[
 function cleanState(){stopSpeak();stopCam();state.busy=false;send.disabled=false;typing(false);if(state.forceOffline)setForceOffline(false);state.signMode=false;setInputMode("mText");
   Object.assign(wb,{body:"ok",mind:"calm",lastDrink:Date.now(),reminded:false,answered:0,medDue:null});Object.assign(health,{permitted:true,watch:true,hr:78,rr:16,spo2:97,moving:false,ts:Date.now()});healthAsked=false;
   const sh=$("#sheet");if(sh&&!sh.hidden)sh.hidden=true}
-function setSite(v){cleanState();if(state.site!==v){state.site=v;document.querySelectorAll('[data-k="site"]').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v))}start()}
+function setSite(v){cleanState();if(state.site!==v){state.site=v;loadPrayerTimes();document.querySelectorAll('[data-k="site"]').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v))}start()}
 let adminTimer=0;
 function adminRender(){$("#adminBtns").innerHTML=SCENES.map((x,i)=>`<button class="chip" type="button" data-scene="${i}">${i+1}. ${esc(x[0])}</button>`).join("");
   $("#adminBtns").addEventListener("click",e=>{const b=e.target.closest("[data-scene]");if(!b)return;clearInterval(adminTimer);runScene(+b.dataset.scene)});
@@ -1805,6 +1844,73 @@ function livePeers(){const me=state.real;return (state.peers||[]).map(p=>{const 
   return {name:String(pr.name||"ضيف")+(String(pr.name||"")===profile.name?" (جهاز آخر)":""),rel:"مباشر",sharing:has,dist,dir,la:has?pr.la:null,lo:has?pr.lo:null,where:has?(dist!==null?"على بعد "+dist+" م "+dir+" منك":"يشارك موقعه"):"لم يأذن بموقعه",ago,phone:"",guest:!!p.guest}})}
 function dirOf(la1,lo1,la2,lo2){const dLon=(lo2-lo1)*Math.PI/180,p1=la1*Math.PI/180,p2=la2*Math.PI/180;const y=Math.sin(dLon)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dLon);const b=(Math.atan2(y,x)*180/Math.PI+360)%360;return ["شمال","شمال شرق","شرق","جنوب شرق","جنوب","جنوب غرب","غرب","شمال غرب"][Math.round(b/45)%8]}
 function renderLivePeers(){const el=$("#livePeers");if(!el)return;const ps=livePeers();el.innerHTML=ps.length?ps.map(f=>`<div class="fm"><div><b>${esc(f.name)}</b> <span style="color:var(--muted)">مباشر</span><small>${f.sharing?(f.dist!==null?f.dist+" م منك":"يشارك موقعه")+" · قبل "+f.ago+" د":"لم يأذن بموقعه"}</small></div><span class="sw" aria-pressed="true">متصل</span></div>`).join(""):'<div class="hint">لا أحد معك الآن'+(state.groupCode?' (رمز مجموعتك '+esc(state.groupCode)+')':'')+'. افتحوا الرابط نفسه على جوال آخر ليظهر هنا مباشرة.</div>'}
+/* ---------- لوحة الهيئة للقرار (?dash=1): خدمات فقط، متى طلبت، من أي منطقة، وبأي لغة. بلا أي بيانات شخصية ---------- */
+function dashPage(){
+  const E=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const LANGN={ar:"العربية",en:"الإنجليزية",fr:"الفرنسية",ur:"الأردية",id:"الإندونيسية",tr:"التركية"};
+  const SITEN={madinah:"المسجد النبوي",makkah:"المسجد الحرام"};
+  const devs=new Map();let myId="";try{myId=localStorage.getItem("knf_peer")||""}catch(_){}
+  const loadLocal=()=>{try{const ev=JSON.parse(localStorage.getItem("knf_events")||"[]");const rt=JSON.parse(localStorage.getItem("knf_metrics")||"[]");if(ev.length||rt.length)devs.set(myId||"local",{events:ev,ratings:rt,t:Date.now()})}catch(_){}};
+  loadLocal();
+  const F={site:"all",period:"7d"};
+  document.title="لوحة الهيئة · وكيل كنف";
+  document.body.className="";document.body.style.cssText="display:block;height:auto;min-height:100vh;overflow:auto;background:var(--bg)";document.body.innerHTML=`<style>
+  .dsh{max-width:1100px;margin:0 auto;padding:18px 16px 40px;font-family:inherit;color:var(--fg)}
+  .dsh h1{font-size:1.25rem;margin:0 0 2px}.dsh .sub{color:var(--muted);font-size:.85rem;margin-bottom:14px}
+  .dsh .dflt{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}.dsh .dflt button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer}.dsh .dflt button[aria-pressed=true]{background:var(--kiswa);color:#fff;border-color:var(--kiswa)}
+  .dsh .dkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}.dsh .dkpi{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.dsh .dkpi b{display:block;font-size:1.5rem;line-height:1.2}.dsh .dkpi small{color:var(--muted);font-size:.78rem}
+  .dsh .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.dsh .dch{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}.dsh .dch h2{font-size:.95rem;margin:0 0 2px}.dsh .dch .dd{color:var(--muted);font-size:.78rem;margin-bottom:8px}
+  .dsh svg{width:100%;height:auto;display:block;overflow:visible}.dsh svg text{font-family:inherit}.dsh .dbar{fill:var(--kiswa)}.dsh .dbar.dhi{fill:var(--gold)}.dsh .dbar:hover{opacity:.8}
+  .dsh .dins{background:var(--bg2);border:1px solid var(--line);border-right:4px solid var(--gold);border-radius:14px;padding:12px 14px;margin-bottom:16px;line-height:1.8}
+  .dsh table{width:100%;border-collapse:collapse;font-size:.82rem}.dsh th,.dsh td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}.dsh th{color:var(--muted);font-weight:600}
+  .dsh .dempty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+  .dsh .dst{font-size:.78rem;color:var(--muted)}.dsh .dst b{color:var(--ok)}
+  </style><div class="dsh" dir="rtl"><h1>لوحة الهيئة للقرار · وكيل كنف</h1><div class="sub">ما يطلبه الضيوف من خدمات الهيئة عبر الوكيل: أي خدمة، متى، من أي منطقة، وبأي لغة. تصل اللوحة بلا أي بيانات شخصية (لا اسم ولا موقع دقيق ولا جهاز).</div>
+  <div class="dflt" id="dflt"></div><div id="dbody"></div></div>`;
+  const hoursAgo=h=>Date.now()-h*3600000;
+  const all=()=>{const ev=[],rt=[];devs.forEach(d=>{(d.events||[]).forEach(e=>ev.push(e));(d.ratings||[]).forEach(r=>rt.push(r))});return{ev,rt}};
+  const inPeriod=t=>F.period==="24h"?t>=hoursAgo(24):F.period==="7d"?t>=hoursAgo(24*7):true;
+  const count=(arr,k)=>{const m=new Map();arr.forEach(x=>{const v=k(x);m.set(v,(m.get(v)||0)+1)});return [...m.entries()].sort((a,b)=>b[1]-a[1])};
+  const hbars=(rows,hi)=>{if(!rows.length)return '<div class="dempty">لا بيانات بعد</div>';const max=Math.max(...rows.map(r=>r[1]));const H=rows.length*26+4;
+    return `<svg viewBox="0 0 400 ${H}" role="img" direction="ltr">${rows.map(([n,v],i)=>{const y=i*26;const w=Math.max(4,Math.round(230*v/max));return `<g><title>${E(n)}: ${v}</title><text x="398" y="${y+16}" font-size="12" text-anchor="end" fill="var(--fg)">${E(n)}</text><rect class="dbar${hi===n?" dhi":""}" x="${250-w}" y="${y+4}" width="${w}" height="16" rx="4"/><text x="${250-w-6}" y="${y+16}" font-size="11" text-anchor="end" fill="var(--muted)">${v}</text></g>`}).join("")}</svg>`};
+  const vcols=(vals,labels,hiIdx)=>{const max=Math.max(1,...vals);const n=vals.length;const W=400,H=130,bw=Math.floor((W-10)/n)-2;
+    return `<svg viewBox="0 0 ${W} ${H+20}" role="img" direction="ltr"><line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="var(--line)"/>${vals.map((v,i)=>{const h=Math.round((H-10)*v/max);const x=5+i*(bw+2);return `<g><title>${E(labels[i])}: ${v}</title><rect class="dbar${i===hiIdx?" dhi":""}" x="${x}" y="${H-h}" width="${bw}" height="${h}" rx="3"/>${(n<=12||i%3===0)?`<text x="${x+bw/2}" y="${H+14}" font-size="9" text-anchor="middle" fill="var(--muted)">${E(labels[i])}</text>`:""}</g>`}).join("")}</svg>`};
+  const render=()=>{
+    const {ev,rt}=all();const evs=ev.filter(e=>inPeriod(e.at)&&(F.site==="all"||e.site===F.site));const rts=rt.filter(r=>inPeriod(r.at)&&(F.site==="all"||!r.site||r.site===F.site));
+    $("#dflt").innerHTML=[["site","all","الموقعان"],["site","madinah","المسجد النبوي"],["site","makkah","المسجد الحرام"],["period","24h","آخر 24 ساعة"],["period","7d","آخر 7 أيام"],["period","all","كل الفترة"]].map(([k,v,t])=>`<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${F[k]===v}">${t}</button>`).join("")+`<span class="dst" style="align-self:center">${devs.size} جهاز · ${ev.length} طلب مسجل · <b>${window.mqtt?"حي":"محلي"}</b></span>`;
+    $("#dflt").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{F[b.dataset.k]=b.dataset.v;render()}));
+    const body=$("#dbody");if(!evs.length){body.innerHTML='<div class="dempty">لا توجد طلبات مسجلة في هذه الفترة. تظهر هنا تلقائيا كل خدمة يطلبها الضيوف عبر وكيل كنف على أي جهاز متصل.</div>';return}
+    const bySvc=count(evs,e=>e.svc);const byHour=Array(24).fill(0);evs.forEach(e=>{byHour[new Date(e.at).getHours()]++});const peak=byHour.indexOf(Math.max(...byHour));
+    const byZone=count(evs,e=>e.zone||"بلا تحديد موقع");const byLang=count(evs,e=>LANGN[e.lang]||e.lang||"غير محددة");const bySite=count(evs,e=>SITEN[e.site]||e.site);const byHow=count(evs,e=>e.how||"كتابة أو صوت");
+    const off=evs.filter(e=>e.online===false).length;const fitN=rts.filter(r=>r.fit!=null);const fitP=fitN.length?Math.round(100*fitN.filter(r=>r.fit).length/fitN.length):null;
+    const outside=evs.filter(e=>e.zone&&e.zone!=="داخل المسجد وساحاته"&&e.zone!=="بلا تحديد موقع").length;const nonAr=evs.filter(e=>e.lang&&e.lang!=="ar").length;
+    const fitBySvc=count(fitN.filter(r=>!r.fit),r=>r.svc||r.tool);const worst=fitBySvc[0];
+    const hh=h=>String(h).padStart(2,"0")+":00";
+    const ins=[`الخدمة الأكثر طلبا: <b>${E(bySvc[0][0])}</b> (${bySvc[0][1]} من ${evs.length}).`,
+      `ذروة الطلب حول الساعة <b>${hh(peak)}</b>؛ هذا هو وقت تعزيز الفرق الميدانية لهذه الخدمات.`,
+      outside?`<b>${Math.round(100*outside/evs.length)}%</b> من الطلبات جاءت من خارج المسجد وساحاته، أي أن الضيف يخطط قبل الوصول؛ الأولوية لدقة الإرشاد إلى الأبواب والمواعيد.`:"",
+      nonAr?`<b>${Math.round(100*nonAr/evs.length)}%</b> من الطلبات بغير العربية (${byLang.filter(l=>l[0]!=="العربية").slice(0,2).map(l=>l[0]).join(" و")})؛ تستحق هذه اللغات محتوى إرشاديا مترجما في الموقع.`:"",
+      off?`<b>${off}</b> طلبا نفذت بلا اتصال من خزن الجهاز؛ مؤشر على ضعف التغطية في بعض المناطق أو الأوقات.`:"",
+      fitP!=null?`<b>${fitP}%</b> من التوصيات قيمها الضيوف جيدة (${fitN.length} تقييم)${worst?"؛ أكثر خدمة تحتاج مراجعة: <b>"+E(worst[0])+"</b>":""}.`:""].filter(Boolean);
+    body.innerHTML=`<div class="dkpis"><div class="dkpi"><b>${evs.length}</b><small>طلب خدمة</small></div><div class="dkpi"><b>${E(bySvc[0][0])}</b><small>الأكثر طلبا</small></div><div class="dkpi"><b>${hh(peak)}</b><small>ساعة الذروة</small></div><div class="dkpi"><b style="color:${fitP==null?"var(--fg)":fitP>=70?"var(--ok)":"var(--crit)"}">${fitP==null?"—":fitP+"%"}</b><small>توصية جيدة (${fitN.length} تقييم)</small></div><div class="dkpi"><b>${evs.length?Math.round(100*off/evs.length):0}%</b><small>طلبات بلا اتصال</small></div></div>
+    <div class="dins"><b>ما يقوله هذا للقرار</b><br>${ins.join("<br>")}</div>
+    <div class="dgrid">
+      <div class="dch"><h2>ماذا طلب الضيوف</h2><div class="dd">عدد الطلبات لكل خدمة من خدمات الهيئة</div>${hbars(bySvc.slice(0,10),bySvc[0][0])}</div>
+      <div class="dch"><h2>متى</h2><div class="dd">الطلبات حسب ساعة اليوم (بتوقيت الجهاز)</div>${vcols(byHour,byHour.map((_,i)=>hh(i)),peak)}</div>
+      <div class="dch"><h2>من أين</h2><div class="dd">منطقة الضيف وقت الطلب، تقريبية ودون إحداثيات</div>${hbars(byZone)}</div>
+      <div class="dch"><h2>بأي لغة</h2><div class="dd">لغة رسالة الضيف</div>${hbars(byLang)}</div>
+      <div class="dch"><h2>في أي مسجد</h2><div class="dd">الطلبات حسب الموقع</div>${hbars(bySite)}</div>
+      <div class="dch"><h2>كيف طلب</h2><div class="dd">زر سريع، كتابة أو صوت، أو اقتراح بادر به الوكيل</div>${hbars(byHow)}</div>
+      <div class="dch" style="grid-column:1/-1"><h2>آخر الطلبات</h2><div class="dd">أحدث 25 طلبا، بلا أي معرف للضيف</div><table><thead><tr><th>الوقت</th><th>الخدمة</th><th>المسجد</th><th>المنطقة</th><th>اللغة</th><th>الاتصال</th></tr></thead><tbody>${evs.slice().sort((a,b)=>b.at-a.at).slice(0,25).map(e=>`<tr><td>${new Date(e.at).toLocaleString("ar-SA",{hour:"2-digit",minute:"2-digit",day:"numeric",month:"short"})}</td><td>${E(e.svc)}</td><td>${E(SITEN[e.site]||e.site)}</td><td>${E(e.zone||"")}</td><td>${E(LANGN[e.lang]||e.lang||"")}</td><td>${e.online===false?"بلا اتصال":"متصل"}</td></tr>`).join("")}</tbody></table></div>
+    </div>`};
+  render();
+  window.addEventListener("storage",()=>{loadLocal();render()});
+  /* القراءة الحية من الأجهزة الأخرى: الرسائل المحتفظ بها في قناة القياس */
+  if(!/claude\.ai|claudeusercontent|usercontent/.test(location.hostname)&&location.protocol!=="file:"){
+    const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js";sc.onload=()=>{try{const c=mqtt.connect("wss://broker.emqx.io:8084/mqtt",{connectTimeout:8000,keepalive:60,clean:true,clientId:"knfd_"+Math.random().toString(36).slice(2,10)});
+      c.on("connect",()=>{c.subscribe("kanaf/demo/evt/+");render()});
+      c.on("message",(tp,m)=>{const id=tp.split("/").pop();const str=m.toString();if(!str){devs.delete(id);render();return}try{const d=JSON.parse(str);devs.set(id,d);render()}catch(_){}})}catch(_){}};document.head.appendChild(sc)}
+}
 })();
 </script>
 
