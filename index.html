@@ -1518,10 +1518,8 @@ function realSense(){
   },err=>{log("sup","تحديد الموقع الحقيقي غير متاح هنا ("+(err&&err.message||"")+")","أبقي موقع المحاكاة");setTimeout(()=>{const s=site();$("#locText").innerHTML="موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot)+' <span style="color:var(--muted)">(محاكاة: الجوال لم يأذن بالموقع، اسمح به من إعدادات المتصفح)</span>'},950)},{timeout:8000,maximumAge:60000});}
 /* أول فتح على الجهاز: طلب إذن الموقع بلمسة من الضيف (الجوال لا يعرض نافذة الإذن إلا بعد لمسة)، ثم يختفي بعد الموافقة */
 async function permCard(){
-  let st="prompt";try{if(navigator.permissions&&navigator.permissions.query){const r=await navigator.permissions.query({name:"geolocation"});st=r.state}}catch(_){}
-  let ok=false;try{ok=localStorage.getItem("knf_geo_ok")==="1"}catch(_){}
-  if(st==="granted"||(st==="prompt"&&ok&&!/iPhone|iPad|iPod/.test(navigator.userAgent||""))){realSense();return}
-  if(!navigator.geolocation){return}
+  /* تظهر في كل فتح: الضيف هو من يأذن بلمسته، حتى لو كان الجهاز قد أذن من قبل */
+  if(!navigator.geolocation){realSense();return}
   log("sup","أول فتح: يطلب إذن الموقع بلمسة الضيف","لا يحدد الموقع تلقائيا قبل الإذن");
   const c=card(head("📍","اسمح لكنف بمعرفة موقعك","أول مرة على هذا الجهاز")+`<div>لأرشدك إلى أقرب باب وأعرف بعدك عن المسجد وأين عائلتك، أحتاج إذن الموقع. يبقى على جهازك ولا يرسل للهيئة.</div><div class="acts"><button class="primary" type="button" data-allow="1">السماح بالموقع</button><button type="button" data-later="1">لاحقا</button></div><div data-st style="font-size:.76rem;color:var(--muted);margin-top:4px"></div>`,"alert");
   feed.prepend(c);state.holdTop=Date.now()+10000;[0,200,600,1500,3000].forEach(t=>setTimeout(()=>{feed.scrollTop=0},t));
