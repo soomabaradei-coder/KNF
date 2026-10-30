@@ -1855,6 +1855,7 @@ function dashPage(){
   const E=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const LANGN={ar:"العربية",en:"الإنجليزية",fr:"الفرنسية",ur:"الأردية",id:"الإندونيسية",tr:"التركية"};
   const SITEN={madinah:"المسجد النبوي",makkah:"المسجد الحرام"};
+  const DAYN=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
   const devs=new Map();let myId="";try{myId=localStorage.getItem("knf_peer")||""}catch(_){}
   const loadLocal=()=>{try{const ev=JSON.parse(localStorage.getItem("knf_events")||"[]");const rt=JSON.parse(localStorage.getItem("knf_metrics")||"[]");if(ev.length||rt.length)devs.set(myId||"local",{events:ev,ratings:rt,t:Date.now()})}catch(_){}};
   loadLocal();
@@ -1866,76 +1867,98 @@ function dashPage(){
     const HW=[1,1,1,2,8,9,5,3,3,4,5,7,10,8,5,9,8,6,9,10,11,12,7,3];
     const ZN=[["داخل المسجد وساحاته",45],["المنطقة المركزية",30],["داخل المدينة",20],["خارج المدينة",5]];const LG=[["ar",55],["en",15],["ur",12],["id",10],["fr",5],["tr",3]];const HOW=[["زر سريع",45],["كتابة أو صوت",40],["اقتراح من الوكيل",15]];
     const events=[],ratings=[];const now=Date.now();const day0=new Date();day0.setHours(0,0,0,0);
-    for(let d=6;d>=0;d--){for(let h=0;h<24;h++){const cnt=Math.round(HW[h]*(0.7+rnd()*0.7)*(d===0?0.6:1));for(let i=0;i<cnt;i++){const at=day0.getTime()-d*86400000+h*3600000+Math.floor(rnd()*3600000);if(at>now)continue;
+    for(let d=13;d>=0;d--){const dow=new Date(day0.getTime()-d*86400000).getDay();const wk=dow===5?1.35:dow===4?1.15:1;for(let h=0;h<24;h++){const cnt=Math.round(HW[h]*wk*(0.7+rnd()*0.7)*(d===0?0.6:1)*(d>6?0.85:1));for(let i=0;i<cnt;i++){const at=day0.getTime()-d*86400000+h*3600000+Math.floor(rnd()*3600000);if(at>now)continue;
       const tool=pickW(SV);const e={at,tool,svc:TOOL_AR[tool]||tool,site:rnd()<0.72?"madinah":"makkah",lang:pickW(LG),zone:pickW(ZN),online:rnd()>0.08,how:pickW(HOW)};
       if(/get_density|get_prayer_hall_occupancy/.test(tool)&&rnd()<0.45)e.shift=1;if(h>=9&&h<=16&&rnd()<0.3)e.care=1;events.push(e);
       if(rnd()<0.35)ratings.push({at:at+60000,tool,svc:e.svc,site:e.site,secs:3+Math.round(rnd()*9),fit:rnd()<0.86?1:0})}}}
     return{events,ratings}})();
   document.title="لوحة الهيئة · وكيل كنف";
   document.body.className="";document.body.style.cssText="display:block;height:auto;min-height:100vh;overflow:auto;background:var(--bg)";[...document.body.children].forEach(n=>{if(!/^(STYLE|LINK)$/.test(n.tagName))n.remove()});document.body.insertAdjacentHTML("beforeend",`<style>
-  .dsh{max-width:1100px;margin:0 auto;padding:18px 16px 40px;font-family:inherit;color:var(--fg)}
-  .dsh h1{font-size:1.25rem;margin:0 0 2px}.dsh .sub{color:var(--muted);font-size:.85rem;margin-bottom:14px}
-  .dsh .dflt{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}.dsh .dflt button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer}.dsh .dflt button[aria-pressed=true]{background:var(--kiswa);color:#fff;border-color:var(--kiswa)}
-  .dsh .dkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}.dsh .dkpi{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.dsh .dkpi b{display:block;font-size:1.5rem;line-height:1.2}.dsh .dkpi small{color:var(--muted);font-size:.78rem}
-  .dsh .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.dsh .dch{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}.dsh .dch h2{font-size:.95rem;margin:0 0 2px}.dsh .dch .dd{color:var(--muted);font-size:.78rem;margin-bottom:8px}
-  .dsh svg{width:100%;height:auto;display:block;overflow:visible}.dsh svg text{font-family:inherit}.dsh .dbar{fill:var(--kiswa)}.dsh .dbar.dhi{fill:var(--gold)}.dsh .dbar:hover{opacity:.8}
-  .dsh .dins{background:var(--bg2);border:1px solid var(--line);border-right:4px solid var(--gold);border-radius:14px;padding:12px 14px;margin-bottom:16px;line-height:1.8}
-  .dsh table{width:100%;border-collapse:collapse;font-size:.82rem}.dsh th,.dsh td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}.dsh th{color:var(--muted);font-weight:600}
-  .dsh .dempty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
-  .dsh .dst{font-size:.78rem;color:var(--muted)}
-  .dsh .dsec{font-size:1.05rem;margin:18px 0 2px;color:var(--kiswa)}.dsh .dsub{color:var(--muted);font-size:.82rem;margin-bottom:10px}.dsh .dkpi .dx{font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:4px}.dsh .dimp .dkpi{border-right:4px solid var(--gold)}.dsh .dst b{color:var(--ok)}
-  </style><div class="dsh" dir="rtl"><h1>لوحة الهيئة للقرار · وكيل كنف</h1><div class="sub">ما يطلبه الضيوف من خدمات الهيئة عبر الوكيل: أي خدمة، متى، من أي منطقة، وبأي لغة. تصل اللوحة بلا أي بيانات شخصية (لا اسم ولا موقع دقيق ولا جهاز).</div>
-  <div id="dbanner"></div><div class="dflt" id="dflt"></div><div id="dbody"></div></div>`);
-  const hoursAgo=h=>Date.now()-h*3600000;
+  .dsh{--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--dsurf:var(--card,#fffdf9);max-width:1240px;margin:0 auto;padding:14px 16px 40px;color:var(--fg)}
+  @media (prefers-color-scheme:dark){.dsh{--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300;--dsurf:var(--bg2)}}
+  .dsh .dtop{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}.dsh h1{font-size:1.15rem;margin:0}.dsh .dsub{color:var(--muted);font-size:.8rem}
+  .dsh .dsl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-inline-start:auto}.dsh .dsl span{font-size:.75rem;color:var(--muted);margin-inline-start:6px}
+  .dsh .dsl button{border:1px solid var(--line);background:var(--dsurf);color:var(--fg);border-radius:8px;padding:5px 10px;font:inherit;font-size:.8rem;cursor:pointer}.dsh .dsl button[aria-pressed=true]{background:var(--kiswa);color:#fff;border-color:var(--kiswa)}
+  .dsh .dban{background:var(--dsurf);border:1px solid var(--line);border-right:4px solid var(--crit);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-bottom:12px;line-height:1.7}
+  .dsh .dk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+  .dsh .kc{background:var(--dsurf);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;position:relative}.dsh .kc small{display:block;color:var(--muted);font-size:.74rem;margin-bottom:2px}.dsh .kc b{font-size:1.45rem;line-height:1.15;display:block}.dsh .kc .dl{font-size:.74rem;margin-top:2px;max-width:calc(100% - 74px)}.dsh .kc .dl.up{color:var(--ok)}.dsh .kc .dl.dn{color:var(--crit)}.dsh .kc .dl.na{color:var(--muted)}
+  .dsh .kc svg{position:absolute;left:10px;bottom:10px;width:70px;height:26px}.dsh .kc.imp{border-top:3px solid var(--gold)}
+  .dsh .dg{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-bottom:10px}.dsh .pn{background:var(--dsurf);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+  .dsh .pn h2{font-size:.9rem;margin:0}.dsh .pn .dd{color:var(--muted);font-size:.74rem;margin-bottom:6px}
+  .dsh .c8{grid-column:span 8}.dsh .c4{grid-column:span 4}.dsh .c6{grid-column:span 6}.dsh .c12{grid-column:span 12}
+  @media (max-width:900px){.dsh .c8,.dsh .c4,.dsh .c6{grid-column:span 12}}
+  .dsh svg.ch{width:100%;height:auto;display:block;overflow:visible}.dsh svg text{font-family:inherit}
+  .dsh .lg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.74rem;margin-top:6px}.dsh .lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:4px;vertical-align:-1px}
+  .dsh .dn{display:flex;align-items:center;gap:10px}.dsh .dn svg{width:120px;height:120px;flex:none}.dsh .dn .lg{flex-direction:column;gap:4px}
+  .dsh .pb{margin:6px 0}.dsh .pb .t{display:flex;justify-content:space-between;font-size:.78rem}.dsh .pb .r{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.dsh .pb .r i{display:block;height:100%;background:var(--kiswa);border-radius:4px}
+  .dsh .ins{line-height:1.8;font-size:.86rem}.dsh .ins b{color:var(--kiswa)}
+  .dsh table{width:100%;border-collapse:collapse;font-size:.78rem}.dsh th,.dsh td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--line)}.dsh th{color:var(--muted);font-weight:600}
+  .dsh .dempty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+  .dsh .hm rect:hover{stroke:var(--gold);stroke-width:1.5}
+  </style><div class="dsh" dir="rtl"><div class="dtop"><div><h1>لوحة الهيئة · الأثر والقرار</h1><div class="dsub">ما يطلبه الضيوف من خدمات الهيئة عبر وكيل كنف، بلا أي بيانات شخصية</div></div><div class="dsl" id="dflt"></div></div><div id="dbanner"></div><div id="dbody"></div></div>`);
   const all=()=>{if(F.demo)return{ev:demoData.events.slice(),rt:demoData.ratings.slice()};const ev=[],rt=[];devs.forEach(d=>{(d.events||[]).forEach(e=>ev.push(e));(d.ratings||[]).forEach(r=>rt.push(r))});return{ev,rt}};
-  const inPeriod=t=>F.period==="24h"?t>=hoursAgo(24):F.period==="7d"?t>=hoursAgo(24*7):true;
+  const span=()=>F.period==="24h"?86400000:F.period==="7d"?7*86400000:null;
   const count=(arr,k)=>{const m=new Map();arr.forEach(x=>{const v=k(x);m.set(v,(m.get(v)||0)+1)});return [...m.entries()].sort((a,b)=>b[1]-a[1])};
-  const hbars=(rows,hi)=>{if(!rows.length)return '<div class="dempty">لا بيانات بعد</div>';const max=Math.max(...rows.map(r=>r[1]));const H=rows.length*26+4;
-    return `<svg viewBox="0 0 400 ${H}" role="img" direction="ltr">${rows.map(([n,v],i)=>{const y=i*26;const w=Math.max(4,Math.round(230*v/max));return `<g><title>${E(n)}: ${v}</title><text x="398" y="${y+16}" font-size="12" text-anchor="end" fill="var(--fg)">${E(n)}</text><rect class="dbar${hi===n?" dhi":""}" x="${250-w}" y="${y+4}" width="${w}" height="16" rx="4"/><text x="${250-w-6}" y="${y+16}" font-size="11" text-anchor="end" fill="var(--muted)">${v}</text></g>`}).join("")}</svg>`};
-  const vcols=(vals,labels,hiIdx)=>{const max=Math.max(1,...vals);const n=vals.length;const W=400,H=130,bw=Math.floor((W-10)/n)-2;
-    return `<svg viewBox="0 0 ${W} ${H+20}" role="img" direction="ltr"><line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="var(--line)"/>${vals.map((v,i)=>{const h=Math.round((H-10)*v/max);const x=5+i*(bw+2);return `<g><title>${E(labels[i])}: ${v}</title><rect class="dbar${i===hiIdx?" dhi":""}" x="${x}" y="${H-h}" width="${bw}" height="${h}" rx="3"/>${(n<=12||i%3===0)?`<text x="${x+bw/2}" y="${H+14}" font-size="9" text-anchor="middle" fill="var(--muted)">${E(labels[i])}</text>`:""}</g>`}).join("")}</svg>`};
+  const C=i=>`var(--c${(i%6)+1})`;
+  const spark=(vals)=>{if(vals.length<2)return "";const max=Math.max(1,...vals);const w=70,h=26;const pts=vals.map((v,i)=>[i*(w/(vals.length-1)),h-2-(h-4)*v/max]);return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="M${pts.map(p=>p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" L")}" fill="none" stroke="var(--kiswa)" stroke-width="1.5"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2" fill="var(--gold)"/></svg>`};
+  const kpi=(label,val,delta,sp,imp,note)=>`<div class="kc${imp?" imp":""}"><small>${label}</small><b>${val}</b><div class="dl ${delta==null?"na":delta>=0?"up":"dn"}">${delta==null?(note||"بلا مقارنة"):(delta>=0?"▲ ":"▼ ")+Math.abs(delta)+"% عن الفترة السابقة"}</div>${sp||""}</div>`;
+  const pct=(a,b)=>b?Math.round(100*a/b):0;const delta=(cur,prev)=>prev?Math.round(100*(cur-prev)/prev):null;
+  const hbars=(rows,color)=>{if(!rows.length)return '<div class="dempty">لا بيانات</div>';const max=Math.max(...rows.map(r=>r[1]));const H=rows.length*24+2;
+    return `<svg class="ch" viewBox="0 0 400 ${H}" direction="ltr">${rows.map(([n,v],i)=>{const y=i*24;const w=Math.max(4,Math.round(240*v/max));return `<g><title>${E(n)}: ${v}</title><text x="398" y="${y+15}" font-size="11.5" text-anchor="end" fill="var(--fg)">${E(n)}</text><rect x="${255-w}" y="${y+4}" width="${w}" height="14" rx="3" fill="${color||"var(--kiswa)"}"/><text x="${250-w}" y="${y+15}" font-size="10.5" text-anchor="end" fill="var(--muted)">${v}</text></g>`}).join("")}</svg>`};
+  const stacked=(rows,keys)=>{/* rows: [name, {key:count}] */if(!rows.length)return '<div class="dempty">لا بيانات</div>';const max=Math.max(...rows.map(r=>keys.reduce((a,k)=>a+(r[1][k]||0),0)));const H=rows.length*24+2;
+    return `<svg class="ch" viewBox="0 0 400 ${H}" direction="ltr">${rows.map(([n,o],i)=>{const y=i*24;let x=255;const tot=keys.reduce((a,k)=>a+(o[k]||0),0);return `<g><text x="398" y="${y+15}" font-size="11.5" text-anchor="end" fill="var(--fg)">${E(n)}</text>${keys.map((k,j)=>{const w=Math.round(240*(o[k]||0)/max);if(!w)return "";x-=w;return `<rect x="${x+1}" y="${y+4}" width="${Math.max(1,w-2)}" height="14" rx="3" fill="${C(j)}"><title>${E(n)} · ${E(k)}: ${o[k]||0}</title></rect>`}).join("")}<text x="${x-5}" y="${y+15}" font-size="10.5" text-anchor="end" fill="var(--muted)">${tot}</text></g>`}).join("")}</svg><div class="lg">${keys.map((k,j)=>`<span><i style="background:${C(j)}"></i>${E(k)}</span>`).join("")}</div>`};
+  const line=(vals,labels,fmt)=>{const W=600,H=170,L=30,B=24;const max=Math.max(1,...vals);const n=vals.length;const X=i=>L+(W-L-6)*(n>1?i/(n-1):0.5);const Y=v=>H-B-(H-B-10)*v/max;
+    const pts=vals.map((v,i)=>[X(i),Y(v)]);const path="M"+pts.map(p=>p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" L");const area=path+` L${pts[pts.length-1][0].toFixed(1)} ${H-B} L${pts[0][0].toFixed(1)} ${H-B} Z`;
+    const ticks=[0,Math.round(max/2),max];const step=Math.ceil(n/8);
+    return `<svg class="ch" viewBox="0 0 ${W} ${H}" direction="ltr">${ticks.map(t=>`<line x1="${L}" x2="${W-6}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${L-4}" y="${Y(t)+4}" font-size="10" text-anchor="end" fill="var(--muted)">${t}</text>`).join("")}<path d="${area}" fill="var(--kiswa)" opacity=".12"/><path d="${path}" fill="none" stroke="var(--kiswa)" stroke-width="2"/>${pts.map((p,i)=>`<g><circle cx="${p[0]}" cy="${p[1]}" r="${n>30?2:4}" fill="var(--dsurf)" stroke="var(--kiswa)" stroke-width="2"><title>${E(fmt?fmt(labels[i]):labels[i])}: ${vals[i]}</title></circle>${i%step===0||i===n-1?`<text x="${p[0]}" y="${H-6}" font-size="10" text-anchor="middle" fill="var(--muted)">${E(labels[i])}</text>`:""}</g>`).join("")}</svg>`};
+  const heat=(grid,rowN,colN)=>{const max=Math.max(1,...grid.flat());const cw=22,chh=18,L=60,T=16;const W=L+colN.length*cw,H=T+rowN.length*chh;
+    return `<svg class="ch hm" viewBox="0 0 ${W} ${H}" direction="ltr">${colN.map((c,j)=>j%3===0?`<text x="${L+j*cw+cw/2}" y="11" font-size="9" text-anchor="middle" fill="var(--muted)">${E(c)}</text>`:"").join("")}${grid.map((row,i)=>`<text x="${L-6}" y="${T+i*chh+13}" font-size="10" text-anchor="end" fill="var(--fg)">${E(rowN[i])}</text>${row.map((v,j)=>`<rect x="${L+j*cw+1}" y="${T+i*chh+1}" width="${cw-2}" height="${chh-2}" rx="3" fill="var(--kiswa)" fill-opacity="${v?0.12+0.88*v/max:0.04}"><title>${E(rowN[i])} ${E(colN[j])}: ${v}</title></rect>`).join("")}`).join("")}</svg>`};
+  const donut=(rows)=>{const tot=rows.reduce((a,r)=>a+r[1],0)||1;const r=40,c=2*Math.PI*r;let off=0;
+    return `<div class="dn"><svg viewBox="0 0 120 120"><g transform="rotate(-90 60 60)">${rows.map((x,i)=>{const len=c*x[1]/tot;const s=`<circle cx="60" cy="60" r="${r}" fill="none" stroke="${C(i)}" stroke-width="18" stroke-dasharray="${Math.max(0,len-1.5)} ${c-Math.max(0,len-1.5)}" stroke-dashoffset="${-off}"><title>${E(x[0])}: ${x[1]} (${pct(x[1],tot)}%)</title></circle>`;off+=len;return s}).join("")}</g><text x="60" y="64" font-size="16" font-weight="700" text-anchor="middle" fill="var(--fg)">${tot}</text></svg><div class="lg">${rows.map((x,i)=>`<span><i style="background:${C(i)}"></i>${E(x[0])} <b>${pct(x[1],tot)}%</b> <span style="color:var(--muted)">(${x[1]})</span></span>`).join("")}</div></div>`};
+  const prog=(label,v,tot,note)=>`<div class="pb"><div class="t"><span>${label}</span><span><b>${v}</b> <span style="color:var(--muted)">${tot?pct(v,tot)+"%":""}</span></span></div><div class="r"><i style="width:${tot?pct(v,tot):0}%"></i></div><div style="font-size:.72rem;color:var(--muted)">${note}</div></div>`;
   const render=()=>{
-    const {ev,rt}=all();const evs=ev.filter(e=>inPeriod(e.at)&&(F.site==="all"||e.site===F.site));const rts=rt.filter(r=>inPeriod(r.at)&&(F.site==="all"||!r.site||r.site===F.site));
-    $("#dflt").innerHTML=[["site","all","الموقعان"],["site","madinah","المسجد النبوي"],["site","makkah","المسجد الحرام"],["period","24h","آخر 24 ساعة"],["period","7d","آخر 7 أيام"],["period","all","كل الفترة"]].map(([k,v,t])=>`<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${F[k]===v}">${t}</button>`).join("")+`<button type="button" data-k="demo" data-v="${F.demo?"0":"1"}" style="margin-inline-start:auto;border-color:var(--gold)">${F.demo?"اعرض البيانات الحقيقية":"اعرض بيانات متوقعة للتوضيح"}</button><span class="dst" style="align-self:center">${F.demo?"عينة متوقعة":`${devs.size} جهاز · ${ev.length} طلب حقيقي · <b>${window.mqtt?"حي":"محلي"}</b>`}</span>`;
-    $("#dbanner").innerHTML=F.demo?'<div class="dins" style="border-right-color:var(--crit)"><b>بيانات متوقعة للتوضيح</b>: هذه عينة محاكاة لأسبوع تشغيل تبين شكل اللوحة وقراراتها، وليست قراءات حقيقية. مع التشغيل الفعلي تمتلئ اللوحة تلقائيا من طلبات الضيوف على كل الأجهزة.</div>':"";
+    const {ev,rt}=all();const sp=span();const now=Date.now();
+    const site=e=>F.site==="all"||!e.site||e.site===F.site;
+    const evs=ev.filter(e=>site(e)&&(!sp||e.at>=now-sp));const prev=sp?ev.filter(e=>site(e)&&e.at<now-sp&&e.at>=now-2*sp):[];
+    const rts=rt.filter(r=>site(r)&&(!sp||r.at>=now-sp));const prts=sp?rt.filter(r=>site(r)&&r.at<now-sp&&r.at>=now-2*sp):[];
+    $("#dflt").innerHTML=`<span>الموقع</span>`+[["site","all","الكل"],["site","madinah","النبوي"],["site","makkah","الحرام"]].map(([k,v,t])=>`<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${F[k]===v}">${t}</button>`).join("")+`<span>الفترة</span>`+[["period","24h","24 ساعة"],["period","7d","7 أيام"],["period","all","الكل"]].map(([k,v,t])=>`<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${F[k]===v}">${t}</button>`).join("")+`<button type="button" data-k="demo" data-v="${F.demo?"0":"1"}" style="border-color:var(--gold)">${F.demo?"البيانات الحقيقية":"عينة متوقعة"}</button><span>${F.demo?"عينة متوقعة":`${devs.size} جهاز · ${ev.length} طلب · ${window.mqtt?"حي":"محلي"}`} · ${new Date().toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})}</span>`;
     $("#dflt").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{F[b.dataset.k]=b.dataset.k==="demo"?b.dataset.v==="1":b.dataset.v;render()}));
+    $("#dbanner").innerHTML=F.demo?'<div class="dban"><b>بيانات متوقعة للتوضيح</b>: عينة محاكاة لأسبوعي تشغيل تبين شكل اللوحة وقراراتها، وليست قراءات حقيقية. مع التشغيل الفعلي تمتلئ تلقائيا من طلبات الضيوف على كل الأجهزة.</div>':"";
     const body=$("#dbody");if(!evs.length){body.innerHTML='<div class="dempty">لا توجد طلبات مسجلة في هذه الفترة بعد.<br>افتح وكيل كنف على أي جهاز واطلب خدمة (مثلا الأزرار الأربعة)، ثم عد إلى هذه الصفحة؛ تظهر الأرقام خلال ثوان وتتحدث تلقائيا.</div>';return}
-    const bySvc=count(evs,e=>e.svc);const byHour=Array(24).fill(0);evs.forEach(e=>{byHour[new Date(e.at).getHours()]++});const peak=byHour.indexOf(Math.max(...byHour));
-    const byZone=count(evs,e=>e.zone||"بلا تحديد موقع");const byLang=count(evs,e=>LANGN[e.lang]||e.lang||"غير محددة");const bySite=count(evs,e=>SITEN[e.site]||e.site);const byHow=count(evs,e=>e.how||"كتابة أو صوت");
-    const off=evs.filter(e=>e.online===false).length;const fitN=rts.filter(r=>r.fit!=null);const fitP=fitN.length?Math.round(100*fitN.filter(r=>r.fit).length/fitN.length):null;
+    const n=evs.length;
+    /* series by day or by hour */
+    const byDayMap=new Map();evs.forEach(e=>{const d=new Date(e.at);const k=F.period==="24h"?d.getHours():new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();byDayMap.set(k,(byDayMap.get(k)||0)+1)});
+    let series=[],labels=[];if(F.period==="24h"){for(let h=0;h<24;h++){series.push(byDayMap.get(h)||0);labels.push(String(h).padStart(2,"0")+":00")}}
+    else{const days=sp?7:Math.max(1,Math.min(60,Math.ceil((now-Math.min(...evs.map(e=>e.at)))/86400000)+1));for(let d=days-1;d>=0;d--){const t=new Date(now-d*86400000);const k=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();series.push(byDayMap.get(k)||0);labels.push(t.toLocaleDateString("ar-SA",{weekday:"short",day:"numeric"}))}}
+    const bySvc=count(evs,e=>e.svc);const bySvcSite=(()=>{const m=new Map();evs.forEach(e=>{const o=m.get(e.svc)||{};const k=SITEN[e.site]||e.site;o[k]=(o[k]||0)+1;m.set(e.svc,o)});return bySvc.slice(0,10).map(([s])=>[s,m.get(s)])})();
+    const grid=Array.from({length:7},()=>Array(24).fill(0));evs.forEach(e=>{const d=new Date(e.at);grid[d.getDay()][d.getHours()]++});const hours=Array.from({length:24},(_,h)=>String(h).padStart(2,"0"));
+    const byHour=Array(24).fill(0);evs.forEach(e=>byHour[new Date(e.at).getHours()]++);const peak=byHour.indexOf(Math.max(...byHour));
+    const byZone=count(evs,e=>e.zone||"بلا تحديد موقع");const byLang=count(evs,e=>LANGN[e.lang]||e.lang||"غير محددة");const byHow=count(evs,e=>e.how||"كتابة أو صوت");
+    const off=evs.filter(e=>e.online===false).length;const fitN=rts.filter(r=>r.fit!=null);const fitP=fitN.length?pct(fitN.filter(r=>r.fit).length,fitN.length):null;const pfitN=prts.filter(r=>r.fit!=null);const pfitP=pfitN.length?pct(pfitN.filter(r=>r.fit).length,pfitN.length):null;
+    const secsOf=a=>{const v=a.filter(r=>r.secs!=null).map(r=>r.secs);return v.length?Math.round(v.reduce((x,y)=>x+y,0)/v.length):null};const secs=secsOf(rts),psecs=secsOf(prts);
+    const lost=evs.filter(e=>/start_guidance|family_locate|go_home|set_meeting_point|my_location|find_nearest|share_location/.test(e.tool)).length;const plost=prev.filter(e=>/start_guidance|family_locate|go_home|set_meeting_point|my_location|find_nearest|share_location/.test(e.tool)).length;
+    const dens=evs.filter(e=>/get_density|get_prayer_hall_occupancy|plan_prayer/.test(e.tool)).length;const shift=evs.filter(e=>e.shift).length;const pshift=prev.filter(e=>e.shift).length;
+    const heatN=evs.filter(e=>e.care||/hydration_rest/.test(e.tool)).length;const pheat=prev.filter(e=>e.care||/hydration_rest/.test(e.tool)).length;
     const outside=evs.filter(e=>e.zone&&e.zone!=="داخل المسجد وساحاته"&&e.zone!=="بلا تحديد موقع").length;const nonAr=evs.filter(e=>e.lang&&e.lang!=="ar").length;
-    const fitBySvc=count(fitN.filter(r=>!r.fit),r=>r.svc||r.tool);const worst=fitBySvc[0];
-    const hh=h=>String(h).padStart(2,"0")+":00";
-    const ins=[`<b>تخصيص الفرق:</b> الخدمة الأكثر طلبا هي <b>${E(bySvc[0][0])}</b> (${bySvc[0][1]} من ${evs.length} طلبا)، فهي أولى بالمرشدين والمحتوى.`,
-      `<b>توقيت المناوبات:</b> ذروة الطلب حول الساعة <b>${hh(peak)}</b>، وهذا وقت تعزيز الفرق الميدانية.`,
-      outside?`<b>الإرشاد قبل الوصول:</b> ${Math.round(100*outside/evs.length)}% من الطلبات من خارج المسجد وساحاته، أي أن الضيف يخطط من سكنه؛ الأولوية لدقة الأبواب والمواعيد في منصة التصاريح.`:"",
-      nonAr?`<b>اللغات:</b> ${Math.round(100*nonAr/evs.length)}% من الطلبات بغير العربية (${byLang.filter(l=>l[0]!=="العربية").slice(0,2).map(l=>l[0]).join(" و")})؛ تستحق لوحات ومحتوى مترجما في الموقع.`:"",
+    const worst=count(fitN.filter(r=>!r.fit),r=>r.svc||r.tool)[0];const hh=h=>String(h).padStart(2,"0")+":00";
+    const dSeries=k=>{/* per-day sparkline of a subset */const m=new Map();evs.filter(k).forEach(e=>{const d=new Date(e.at);const key=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();m.set(key,(m.get(key)||0)+1)});const out=[];for(let d=6;d>=0;d--){const t=new Date(now-d*86400000);out.push(m.get(new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime())||0)}return out};
+    const ins=[`<b>تخصيص الفرق:</b> الخدمة الأكثر طلبا <b>${E(bySvc[0][0])}</b> (${bySvc[0][1]} من ${n})، فهي أولى بالمرشدين والمحتوى.`,
+      `<b>توقيت المناوبات:</b> ذروة الطلب حول الساعة <b>${hh(peak)}</b>، وأثقل أيام الأسبوع <b>${DAYN[grid.map(r=>r.reduce((a,b)=>a+b,0)).indexOf(Math.max(...grid.map(r=>r.reduce((a,b)=>a+b,0))))]}</b>.`,
+      outside?`<b>الإرشاد قبل الوصول:</b> ${pct(outside,n)}% من الطلبات من خارج المسجد وساحاته؛ الضيف يخطط من سكنه، فالأولوية لدقة الأبواب والمواعيد في منصة التصاريح.`:"",
+      nonAr?`<b>اللغات:</b> ${pct(nonAr,n)}% بغير العربية (${byLang.filter(l=>l[0]!=="العربية").slice(0,2).map(l=>l[0]).join(" و")})؛ تستحق لوحات ومحتوى مترجما في الموقع.`:"",
       off?`<b>التغطية:</b> ${off} طلبا نفذت بلا اتصال؛ مؤشر على ضعف الشبكة في بعض المناطق أو الأوقات.`:"",
       fitP!=null?`<b>جودة الخدمة:</b> ${fitP}% من التوصيات جيدة بتقييم الضيوف${worst?"، وأكثر خدمة تحتاج مراجعة: <b>"+E(worst[0])+"</b>":""}.`:""].filter(Boolean);
-    const n=evs.length;const pc=x=>n?Math.round(100*x/n):0;
-    const lost=evs.filter(e=>/start_guidance|family_locate|go_home|set_meeting_point|my_location|find_nearest|share_location/.test(e.tool)).length;
-    const dens=evs.filter(e=>/get_density|get_prayer_hall_occupancy|plan_prayer/.test(e.tool)).length;const shift=evs.filter(e=>e.shift).length;
-    const heat=evs.filter(e=>e.care||/hydration_rest/.test(e.tool)).length;
-    const secsArr=rts.filter(r=>r.secs!=null).map(r=>r.secs);const secs=secsArr.length?Math.round(secsArr.reduce((x,y)=>x+y,0)/secsArr.length):null;
-    const fitColor=fitP==null?"var(--fg)":fitP>=70?"var(--ok)":"var(--crit)";
-    body.innerHTML=`<h2 class="dsec">أولا: الأثر على الضيف</h2><div class="dsub">كل رقم هنا طلب خدمه الوكيل من منصات الهيئة، مقابل مشكلات الميدان الثلاث التي رصدناها: التيه والكثافات والإجهاد الحراري.</div>
-    <div class="dkpis dimp"><div class="dkpi"><small>التيه</small><b>${lost}</b><div class="dx">مرة وجه فيها الوكيل ضيفا إلى بابه أو سكنه أو فرد من عائلته بدل أن يسأل ويتوه (${pc(lost)}% من الطلبات)</div></div>
-    <div class="dkpi"><small>الكثافات</small><b>${dens}</b><div class="dx">قراءة حية للكثافة أو إشغال المصليات قبل أن يتحرك الضيف، ومنها <b>${shift}</b> مرة اقترح فيها وقتا أو مكانا أخف، أي توزيع للحمل قبل أن يتكدس</div></div>
-    <div class="dkpi"><small>الإجهاد الحراري</small><b>${heat}</b><div class="dx">تنبيه ماء أو أقرب ظل أو استراحة قدم في وقت الحر قبل أن يشتكي الضيف</div></div></div>
-    <div class="dkpis"><div class="dkpi"><small>الوصول للخدمة</small><b>${secs==null?"—":secs+" ث"}</b><div class="dx">متوسط الثواني من سؤال الضيف إلى البطاقة الحية، بدل البحث في عدة صفحات</div></div>
-    <div class="dkpi"><small>جودة التوصية</small><b style="color:${fitColor}">${fitP==null?"—":fitP+"%"}</b><div class="dx">نسبة من أجابوا «نعم» على سؤال: هل كانت توصية جيدة؟ (${fitN.length} إجابة)</div></div>
-    <div class="dkpi"><small>بلا اتصال</small><b>${pc(off)}%</b><div class="dx">طلبات خدمت من خزن الجهاز عند انقطاع الإنترنت، فلا ينقطع الضيف عن الإرشاد</div></div>
-    <div class="dkpi"><small>اللغات</small><b>${byLang.length}</b><div class="dx">لغات تحدث بها الضيوف وفهمها الوكيل، ${pc(nonAr)}% منها بغير العربية</div></div></div>
-    <h2 class="dsec">ثانيا: ما يساعد الهيئة على القرار</h2><div class="dsub">ماذا طلب الضيوف، متى، من أين، وبأي لغة. بلا أي بيانات شخصية.</div>
-    <div class="dins"><b>القرارات التي تدعمها هذه الأرقام</b><br>${ins.join("<br>")}</div>
-    <div class="dgrid">
-      <div class="dch"><h2>ماذا طلب الضيوف</h2><div class="dd">عدد الطلبات لكل خدمة من خدمات الهيئة</div>${hbars(bySvc.slice(0,10),bySvc[0][0])}</div>
-      <div class="dch"><h2>متى</h2><div class="dd">الطلبات حسب ساعة اليوم (بتوقيت الجهاز)</div>${vcols(byHour,byHour.map((_,i)=>hh(i)),peak)}</div>
-      <div class="dch"><h2>من أين</h2><div class="dd">منطقة الضيف وقت الطلب، تقريبية ودون إحداثيات</div>${hbars(byZone)}</div>
-      <div class="dch"><h2>بأي لغة</h2><div class="dd">لغة رسالة الضيف</div>${hbars(byLang)}</div>
-      <div class="dch"><h2>في أي مسجد</h2><div class="dd">الطلبات حسب الموقع</div>${hbars(bySite)}</div>
-      <div class="dch"><h2>كيف طلب</h2><div class="dd">زر سريع، كتابة أو صوت، أو اقتراح بادر به الوكيل</div>${hbars(byHow)}</div>
-      <div class="dch" style="grid-column:1/-1"><h2>آخر الطلبات</h2><div class="dd">أحدث 25 طلبا، بلا أي معرف للضيف</div><table><thead><tr><th>الوقت</th><th>الخدمة</th><th>المسجد</th><th>المنطقة</th><th>اللغة</th><th>الاتصال</th></tr></thead><tbody>${evs.slice().sort((a,b)=>b.at-a.at).slice(0,25).map(e=>`<tr><td>${new Date(e.at).toLocaleString("ar-SA",{hour:"2-digit",minute:"2-digit",day:"numeric",month:"short"})}</td><td>${E(e.svc)}</td><td>${E(SITEN[e.site]||e.site)}</td><td>${E(e.zone||"")}</td><td>${E(LANGN[e.lang]||e.lang||"")}</td><td>${e.online===false?"بلا اتصال":"متصل"}</td></tr>`).join("")}</tbody></table></div>
+    body.innerHTML=`
+    <div class="dk">${kpi("طلبات الخدمة",n,delta(n,prev.length),spark(dSeries(()=>true)))}${kpi("الوصول للخدمة",secs==null?"—":secs+" ث",secs!=null&&psecs!=null?-delta(secs,psecs):null,"",false,"متوسط الثواني حتى البطاقة")}${kpi("توصية جيدة",fitP==null?"—":fitP+"%",fitP!=null&&pfitP!=null?fitP-pfitP:null,"",false,fitN.length+" إجابة")}${kpi("بلا اتصال",pct(off,n)+"%",null,"",false,off+" طلبا من خزن الجهاز")}${kpi("التيه: وجه بدل أن يتوه",lost,delta(lost,plost),spark(dSeries(e=>/start_guidance|family_locate|go_home|set_meeting_point|my_location|find_nearest|share_location/.test(e.tool))),true)}${kpi("الكثافات: اقترح وقتا أخف",shift,delta(shift,pshift),spark(dSeries(e=>e.shift)),true)}${kpi("الحر: تنبيه ماء وظل",heatN,delta(heatN,pheat),spark(dSeries(e=>e.care||/hydration_rest/.test(e.tool))),true)}</div>
+    <div class="dg">
+      <div class="pn c8"><h2>الطلبات عبر الوقت</h2><div class="dd">${F.period==="24h"?"بالساعة خلال آخر 24 ساعة":"باليوم"}</div>${line(series,labels)}</div>
+      <div class="pn c4"><h2>بأي لغة</h2><div class="dd">لغة رسالة الضيف</div>${donut(byLang.slice(0,6))}</div>
+      <div class="pn c8"><h2>متى يطلب الضيوف</h2><div class="dd">اليوم × الساعة، الأغمق أكثر طلبا</div>${heat(grid,DAYN,hours)}</div>
+      <div class="pn c4"><h2>كيف طلب</h2><div class="dd">زر سريع، كتابة أو صوت، أو اقتراح بادر به الوكيل</div>${donut(byHow)}</div>
+      <div class="pn c6"><h2>ماذا طلب الضيوف</h2><div class="dd">أكثر عشر خدمات، موزعة على المسجدين</div>${stacked(bySvcSite,["المسجد النبوي","المسجد الحرام"].filter(k=>F.site==="all"||k===SITEN[F.site]))}</div>
+      <div class="pn c6"><h2>من أين</h2><div class="dd">منطقة الضيف وقت الطلب، تقريبية ودون إحداثيات</div>${hbars(byZone)}<h2 style="margin-top:10px">الأثر مقابل مشكلات الميدان</h2><div class="dd">نسبة الطلبات التي عالجت كل مشكلة</div>${prog("التيه",lost,n,"إرشاد إلى باب أو سكن أو فرد من العائلة")}${prog("الكثافات",dens,n,"قراءة حية قبل التحرك، منها "+shift+" توجيه لوقت أو مكان أخف")}${prog("الإجهاد الحراري",heatN,n,"تنبيه ماء أو ظل أو استراحة في وقت الحر")}</div>
+      <div class="pn c12"><h2>القرارات التي تدعمها هذه الأرقام</h2><div class="ins">${ins.join("<br>")}</div></div>
+      <div class="pn c12"><h2>آخر الطلبات</h2><div class="dd">أحدث 20 طلبا، بلا أي معرف للضيف</div><table><thead><tr><th>الوقت</th><th>الخدمة</th><th>المسجد</th><th>المنطقة</th><th>اللغة</th><th>الطريقة</th><th>الاتصال</th></tr></thead><tbody>${evs.slice().sort((a,b)=>b.at-a.at).slice(0,20).map(e=>`<tr><td>${new Date(e.at).toLocaleString("ar-SA",{hour:"2-digit",minute:"2-digit",day:"numeric",month:"short"})}</td><td>${E(e.svc)}</td><td>${E(SITEN[e.site]||e.site)}</td><td>${E(e.zone||"")}</td><td>${E(LANGN[e.lang]||e.lang||"")}</td><td>${E(e.how||"")}</td><td>${e.online===false?"بلا اتصال":"متصل"}</td></tr>`).join("")}</tbody></table></div>
     </div>`};
   render();
   window.addEventListener("storage",()=>{loadLocal();render()});
