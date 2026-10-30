@@ -297,6 +297,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .calm .card{border:0;background:var(--bg2);width:100%;box-shadow:none;border-radius:18px;padding:12px 14px}
 .calm .card.alert{border-inline-start:3px solid var(--warn)}.calm .card.alert.crit{border-inline-start-color:var(--crit)}
 .calm .sugg{align-self:stretch;padding:2px 2px}.calm .sugg small{display:block;color:var(--muted);font-size:.72rem;margin-bottom:6px}.calm .sugg .sl{display:flex;flex-wrap:wrap;gap:6px}.calm .sugg .q{font-size:.78rem;padding:6px 12px;background:var(--card);border-color:var(--line)}
+.calm .hero{align-self:stretch;text-align:center;padding:26px 14px 10px}.calm .hero b{display:block;font-family:var(--display);font-size:1.35rem;color:var(--kiswa);margin-bottom:8px}.calm .hero span{display:block;color:var(--muted);font-size:.92rem;line-height:1.7;max-width:320px;margin:0 auto}
 .calm .quick{background:transparent;padding:2px 12px 6px}
 .calm .q{background:transparent;border-color:var(--line);color:var(--fg);font-size:.8rem;padding:6px 12px}
 .calm .compose{border:1px solid var(--line);border-top:1px solid var(--line);border-radius:26px;margin:0 10px 12px;padding:4px 6px;background:var(--card);align-items:center;gap:4px}
@@ -1565,7 +1566,8 @@ function start(){
   $("#locText").textContent="جار تحديد موقعك…";setTimeout(()=>{$("#locText").innerHTML=state.realWhere?"موقعك الآن: <b>"+esc(state.realWhere)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>":"موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot)+" <span style=\"color:var(--muted)\">(محاكاة حتى يأذن الجوال بالموقع)</span>";},700);
   log("sup","حدد موقع الضيف تلقائيا",s.name+" · "+s.spot);$(".sb span:last-child").textContent=s.city+" · "+s.temp+"°";
   if(state.judge&&!state.onboarded){realSense();onboard();renderKnown();renderQuick();return}
-  msg("sys","أهلا "+profile.name+" في "+s.name+". أعرف موقعك ووقتك والكثافة حولك، وأتذكر ما تفضله، وأكلمك بلغتك.");
+  if(document.querySelector(".screen.calm")){feed.appendChild(el(`<div class="hero"><b>أهلا ${esc(profile.name)}، أنا كنف</b><span>مساعدك الذكي في الحرمين: أدلك إلى أقرب خدمة، وأخبرك بالكثافة ومواعيدك، وأبقيك على تواصل مع عائلتك، وأكلمك بلغتك.</span></div>`))}
+  else msg("sys","أهلا "+profile.name+" في "+s.name+". أعرف موقعك ووقتك والكثافة حولك، وأتذكر ما تفضله، وأكلمك بلغتك.");
   renderKnown();
   permCard();
   const before=feed.querySelectorAll(".card").length;proactive();
