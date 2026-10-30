@@ -425,6 +425,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 {const q0=new URLSearchParams(location.search);if(q0.get("reset")==="1"){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(_){}q0.delete("reset");const u=location.pathname+(q0.toString()?"?"+q0.toString():"")+location.hash;location.replace(u);throw new Error("reset")}}
 "use strict";
 const $=s=>document.querySelector(s);
+const TOOL_AR={get_density:"كثافة المسار",get_prayer_hall_occupancy:"إشغال المصليات",show_map:"الخريطة التفاعلية",find_nearest:"أقرب خدمة",my_location:"تحديد الموقع",invite_member:"إضافة فرد للعائلة",open_portal:"صفحة الهيئة",request_cart:"طلب عربة",report_lost:"بلاغ مفقود",book_children_center:"ضيافة الأطفال",sermon_translation:"ترجمة الخطبة",get_lessons_and_prayers:"الدروس والصلوات",book_visit:"حجز زيارة",accessibility_services:"خدمات ذوي الإعاقة",emergency:"طوارئ",family_locate:"موقع فرد العائلة",set_meeting_point:"نقطة لقاء",share_location:"مشاركة الموقع",go_home:"العودة للسكن",start_guidance:"الإرشاد خطوة بخطوة",plan_prayer:"خطة الصلاة",sign_interpreter:"مترجم إشارة",medication:"تذكير الدواء",set_reminder:"تذكير",track_request:"متابعة طلب",play_stream:"البث المباشر",hydration_rest:"ماء واستراحة",waiting_mode:"موعد الروضة",start_breathing:"تمرين تنفس",rawdah_guide:"دليل الروضة",rawdah_permit:"تصريح الروضة",trip_plan:"خطة الرحلة",mutawwif:"المطوف"};
 {const qd=new URLSearchParams(location.search);if(qd.get("dash")==="1"){dashPage();return}}
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
 const state={site:"madinah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
@@ -616,6 +617,7 @@ function advise(lv,what){const now=new Date();const mins=now.getHours()*60+now.g
   else if(lv===2)tip=beforeIsha?"الأفضل بعد صلاة العشاء، عادة يكون أخف.":"تحرك الآن؛ لا صلاة قريبة، والكثافة متوسطة.";
   else tip=beforeIsha?"الأفضل الانتظار إلى ما بعد صلاة العشاء، عادة يكون أخف، وسأنبهك عندما تخف الكثافة.":"الكثافة كثيفة الآن ولا صلاة قريبة؛ سأنبهك عندما تخف.";
   const care=[];if(hot)care.push("اشرب ماء قبل أن تتحرك؛ أقرب زمزم "+s.places.zamzam[0][0]+" ("+s.places.zamzam[0][1]+" م)");if(hot)care.push("امش تحت المظلات؛ أقرب مقاعد مظللة "+s.places.rest[0][0]+" ("+s.places.rest[0][1]+" م)");if(slow&&lv>=2)care.push("خذ العربة من مركزها لتقل مدة الوقوف");
+  try{if(toNext<=40||sinceLast<=20||lv>=2)EVT.mark("shift");if(care.length)EVT.mark("care")}catch(_){}
   return `<div class="best"><b>اقتراحي:</b> ${esc(tip)}${care.length?"<br>"+care.map(esc).join("، ")+".":""}</div>`}
 function liveLvl(kind){if(kind==="salam")return LIVE.salam();const m=LIVE.mataf();if(!m)return null;const L=m[kind==="masaa"?"المسعى":"المطاف"];return L.length?L[0][1]:null}
 function lvlText(l){return l?LVL[l][0]:"غير متاحة الآن (لا قراءة حية)"}
@@ -741,12 +743,12 @@ function resultsCard(){
   card(head("📈","نتائج التحقق من الأثر",L.length+" تقييم · محفوظ على هذا الجهاز")+`<div class="svres"><div><b>${L.length}</b><small>تقييم</small></div><div><b>${fitp==null?"—":fitp+"%"}</b><small>توصية جيدة</small></div><div><b>${f(avg("secs"))}</b><small>ثانية حتى الخدمة</small></div></div><p class="note">حصيلة مجمعة ومجهولة من سؤال واحد بعد كل توصية، تصل للهيئة مع اسم الخدمة فقط دون أي بيانات شخصية.</p><div class="acts"><a class="chip" href="?dash=1" target="_blank" rel="noopener">لوحة الهيئة</a><button type="button" data-clear="1">مسح النتائج</button></div>`,"care").querySelector("[data-clear]").addEventListener("click",ev=>{metrics.log=[];saveMetrics();ev.target.closest(".card").remove();log("care","مسح نتائج الأثر","")});
   return{count:L.length,avg_secs:avg("secs"),fit_pct:fitp}}
 /* ---------- طبقة قياس الخدمات للهيئة: أي خدمة طلبت، متى، من أي منطقة، وبأي لغة. بلا أي بيانات شخصية ---------- */
-const TOOL_AR={get_density:"كثافة المسار",get_prayer_hall_occupancy:"إشغال المصليات",show_map:"الخريطة التفاعلية",find_nearest:"أقرب خدمة",my_location:"تحديد الموقع",invite_member:"إضافة فرد للعائلة",open_portal:"صفحة الهيئة",request_cart:"طلب عربة",report_lost:"بلاغ مفقود",book_children_center:"ضيافة الأطفال",sermon_translation:"ترجمة الخطبة",get_lessons_and_prayers:"الدروس والصلوات",book_visit:"حجز زيارة",accessibility_services:"خدمات ذوي الإعاقة",emergency:"طوارئ",family_locate:"موقع فرد العائلة",set_meeting_point:"نقطة لقاء",share_location:"مشاركة الموقع",go_home:"العودة للسكن",start_guidance:"الإرشاد خطوة بخطوة",plan_prayer:"خطة الصلاة",sign_interpreter:"مترجم إشارة",medication:"تذكير الدواء",set_reminder:"تذكير",track_request:"متابعة طلب",play_stream:"البث المباشر",hydration_rest:"ماء واستراحة",waiting_mode:"موعد الروضة",start_breathing:"تمرين تنفس",rawdah_guide:"دليل الروضة",rawdah_permit:"تصريح الروضة",trip_plan:"خطة الرحلة",mutawwif:"المطوف"};
 const EVT={list:[],client:null,id:null,
   load(){try{this.list=JSON.parse(localStorage.getItem("knf_events")||"[]")}catch(_){this.list=[]}},
   zone(){const r=state.real;if(!r||typeof r.km!=="number")return "بلا تحديد موقع";return r.km<0.6?"داخل المسجد وساحاته":r.km<1.5?"المنطقة المركزية":r.km<5?"داخل المدينة":"خارج المدينة"},
   add(tool){if(!TOOL_AR[tool])return;const e={at:Date.now(),tool,svc:TOOL_AR[tool],site:state.site,lang:state.lang||"ar",zone:this.zone(),online:!state.offline,how:!state.busy?"اقتراح من الوكيل":state.fromChip?"زر سريع":"كتابة أو صوت"};
     this.list.push(e);this.list=this.list.slice(-400);try{localStorage.setItem("knf_events",JSON.stringify(this.list))}catch(_){}this.pub()},
+  mark(k){const e=this.list[this.list.length-1];if(!e||Date.now()-e.at>4000||e[k])return;e[k]=1;try{localStorage.setItem("knf_events",JSON.stringify(this.list))}catch(_){}this.pub()},
   devId(){if(this.id)return this.id;try{let v=localStorage.getItem("knf_peer");if(!v){v="p"+Math.random().toString(36).slice(2,10);localStorage.setItem("knf_peer",v)}this.id=v}catch(_){this.id="p"+Date.now()}return this.id},
   payload(){return JSON.stringify({dev:this.devId(),t:Date.now(),site:state.site,events:this.list.slice(-300),ratings:metrics.log.slice(-200)})},
   async pub(){if(LIVE.sandboxed()||state.offline||location.protocol==="file:")return;
@@ -1852,9 +1854,21 @@ function dashPage(){
   const devs=new Map();let myId="";try{myId=localStorage.getItem("knf_peer")||""}catch(_){}
   const loadLocal=()=>{try{const ev=JSON.parse(localStorage.getItem("knf_events")||"[]");const rt=JSON.parse(localStorage.getItem("knf_metrics")||"[]");if(ev.length||rt.length)devs.set(myId||"local",{events:ev,ratings:rt,t:Date.now()})}catch(_){}};
   loadLocal();
-  const F={site:"all",period:"7d"};
+  const F={site:"all",period:"7d",demo:(new URLSearchParams(location.search).get("demo")==="1")||devs.size===0};
+  /* بيانات متوقعة للتوضيح فقط: توزيع مبني على أوقات الصلاة والخدمات الأكثر طلبا، وليست قراءات حقيقية */
+  const demoData=(()=>{let seed=20261027;const rnd=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+    const pickW=arr=>{const tot=arr.reduce((a,x)=>a+x[1],0);let r=rnd()*tot;for(const x of arr){r-=x[1];if(r<=0)return x[0]}return arr[0][0]};
+    const SV=[["get_density",22],["get_prayer_hall_occupancy",13],["start_guidance",15],["family_locate",12],["waiting_mode",6],["rawdah_permit",5],["request_cart",6],["show_map",5],["find_nearest",5],["go_home",4],["hydration_rest",3],["sermon_translation",2],["report_lost",1],["set_meeting_point",1]];
+    const HW=[1,1,1,2,8,9,5,3,3,4,5,7,10,8,5,9,8,6,9,10,11,12,7,3];
+    const ZN=[["داخل المسجد وساحاته",45],["المنطقة المركزية",30],["داخل المدينة",20],["خارج المدينة",5]];const LG=[["ar",55],["en",15],["ur",12],["id",10],["fr",5],["tr",3]];const HOW=[["زر سريع",45],["كتابة أو صوت",40],["اقتراح من الوكيل",15]];
+    const events=[],ratings=[];const now=Date.now();const day0=new Date();day0.setHours(0,0,0,0);
+    for(let d=6;d>=0;d--){for(let h=0;h<24;h++){const cnt=Math.round(HW[h]*(0.7+rnd()*0.7)*(d===0?0.6:1));for(let i=0;i<cnt;i++){const at=day0.getTime()-d*86400000+h*3600000+Math.floor(rnd()*3600000);if(at>now)continue;
+      const tool=pickW(SV);const e={at,tool,svc:TOOL_AR[tool]||tool,site:rnd()<0.72?"madinah":"makkah",lang:pickW(LG),zone:pickW(ZN),online:rnd()>0.08,how:pickW(HOW)};
+      if(/get_density|get_prayer_hall_occupancy/.test(tool)&&rnd()<0.45)e.shift=1;if(h>=9&&h<=16&&rnd()<0.3)e.care=1;events.push(e);
+      if(rnd()<0.35)ratings.push({at:at+60000,tool,svc:e.svc,site:e.site,secs:3+Math.round(rnd()*9),fit:rnd()<0.86?1:0})}}}
+    return{events,ratings}})();
   document.title="لوحة الهيئة · وكيل كنف";
-  document.body.className="";document.body.style.cssText="display:block;height:auto;min-height:100vh;overflow:auto;background:var(--bg)";document.body.innerHTML=`<style>
+  document.body.className="";document.body.style.cssText="display:block;height:auto;min-height:100vh;overflow:auto;background:var(--bg)";[...document.body.children].forEach(n=>{if(!/^(STYLE|LINK)$/.test(n.tagName))n.remove()});document.body.insertAdjacentHTML("beforeend",`<style>
   .dsh{max-width:1100px;margin:0 auto;padding:18px 16px 40px;font-family:inherit;color:var(--fg)}
   .dsh h1{font-size:1.25rem;margin:0 0 2px}.dsh .sub{color:var(--muted);font-size:.85rem;margin-bottom:14px}
   .dsh .dflt{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}.dsh .dflt button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer}.dsh .dflt button[aria-pressed=true]{background:var(--kiswa);color:#fff;border-color:var(--kiswa)}
@@ -1864,11 +1878,12 @@ function dashPage(){
   .dsh .dins{background:var(--bg2);border:1px solid var(--line);border-right:4px solid var(--gold);border-radius:14px;padding:12px 14px;margin-bottom:16px;line-height:1.8}
   .dsh table{width:100%;border-collapse:collapse;font-size:.82rem}.dsh th,.dsh td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}.dsh th{color:var(--muted);font-weight:600}
   .dsh .dempty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
-  .dsh .dst{font-size:.78rem;color:var(--muted)}.dsh .dst b{color:var(--ok)}
+  .dsh .dst{font-size:.78rem;color:var(--muted)}
+  .dsh .dsec{font-size:1.05rem;margin:18px 0 2px;color:var(--kiswa)}.dsh .dsub{color:var(--muted);font-size:.82rem;margin-bottom:10px}.dsh .dkpi .dx{font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:4px}.dsh .dimp .dkpi{border-right:4px solid var(--gold)}.dsh .dst b{color:var(--ok)}
   </style><div class="dsh" dir="rtl"><h1>لوحة الهيئة للقرار · وكيل كنف</h1><div class="sub">ما يطلبه الضيوف من خدمات الهيئة عبر الوكيل: أي خدمة، متى، من أي منطقة، وبأي لغة. تصل اللوحة بلا أي بيانات شخصية (لا اسم ولا موقع دقيق ولا جهاز).</div>
-  <div class="dflt" id="dflt"></div><div id="dbody"></div></div>`;
+  <div id="dbanner"></div><div class="dflt" id="dflt"></div><div id="dbody"></div></div>`);
   const hoursAgo=h=>Date.now()-h*3600000;
-  const all=()=>{const ev=[],rt=[];devs.forEach(d=>{(d.events||[]).forEach(e=>ev.push(e));(d.ratings||[]).forEach(r=>rt.push(r))});return{ev,rt}};
+  const all=()=>{if(F.demo)return{ev:demoData.events.slice(),rt:demoData.ratings.slice()};const ev=[],rt=[];devs.forEach(d=>{(d.events||[]).forEach(e=>ev.push(e));(d.ratings||[]).forEach(r=>rt.push(r))});return{ev,rt}};
   const inPeriod=t=>F.period==="24h"?t>=hoursAgo(24):F.period==="7d"?t>=hoursAgo(24*7):true;
   const count=(arr,k)=>{const m=new Map();arr.forEach(x=>{const v=k(x);m.set(v,(m.get(v)||0)+1)});return [...m.entries()].sort((a,b)=>b[1]-a[1])};
   const hbars=(rows,hi)=>{if(!rows.length)return '<div class="dempty">لا بيانات بعد</div>';const max=Math.max(...rows.map(r=>r[1]));const H=rows.length*26+4;
@@ -1877,23 +1892,38 @@ function dashPage(){
     return `<svg viewBox="0 0 ${W} ${H+20}" role="img" direction="ltr"><line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="var(--line)"/>${vals.map((v,i)=>{const h=Math.round((H-10)*v/max);const x=5+i*(bw+2);return `<g><title>${E(labels[i])}: ${v}</title><rect class="dbar${i===hiIdx?" dhi":""}" x="${x}" y="${H-h}" width="${bw}" height="${h}" rx="3"/>${(n<=12||i%3===0)?`<text x="${x+bw/2}" y="${H+14}" font-size="9" text-anchor="middle" fill="var(--muted)">${E(labels[i])}</text>`:""}</g>`}).join("")}</svg>`};
   const render=()=>{
     const {ev,rt}=all();const evs=ev.filter(e=>inPeriod(e.at)&&(F.site==="all"||e.site===F.site));const rts=rt.filter(r=>inPeriod(r.at)&&(F.site==="all"||!r.site||r.site===F.site));
-    $("#dflt").innerHTML=[["site","all","الموقعان"],["site","madinah","المسجد النبوي"],["site","makkah","المسجد الحرام"],["period","24h","آخر 24 ساعة"],["period","7d","آخر 7 أيام"],["period","all","كل الفترة"]].map(([k,v,t])=>`<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${F[k]===v}">${t}</button>`).join("")+`<span class="dst" style="align-self:center">${devs.size} جهاز · ${ev.length} طلب مسجل · <b>${window.mqtt?"حي":"محلي"}</b></span>`;
-    $("#dflt").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{F[b.dataset.k]=b.dataset.v;render()}));
-    const body=$("#dbody");if(!evs.length){body.innerHTML='<div class="dempty">لا توجد طلبات مسجلة في هذه الفترة. تظهر هنا تلقائيا كل خدمة يطلبها الضيوف عبر وكيل كنف على أي جهاز متصل.</div>';return}
+    $("#dflt").innerHTML=[["site","all","الموقعان"],["site","madinah","المسجد النبوي"],["site","makkah","المسجد الحرام"],["period","24h","آخر 24 ساعة"],["period","7d","آخر 7 أيام"],["period","all","كل الفترة"]].map(([k,v,t])=>`<button type="button" data-k="${k}" data-v="${v}" aria-pressed="${F[k]===v}">${t}</button>`).join("")+`<button type="button" data-k="demo" data-v="${F.demo?"0":"1"}" style="margin-inline-start:auto;border-color:var(--gold)">${F.demo?"اعرض البيانات الحقيقية":"اعرض بيانات متوقعة للتوضيح"}</button><span class="dst" style="align-self:center">${F.demo?"عينة متوقعة":`${devs.size} جهاز · ${ev.length} طلب حقيقي · <b>${window.mqtt?"حي":"محلي"}</b>`}</span>`;
+    $("#dbanner").innerHTML=F.demo?'<div class="dins" style="border-right-color:var(--crit)"><b>بيانات متوقعة للتوضيح</b>: هذه عينة محاكاة لأسبوع تشغيل تبين شكل اللوحة وقراراتها، وليست قراءات حقيقية. مع التشغيل الفعلي تمتلئ اللوحة تلقائيا من طلبات الضيوف على كل الأجهزة.</div>':"";
+    $("#dflt").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{F[b.dataset.k]=b.dataset.k==="demo"?b.dataset.v==="1":b.dataset.v;render()}));
+    const body=$("#dbody");if(!evs.length){body.innerHTML='<div class="dempty">لا توجد طلبات مسجلة في هذه الفترة بعد.<br>افتح وكيل كنف على أي جهاز واطلب خدمة (مثلا الأزرار الأربعة)، ثم عد إلى هذه الصفحة؛ تظهر الأرقام خلال ثوان وتتحدث تلقائيا.</div>';return}
     const bySvc=count(evs,e=>e.svc);const byHour=Array(24).fill(0);evs.forEach(e=>{byHour[new Date(e.at).getHours()]++});const peak=byHour.indexOf(Math.max(...byHour));
     const byZone=count(evs,e=>e.zone||"بلا تحديد موقع");const byLang=count(evs,e=>LANGN[e.lang]||e.lang||"غير محددة");const bySite=count(evs,e=>SITEN[e.site]||e.site);const byHow=count(evs,e=>e.how||"كتابة أو صوت");
     const off=evs.filter(e=>e.online===false).length;const fitN=rts.filter(r=>r.fit!=null);const fitP=fitN.length?Math.round(100*fitN.filter(r=>r.fit).length/fitN.length):null;
     const outside=evs.filter(e=>e.zone&&e.zone!=="داخل المسجد وساحاته"&&e.zone!=="بلا تحديد موقع").length;const nonAr=evs.filter(e=>e.lang&&e.lang!=="ar").length;
     const fitBySvc=count(fitN.filter(r=>!r.fit),r=>r.svc||r.tool);const worst=fitBySvc[0];
     const hh=h=>String(h).padStart(2,"0")+":00";
-    const ins=[`الخدمة الأكثر طلبا: <b>${E(bySvc[0][0])}</b> (${bySvc[0][1]} من ${evs.length}).`,
-      `ذروة الطلب حول الساعة <b>${hh(peak)}</b>؛ هذا هو وقت تعزيز الفرق الميدانية لهذه الخدمات.`,
-      outside?`<b>${Math.round(100*outside/evs.length)}%</b> من الطلبات جاءت من خارج المسجد وساحاته، أي أن الضيف يخطط قبل الوصول؛ الأولوية لدقة الإرشاد إلى الأبواب والمواعيد.`:"",
-      nonAr?`<b>${Math.round(100*nonAr/evs.length)}%</b> من الطلبات بغير العربية (${byLang.filter(l=>l[0]!=="العربية").slice(0,2).map(l=>l[0]).join(" و")})؛ تستحق هذه اللغات محتوى إرشاديا مترجما في الموقع.`:"",
-      off?`<b>${off}</b> طلبا نفذت بلا اتصال من خزن الجهاز؛ مؤشر على ضعف التغطية في بعض المناطق أو الأوقات.`:"",
-      fitP!=null?`<b>${fitP}%</b> من التوصيات قيمها الضيوف جيدة (${fitN.length} تقييم)${worst?"؛ أكثر خدمة تحتاج مراجعة: <b>"+E(worst[0])+"</b>":""}.`:""].filter(Boolean);
-    body.innerHTML=`<div class="dkpis"><div class="dkpi"><b>${evs.length}</b><small>طلب خدمة</small></div><div class="dkpi"><b>${E(bySvc[0][0])}</b><small>الأكثر طلبا</small></div><div class="dkpi"><b>${hh(peak)}</b><small>ساعة الذروة</small></div><div class="dkpi"><b style="color:${fitP==null?"var(--fg)":fitP>=70?"var(--ok)":"var(--crit)"}">${fitP==null?"—":fitP+"%"}</b><small>توصية جيدة (${fitN.length} تقييم)</small></div><div class="dkpi"><b>${evs.length?Math.round(100*off/evs.length):0}%</b><small>طلبات بلا اتصال</small></div></div>
-    <div class="dins"><b>ما يقوله هذا للقرار</b><br>${ins.join("<br>")}</div>
+    const ins=[`<b>تخصيص الفرق:</b> الخدمة الأكثر طلبا هي <b>${E(bySvc[0][0])}</b> (${bySvc[0][1]} من ${evs.length} طلبا)، فهي أولى بالمرشدين والمحتوى.`,
+      `<b>توقيت المناوبات:</b> ذروة الطلب حول الساعة <b>${hh(peak)}</b>، وهذا وقت تعزيز الفرق الميدانية.`,
+      outside?`<b>الإرشاد قبل الوصول:</b> ${Math.round(100*outside/evs.length)}% من الطلبات من خارج المسجد وساحاته، أي أن الضيف يخطط من سكنه؛ الأولوية لدقة الأبواب والمواعيد في منصة التصاريح.`:"",
+      nonAr?`<b>اللغات:</b> ${Math.round(100*nonAr/evs.length)}% من الطلبات بغير العربية (${byLang.filter(l=>l[0]!=="العربية").slice(0,2).map(l=>l[0]).join(" و")})؛ تستحق لوحات ومحتوى مترجما في الموقع.`:"",
+      off?`<b>التغطية:</b> ${off} طلبا نفذت بلا اتصال؛ مؤشر على ضعف الشبكة في بعض المناطق أو الأوقات.`:"",
+      fitP!=null?`<b>جودة الخدمة:</b> ${fitP}% من التوصيات جيدة بتقييم الضيوف${worst?"، وأكثر خدمة تحتاج مراجعة: <b>"+E(worst[0])+"</b>":""}.`:""].filter(Boolean);
+    const n=evs.length;const pc=x=>n?Math.round(100*x/n):0;
+    const lost=evs.filter(e=>/start_guidance|family_locate|go_home|set_meeting_point|my_location|find_nearest|share_location/.test(e.tool)).length;
+    const dens=evs.filter(e=>/get_density|get_prayer_hall_occupancy|plan_prayer/.test(e.tool)).length;const shift=evs.filter(e=>e.shift).length;
+    const heat=evs.filter(e=>e.care||/hydration_rest/.test(e.tool)).length;
+    const secsArr=rts.filter(r=>r.secs!=null).map(r=>r.secs);const secs=secsArr.length?Math.round(secsArr.reduce((x,y)=>x+y,0)/secsArr.length):null;
+    const fitColor=fitP==null?"var(--fg)":fitP>=70?"var(--ok)":"var(--crit)";
+    body.innerHTML=`<h2 class="dsec">أولا: الأثر على الضيف</h2><div class="dsub">كل رقم هنا طلب خدمه الوكيل من منصات الهيئة، مقابل مشكلات الميدان الثلاث التي رصدناها: التيه والكثافات والإجهاد الحراري.</div>
+    <div class="dkpis dimp"><div class="dkpi"><small>التيه</small><b>${lost}</b><div class="dx">مرة وجه فيها الوكيل ضيفا إلى بابه أو سكنه أو فرد من عائلته بدل أن يسأل ويتوه (${pc(lost)}% من الطلبات)</div></div>
+    <div class="dkpi"><small>الكثافات</small><b>${dens}</b><div class="dx">قراءة حية للكثافة أو إشغال المصليات قبل أن يتحرك الضيف، ومنها <b>${shift}</b> مرة اقترح فيها وقتا أو مكانا أخف، أي توزيع للحمل قبل أن يتكدس</div></div>
+    <div class="dkpi"><small>الإجهاد الحراري</small><b>${heat}</b><div class="dx">تنبيه ماء أو أقرب ظل أو استراحة قدم في وقت الحر قبل أن يشتكي الضيف</div></div></div>
+    <div class="dkpis"><div class="dkpi"><small>الوصول للخدمة</small><b>${secs==null?"—":secs+" ث"}</b><div class="dx">متوسط الثواني من سؤال الضيف إلى البطاقة الحية، بدل البحث في عدة صفحات</div></div>
+    <div class="dkpi"><small>جودة التوصية</small><b style="color:${fitColor}">${fitP==null?"—":fitP+"%"}</b><div class="dx">نسبة من أجابوا «نعم» على سؤال: هل كانت توصية جيدة؟ (${fitN.length} إجابة)</div></div>
+    <div class="dkpi"><small>بلا اتصال</small><b>${pc(off)}%</b><div class="dx">طلبات خدمت من خزن الجهاز عند انقطاع الإنترنت، فلا ينقطع الضيف عن الإرشاد</div></div>
+    <div class="dkpi"><small>اللغات</small><b>${byLang.length}</b><div class="dx">لغات تحدث بها الضيوف وفهمها الوكيل، ${pc(nonAr)}% منها بغير العربية</div></div></div>
+    <h2 class="dsec">ثانيا: ما يساعد الهيئة على القرار</h2><div class="dsub">ماذا طلب الضيوف، متى، من أين، وبأي لغة. بلا أي بيانات شخصية.</div>
+    <div class="dins"><b>القرارات التي تدعمها هذه الأرقام</b><br>${ins.join("<br>")}</div>
     <div class="dgrid">
       <div class="dch"><h2>ماذا طلب الضيوف</h2><div class="dd">عدد الطلبات لكل خدمة من خدمات الهيئة</div>${hbars(bySvc.slice(0,10),bySvc[0][0])}</div>
       <div class="dch"><h2>متى</h2><div class="dd">الطلبات حسب ساعة اليوم (بتوقيت الجهاز)</div>${vcols(byHour,byHour.map((_,i)=>hh(i)),peak)}</div>
