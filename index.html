@@ -296,6 +296,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .calm .msg.user{background:var(--bg2);color:var(--fg);border-radius:18px;border-bottom-left-radius:6px}
 .calm .card{border:0;background:var(--bg2);width:100%;box-shadow:none;border-radius:18px;padding:12px 14px}
 .calm .card.alert{border-inline-start:3px solid var(--warn)}.calm .card.alert.crit{border-inline-start-color:var(--crit)}
+.calm .sugg{align-self:stretch;padding:2px 2px}.calm .sugg small{display:block;color:var(--muted);font-size:.72rem;margin-bottom:6px}.calm .sugg .sl{display:flex;flex-wrap:wrap;gap:6px}.calm .sugg .q{font-size:.78rem;padding:6px 12px;background:var(--card);border-color:var(--line)}
 .calm .quick{background:transparent;padding:2px 12px 6px}
 .calm .q{background:transparent;border-color:var(--line);color:var(--fg);font-size:.8rem;padding:6px 12px}
 .calm .compose{border:1px solid var(--line);border-top:1px solid var(--line);border-radius:26px;margin:0 10px 12px;padding:4px 6px;background:var(--card);align-items:center;gap:4px}
@@ -1520,8 +1521,13 @@ function start(){
   msg("sys","أهلا "+profile.name+" في "+s.name+". أعرف موقعك ووقتك والكثافة حولك، وأتذكر ما تفضله، وأكلمك بلغتك.");
   renderKnown();
   const before=feed.querySelectorAll(".card").length;proactive();
-  {const cards=[...feed.querySelectorAll(".card")].slice(before);const keep=document.querySelector(".screen.calm")?1:2;if(cards.length>keep){const extra=cards.slice(keep);const wrap=el(`<div class="morewrap"><button type="button" class="q more">${extra.length} اقتراحات أخرى لك الآن</button><div class="more" hidden></div></div>`);extra.forEach(c=>wrap.querySelector("div.more").appendChild(c));feed.appendChild(wrap);
-    wrap.querySelector(".more").addEventListener("click",ev=>{const b=ev.target.closest("button.more");if(!b)return;wrap.querySelector("div.more").hidden=false;b.remove();log("sup","عرض بقية الاقتراحات الاستباقية",extra.length+" بطاقات كانت مطوية")});log("sup","طوى الاقتراحات الاستباقية","أظهر اثنين وأخفى "+extra.length+" حتى يطلبها الضيف")}}
+  {const cards=[...feed.querySelectorAll(".card")].slice(before);const calm=!!document.querySelector(".screen.calm");const keep=calm?0:2;if(cards.length>keep){const extra=cards.slice(keep);
+    if(calm){/* الوضع الهادئ: لا بطاقات عند الفتح؛ عناوينها فقط في سطر واحد، وتفتح البطاقة عند لمس عنوانها */
+      const wrap=el(`<div class="sugg"><small>اقتراحات لك الآن</small><div class="sl"></div></div>`);const sl=wrap.querySelector(".sl");
+      extra.forEach(c=>{c.hidden=true;const t=(c.querySelector(".h b")||{}).textContent||"اقتراح";const b=document.createElement("button");b.type="button";b.className="q";b.textContent=t;b.addEventListener("click",()=>{c.hidden=false;feed.appendChild(c);b.remove();if(!sl.children.length)wrap.remove();scrollBottom();log("sup","فتح الضيف اقتراحا مطويا",t)});sl.appendChild(b)});
+      feed.appendChild(wrap);log("sup","طوى الاقتراحات الاستباقية في سطر واحد",extra.length+" اقتراحات بعناوينها فقط")}
+    else{const wrap=el(`<div class="morewrap"><button type="button" class="q more">${extra.length} اقتراحات أخرى لك الآن</button><div class="more" hidden></div></div>`);extra.forEach(c=>wrap.querySelector("div.more").appendChild(c));feed.appendChild(wrap);
+    wrap.querySelector(".more").addEventListener("click",ev=>{const b=ev.target.closest("button.more");if(!b)return;wrap.querySelector("div.more").hidden=false;b.remove();log("sup","عرض بقية الاقتراحات الاستباقية",extra.length+" بطاقات كانت مطوية")});log("sup","طوى الاقتراحات الاستباقية","أظهر اثنين وأخفى "+extra.length+" حتى يطلبها الضيف")}}}
   renderQuick();
 }
 /* ---------- judge mode: phone only, and a 30-second onboarding that builds the viewer's own profile ---------- */
