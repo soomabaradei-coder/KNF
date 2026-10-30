@@ -1522,10 +1522,9 @@ function start(){
   renderKnown();
   const before=feed.querySelectorAll(".card").length;proactive();
   {const cards=[...feed.querySelectorAll(".card")].slice(before);const calm=!!document.querySelector(".screen.calm");const keep=calm?0:2;if(cards.length>keep){const extra=cards.slice(keep);
-    if(calm){/* الوضع الهادئ: لا بطاقات عند الفتح؛ عناوينها فقط في سطر واحد، وتفتح البطاقة عند لمس عنوانها */
-      const wrap=el(`<div class="sugg"><small>اقتراحات لك الآن</small><div class="sl"></div></div>`);const sl=wrap.querySelector(".sl");
-      extra.forEach(c=>{c.hidden=true;const t=(c.querySelector(".h b")||{}).textContent||"اقتراح";const b=document.createElement("button");b.type="button";b.className="q";b.textContent=t;b.addEventListener("click",()=>{c.hidden=false;feed.appendChild(c);b.remove();if(!sl.children.length)wrap.remove();scrollBottom();log("sup","فتح الضيف اقتراحا مطويا",t)});sl.appendChild(b)});
-      feed.appendChild(wrap);log("sup","طوى الاقتراحات الاستباقية في سطر واحد",extra.length+" اقتراحات بعناوينها فقط")}
+    if(calm){/* الوضع الهادئ: عند الفتح تبقى بطاقة موعد الروضة فقط، وبقية الاستباقيات تأتي في وقتها أو عند السؤال */
+      let kept=0;extra.forEach(c=>{const t=(c.querySelector(".h b")||{}).textContent||"";if(/موعدك في الروضة/.test(t)){kept++;return}c.remove()});
+      log("sup","الوضع الهادئ: أبقى بطاقة موعد الروضة فقط",(extra.length-kept)+" بطاقات استباقية لم تعرض عند الفتح")}
     else{const wrap=el(`<div class="morewrap"><button type="button" class="q more">${extra.length} اقتراحات أخرى لك الآن</button><div class="more" hidden></div></div>`);extra.forEach(c=>wrap.querySelector("div.more").appendChild(c));feed.appendChild(wrap);
     wrap.querySelector(".more").addEventListener("click",ev=>{const b=ev.target.closest("button.more");if(!b)return;wrap.querySelector("div.more").hidden=false;b.remove();log("sup","عرض بقية الاقتراحات الاستباقية",extra.length+" بطاقات كانت مطوية")});log("sup","طوى الاقتراحات الاستباقية","أظهر اثنين وأخفى "+extra.length+" حتى يطلبها الضيف")}}}
   renderQuick();
