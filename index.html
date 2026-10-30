@@ -300,6 +300,9 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
         <button class="chip" id="svAsk" type="button">استبيان الضيف</button>
         <button class="chip" id="svRes" type="button">النتائج المجمعة</button>
       </span>
+      <span class="tag" style="gap:6px;border-color:var(--gold)">لوحة الهيئة:
+        <button class="chip" id="dashOpen" type="button">الأثر والقرار</button>
+      </span>
     </div>
   </div>
 
@@ -426,7 +429,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 "use strict";
 const $=s=>document.querySelector(s);
 const TOOL_AR={get_density:"كثافة المسار",get_prayer_hall_occupancy:"إشغال المصليات",show_map:"الخريطة التفاعلية",find_nearest:"أقرب خدمة",my_location:"تحديد الموقع",invite_member:"إضافة فرد للعائلة",open_portal:"صفحة الهيئة",request_cart:"طلب عربة",report_lost:"بلاغ مفقود",book_children_center:"ضيافة الأطفال",sermon_translation:"ترجمة الخطبة",get_lessons_and_prayers:"الدروس والصلوات",book_visit:"حجز زيارة",accessibility_services:"خدمات ذوي الإعاقة",emergency:"طوارئ",family_locate:"موقع فرد العائلة",set_meeting_point:"نقطة لقاء",share_location:"مشاركة الموقع",go_home:"العودة للسكن",start_guidance:"الإرشاد خطوة بخطوة",plan_prayer:"خطة الصلاة",sign_interpreter:"مترجم إشارة",medication:"تذكير الدواء",set_reminder:"تذكير",track_request:"متابعة طلب",play_stream:"البث المباشر",hydration_rest:"ماء واستراحة",waiting_mode:"موعد الروضة",start_breathing:"تمرين تنفس",rawdah_guide:"دليل الروضة",rawdah_permit:"تصريح الروضة",trip_plan:"خطة الرحلة",mutawwif:"المطوف"};
-{const qd=new URLSearchParams(location.search);if(qd.get("dash")==="1"){dashPage();return}}
+{const qd=new URLSearchParams(location.search);if(qd.get("dash")==="1"||location.hash==="#dash"){dashPage();return}}
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
 const state={site:"madinah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
 const DEFAULT_PROFILE={name:"عبدالرحمن",gender:"m",age:68,from:"فاس، المغرب",langs:"العربية والإنجليزية",readLang:"ar",speakLang:"en",rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"slow",kids:2,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:1,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
@@ -1738,6 +1741,7 @@ $("#thrBtn").addEventListener("click",()=>{THR.render();$("#threads").hidden=!$(
 $("#thrClose").addEventListener("click",()=>{$("#threads").hidden=true});
 $("#thrNew").addEventListener("click",()=>{$("#threads").hidden=true;stopSpeak();start()});
 $("#thrList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(d){THR.remove(d.dataset.del);return}const o=e.target.closest("[data-open]");if(o)THR.open(o.dataset.open)});
+{const db=$("#dashOpen");if(db)db.addEventListener("click",()=>{if(/claude\.ai|claudeusercontent|usercontent/.test(location.hostname)){location.hash="#dash";location.reload();return}const u=location.pathname+"?dash=1";let w=null;try{w=window.open(u,"_blank","noopener")}catch(_){}if(!w){location.href=u}})}
 $("#voiceBtn").addEventListener("click",()=>{voice.on=!voice.on;$("#voiceBtn").setAttribute("aria-pressed",voice.on);$("#voiceBtn").textContent=voice.on?"🔊":"🔇";if(!voice.on)stopSpeak();else speak({fr:"Le son est activé.",en:"Voice is on.",ar:"الصوت مفعل."}[profile.speakLang]||"الصوت مفعل.")});
 if(voice.ok){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=voiceStatus}catch(_){}}else{$("#voiceBtn").textContent="🔇";$("#voiceBtn").disabled=true;$("#voiceBtn").title="المتصفح لا يدعم النطق"}
 $("#profBtn").addEventListener("click",()=>{$("#sheet").hidden=!$("#sheet").hidden});
