@@ -1769,7 +1769,8 @@ $("#simPulse").addEventListener("click",()=>{health.permitted=true;health.watch=
 $("#simSpo2").addEventListener("click",()=>{health.permitted=true;health.watch=true;health.hr=104;health.rr=25;health.spo2=91;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
 {const q=new URLSearchParams(location.search);const h=location.hash;state.judge=q.get("view")==="phone"||h==="#phone"||h==="#judge";
   if(state.judge){document.body.classList.add("judge");try{state.onboarded=localStorage.getItem("hafi.onboarded")==="1"}catch(_){state.onboarded=false}
-    if(q.get("fresh")==="1"||h==="#judge"){state.onboarded=false;try{localStorage.removeItem("hafi.onboarded");localStorage.removeItem("hafi.profile")}catch(_){}}}}
+    /* #judge يفتح المحادثة مباشرة بملف الضيف التجريبي؛ أسئلة التعريف تظهر فقط بـ ?onboard=1 أو ?fresh=1 */
+    if(q.get("fresh")==="1"||q.get("onboard")==="1"){state.onboarded=false;try{localStorage.removeItem("hafi.onboarded");localStorage.removeItem("hafi.profile")}catch(_){}}else if(h==="#judge"&&q.get("calm")!=="0"){state.onboarded=true;try{localStorage.setItem("hafi.onboarded","1")}catch(_){}}}}
 setNet();
 LIVE.load();LIVE.refresh();setInterval(()=>LIVE.refresh(),60000);
 loadPrayerTimes();
