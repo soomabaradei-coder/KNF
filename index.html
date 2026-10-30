@@ -1516,15 +1516,27 @@ function realSense(){
       const t=Math.round(j.current.temperature_2m),h=j.current.relative_humidity_2m;SITES[state.site].temp=t;$(".sb span:last-child").textContent=site().city+" · "+t+"°";wbRender();
       log("care","طقس حقيقي من موقع الهاتف",t+"° · رطوبة "+h+"% (Open-Meteo)")}catch(_){log("care","الطقس الحي غير متاح في هذا العارض","أبقي قيمة المحاكاة")}
   },err=>{log("sup","تحديد الموقع الحقيقي غير متاح هنا ("+(err&&err.message||"")+")","أبقي موقع المحاكاة");setTimeout(()=>{const s=site();$("#locText").innerHTML="موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot)+' <span style="color:var(--muted)">(محاكاة: الجوال لم يأذن بالموقع، اسمح به من إعدادات المتصفح)</span>'},950)},{timeout:8000,maximumAge:60000});}
+/* أول فتح على الجهاز: طلب إذن الموقع بلمسة من الضيف (الجوال لا يعرض نافذة الإذن إلا بعد لمسة)، ثم يختفي بعد الموافقة */
+async function permCard(){
+  let st="prompt";try{if(navigator.permissions&&navigator.permissions.query){const r=await navigator.permissions.query({name:"geolocation"});st=r.state}}catch(_){}
+  let ok=false;try{ok=localStorage.getItem("knf_geo_ok")==="1"}catch(_){}
+  if(st==="granted"||(st==="prompt"&&ok&&!/iPhone|iPad|iPod/.test(navigator.userAgent||""))){realSense();return}
+  if(!navigator.geolocation){return}
+  log("sup","أول فتح: يطلب إذن الموقع بلمسة الضيف","لا يحدد الموقع تلقائيا قبل الإذن");
+  const c=card(head("📍","اسمح لكنف بمعرفة موقعك","أول مرة على هذا الجهاز")+`<div>لأرشدك إلى أقرب باب وأعرف بعدك عن المسجد وأين عائلتك، أحتاج إذن الموقع. يبقى على جهازك ولا يرسل للهيئة.</div><div class="acts"><button class="primary" type="button" data-allow="1">السماح بالموقع</button><button type="button" data-later="1">لاحقا</button></div><div data-st style="font-size:.76rem;color:var(--muted);margin-top:4px"></div>`,"alert");
+  feed.prepend(c);state.holdTop=Date.now()+10000;[0,200,600,1500,3000].forEach(t=>setTimeout(()=>{feed.scrollTop=0},t));
+  c.querySelector("[data-later]").addEventListener("click",()=>{c.remove();state.holdTop=0;log("sup","أجل الضيف إذن الموقع","يبقى موقع المحاكاة")});
+  c.querySelector("[data-allow]").addEventListener("click",()=>{const stEl=c.querySelector("[data-st]");stEl.textContent="انتظر نافذة الإذن من المتصفح…";
+    navigator.geolocation.getCurrentPosition(()=>{try{localStorage.setItem("knf_geo_ok","1")}catch(_){}stEl.textContent="✓ تم، أحدد موقعك الآن";state.holdTop=0;state.realTried=false;realSense();setTimeout(()=>c.remove(),1200)},err=>{stEl.innerHTML="<b style='color:var(--crit)'>لم يصل الإذن</b> ("+esc(err&&err.message||"")+"). في الآيفون: الإعدادات ← الخصوصية ← خدمات الموقع ← سفاري ← أثناء الاستخدام."},{timeout:15000,maximumAge:0})})}
 function start(){
   THR.cur=null;feed.innerHTML="";trace.innerHTML='<div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div>';state.turns=[];t0=Date.now();
   const s=site();$("#subline").textContent="مساعد ضيف الرحمن الذكي";
   $("#locText").textContent="جار تحديد موقعك…";setTimeout(()=>{$("#locText").innerHTML=state.realWhere?"موقعك الآن: <b>"+esc(state.realWhere)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>":"موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot)+" <span style=\"color:var(--muted)\">(محاكاة حتى يأذن الجوال بالموقع)</span>";},700);
   log("sup","حدد موقع الضيف تلقائيا",s.name+" · "+s.spot);$(".sb span:last-child").textContent=s.city+" · "+s.temp+"°";
-  realSense();
-  if(state.judge&&!state.onboarded){onboard();renderKnown();renderQuick();return}
+  if(state.judge&&!state.onboarded){realSense();onboard();renderKnown();renderQuick();return}
   msg("sys","أهلا "+profile.name+" في "+s.name+". أعرف موقعك ووقتك والكثافة حولك، وأتذكر ما تفضله، وأكلمك بلغتك.");
   renderKnown();
+  permCard();
   const before=feed.querySelectorAll(".card").length;proactive();
   {const cards=[...feed.querySelectorAll(".card")].slice(before);const calm=!!document.querySelector(".screen.calm");const keep=calm?0:2;if(cards.length>keep){const extra=cards.slice(keep);
     if(calm){/* الوضع الهادئ: عند الفتح تبقى بطاقة موعد الروضة فقط، وبقية الاستباقيات تأتي في وقتها أو عند السؤال */
@@ -1792,10 +1804,12 @@ $("#thrList").addEventListener("click",e=>{const d=e.target.closest("[data-del]"
 /* الجوال: عند فتح لوحة المفاتيح يصغر العرض المرئي ولا تصغر الصفحة؛ على الشاشات الضيقة نجعل الصفحة ثابتة بحجم العرض المرئي نفسه فيبقى حقل الكتابة فوق لوحة المفاتيح */
 setTimeout(()=>{const vv=window.visualViewport;const scr=$(".screen");if(scr&&document.body.classList.contains("judge")){
   const narrow=()=>window.innerWidth<=520;
-  const fit=()=>{if(!narrow()){document.body.classList.remove("mob");document.body.style.height="";document.body.style.top="";return}
-    document.body.classList.add("mob");const h=vv?Math.floor(vv.height):window.innerHeight;const t=vv?Math.floor(vv.offsetTop):0;document.body.style.height=h+"px";document.body.style.top=t+"px";try{window.scrollTo(0,0)}catch(_){}setTimeout(()=>{feed.scrollTop=feed.scrollHeight},80)};
+  /* لا نغير شيئا إلا إذا تغير القياس فعلا، حتى لا ترتجف الشاشة مع كل حدث تمرير */
+  let last="";let raf=0;const fit=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;if(!narrow()){if(document.body.classList.contains("mob")){document.body.classList.remove("mob");document.body.style.height="";document.body.style.top="";last=""}return}
+    const h=vv?Math.round(vv.height):window.innerHeight;const t=vv?Math.round(vv.offsetTop):0;const key=h+"/"+t;if(key===last&&document.body.classList.contains("mob"))return;const wasH=last.split("/")[0];last=key;
+    document.body.classList.add("mob");document.body.style.height=h+"px";document.body.style.top=t+"px";if(String(h)!==wasH){try{if(window.scrollY)window.scrollTo(0,0)}catch(_){}setTimeout(()=>{feed.scrollTop=feed.scrollHeight},120)}})};
   if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit)}window.addEventListener("resize",fit);window.addEventListener("orientationchange",()=>setTimeout(fit,300));fit();
-  box.addEventListener("focus",()=>{setTimeout(fit,100);setTimeout(fit,400);setTimeout(fit,800)});box.addEventListener("blur",()=>setTimeout(fit,300))}},0);
+  box.addEventListener("focus",()=>{setTimeout(fit,300);setTimeout(fit,700)});box.addEventListener("blur",()=>setTimeout(fit,300))}},0);
 /* الوضع الهادئ افتراضي؛ ?calm=0 يعيد الواجهة الكاملة */
 {const q=new URLSearchParams(location.search);const scr=$(".screen");if(scr&&q.get("calm")!=="0"){scr.classList.add("calm");
   const pop=$("#menuPop");["#resetBtn","#thrBtn","#voiceBtn","#wb","#sosBtn"].forEach(id=>{const el=$(id);if(el)pop.appendChild(el)});
