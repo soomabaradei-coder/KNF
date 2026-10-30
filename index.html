@@ -1784,6 +1784,11 @@ $("#thrBtn").addEventListener("click",()=>{THR.render();$("#threads").hidden=!$(
 $("#thrClose").addEventListener("click",()=>{$("#threads").hidden=true});
 $("#thrNew").addEventListener("click",()=>{$("#threads").hidden=true;stopSpeak();start()});
 $("#thrList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(d){THR.remove(d.dataset.del);return}const o=e.target.closest("[data-open]");if(o)THR.open(o.dataset.open)});
+/* الجوال: عند فتح لوحة المفاتيح يصغر العرض المرئي ولا تصغر الصفحة، فنضبط ارتفاع الشاشة على العرض المرئي حتى يبقى حقل الكتابة ظاهرا */
+{const vv=window.visualViewport;const scr=$(".screen"),ph=$(".phone");if(vv&&scr&&ph&&document.body.classList.contains("judge")){let extra=null;
+  const fit=()=>{if(extra===null)extra=ph.offsetHeight-scr.offsetHeight;const h=Math.max(360,Math.floor(vv.height-extra-16));scr.style.height=h+"px";scr.style.maxHeight=h+"px";window.scrollTo(0,0);setTimeout(()=>{feed.scrollTop=feed.scrollHeight},60)};
+  vv.addEventListener("resize",fit);vv.addEventListener("scroll",()=>window.scrollTo(0,0));fit();
+  box.addEventListener("focus",()=>{setTimeout(fit,250);setTimeout(fit,600)})}}
 /* الوضع الهادئ افتراضي؛ ?calm=0 يعيد الواجهة الكاملة */
 {const q=new URLSearchParams(location.search);const scr=$(".screen");if(scr&&q.get("calm")!=="0"){scr.classList.add("calm");
   const pop=$("#menuPop");["#resetBtn","#thrBtn","#voiceBtn","#wb","#sosBtn"].forEach(id=>{const el=$(id);if(el)pop.appendChild(el)});
