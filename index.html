@@ -313,6 +313,8 @@ body.judge.mob{position:fixed;top:0;left:0;right:0;height:100%;overflow:hidden;m
 body.judge.mob .wrap{padding:0!important;height:100%;max-width:none}body.judge.mob .grid{height:100%;display:block}
 body.judge.mob .phone{padding:0;border-radius:0;box-shadow:none;max-width:none;height:100%;background:transparent}
 body.judge.mob .screen{height:100%!important;max-height:none;min-height:0;border-radius:0}
+/* الآيفون: لا نثبت الصفحة ولا نحرك قياسها، سفاري نفسه يمرر الصفحة ليظهر حقل الكتابة فوق لوحة المفاتيح */
+body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.ios .screen{height:100vh!important;height:100dvh!important}
 </style>
 
 <div class="wrap">
@@ -1803,11 +1805,13 @@ $("#thrList").addEventListener("click",e=>{const d=e.target.closest("[data-del]"
 setTimeout(()=>{const vv=window.visualViewport;const scr=$(".screen");if(scr&&document.body.classList.contains("judge")){
   const narrow=()=>window.innerWidth<=520;
   /* لا نغير شيئا إلا إذا تغير القياس فعلا، حتى لا ترتجف الشاشة مع كل حدث تمرير */
-  let last="";let raf=0;const fit=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;if(!narrow()){if(document.body.classList.contains("mob")){document.body.classList.remove("mob");document.body.style.height="";document.body.style.top="";last=""}return}
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent||"")||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  let last="";let raf=0;const fit=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;if(!narrow()){if(document.body.classList.contains("mob")){document.body.classList.remove("mob","ios");document.body.style.height="";document.body.style.top="";last=""}return}
+    if(ios){document.body.classList.add("mob","ios");return}
     const h=vv?Math.round(vv.height):window.innerHeight;const t=vv?Math.round(vv.offsetTop):0;const key=h+"/"+t;if(key===last&&document.body.classList.contains("mob"))return;const wasH=last.split("/")[0];last=key;
     document.body.classList.add("mob");document.body.style.height=h+"px";document.body.style.top=t+"px";if(String(h)!==wasH){try{if(window.scrollY)window.scrollTo(0,0)}catch(_){}setTimeout(()=>{feed.scrollTop=feed.scrollHeight},120)}})};
   if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit)}window.addEventListener("resize",fit);window.addEventListener("orientationchange",()=>setTimeout(fit,300));fit();
-  box.addEventListener("focus",()=>{setTimeout(fit,300);setTimeout(fit,700)});box.addEventListener("blur",()=>setTimeout(fit,300))}},0);
+  box.addEventListener("focus",()=>{if(ios){setTimeout(()=>{try{box.scrollIntoView({block:"end",behavior:"smooth"})}catch(_){}},350);return}setTimeout(fit,300);setTimeout(fit,700)});box.addEventListener("blur",()=>{if(ios){setTimeout(()=>{try{window.scrollTo(0,0)}catch(_){}},200);return}setTimeout(fit,300)})}},0);
 /* الوضع الهادئ افتراضي؛ ?calm=0 يعيد الواجهة الكاملة */
 {const q=new URLSearchParams(location.search);const scr=$(".screen");if(scr&&q.get("calm")!=="0"){scr.classList.add("calm");
   const pop=$("#menuPop");["#resetBtn","#thrBtn","#voiceBtn","#wb","#sosBtn"].forEach(id=>{const el=$(id);if(el)pop.appendChild(el)});
