@@ -308,6 +308,11 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 #plusBtn{display:none}.calm #plusBtn{display:grid}.calm .compose .modes.open #plusBtn{transform:rotate(45deg)}
 .calm #send{width:34px;height:34px}
 .calm .sheet{border-radius:0 0 18px 18px}
+/* الجوال: الشاشة تملأ الجزء المرئي كله بلا إطار، ويضبطها السكربت على العرض المرئي عند فتح لوحة المفاتيح */
+body.judge.mob{position:fixed;top:0;left:0;right:0;height:100%;overflow:hidden;margin:0}
+body.judge.mob .wrap{padding:0!important;height:100%;max-width:none}body.judge.mob .grid{height:100%;display:block}
+body.judge.mob .phone{padding:0;border-radius:0;box-shadow:none;max-width:none;height:100%;background:transparent}
+body.judge.mob .screen{height:100%!important;max-height:none;min-height:0;border-radius:0}
 </style>
 
 <div class="wrap">
@@ -1784,11 +1789,13 @@ $("#thrBtn").addEventListener("click",()=>{THR.render();$("#threads").hidden=!$(
 $("#thrClose").addEventListener("click",()=>{$("#threads").hidden=true});
 $("#thrNew").addEventListener("click",()=>{$("#threads").hidden=true;stopSpeak();start()});
 $("#thrList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(d){THR.remove(d.dataset.del);return}const o=e.target.closest("[data-open]");if(o)THR.open(o.dataset.open)});
-/* الجوال: عند فتح لوحة المفاتيح يصغر العرض المرئي ولا تصغر الصفحة، فنضبط ارتفاع الشاشة على العرض المرئي حتى يبقى حقل الكتابة ظاهرا */
-{const vv=window.visualViewport;const scr=$(".screen"),ph=$(".phone");if(vv&&scr&&ph&&document.body.classList.contains("judge")){let extra=null;
-  const fit=()=>{if(extra===null)extra=ph.offsetHeight-scr.offsetHeight;const h=Math.max(360,Math.floor(vv.height-extra-16));scr.style.height=h+"px";scr.style.maxHeight=h+"px";window.scrollTo(0,0);setTimeout(()=>{feed.scrollTop=feed.scrollHeight},60)};
-  vv.addEventListener("resize",fit);vv.addEventListener("scroll",()=>window.scrollTo(0,0));fit();
-  box.addEventListener("focus",()=>{setTimeout(fit,250);setTimeout(fit,600)})}}
+/* الجوال: عند فتح لوحة المفاتيح يصغر العرض المرئي ولا تصغر الصفحة؛ على الشاشات الضيقة نجعل الصفحة ثابتة بحجم العرض المرئي نفسه فيبقى حقل الكتابة فوق لوحة المفاتيح */
+setTimeout(()=>{const vv=window.visualViewport;const scr=$(".screen");if(scr&&document.body.classList.contains("judge")){
+  const narrow=()=>window.innerWidth<=520;
+  const fit=()=>{if(!narrow()){document.body.classList.remove("mob");document.body.style.height="";document.body.style.top="";return}
+    document.body.classList.add("mob");const h=vv?Math.floor(vv.height):window.innerHeight;const t=vv?Math.floor(vv.offsetTop):0;document.body.style.height=h+"px";document.body.style.top=t+"px";try{window.scrollTo(0,0)}catch(_){}setTimeout(()=>{feed.scrollTop=feed.scrollHeight},80)};
+  if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit)}window.addEventListener("resize",fit);window.addEventListener("orientationchange",()=>setTimeout(fit,300));fit();
+  box.addEventListener("focus",()=>{setTimeout(fit,100);setTimeout(fit,400);setTimeout(fit,800)});box.addEventListener("blur",()=>setTimeout(fit,300))}},0);
 /* الوضع الهادئ افتراضي؛ ?calm=0 يعيد الواجهة الكاملة */
 {const q=new URLSearchParams(location.search);const scr=$(".screen");if(scr&&q.get("calm")!=="0"){scr.classList.add("calm");
   const pop=$("#menuPop");["#resetBtn","#thrBtn","#voiceBtn","#wb","#sosBtn"].forEach(id=>{const el=$(id);if(el)pop.appendChild(el)});
