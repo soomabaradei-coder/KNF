@@ -486,6 +486,8 @@ const profile=Object.assign({},DEFAULT_PROFILE);
 const SRC={name:"من حسابه",gender:"من حسابه",age:"من حسابه",from:"من حسابه",langs:"من حسابه",family:"أضافهم بنفسه",home:"حدده كنف من مبيتك وأكدته أنت",mobility:"من حديثه",kids:"من حسابه",tawafFloor:"من سلوكه",quiet:"من حديثه",lessons:"من سلوكه",rest:"أدخله بنفسه",hearing:"أدخله بنفسه",stage:"قاله في المحادثة",meds:"قاله في المحادثة، ولا يقرأ كنف سجله الطبي"};
 try{Object.assign(profile,JSON.parse(localStorage.getItem("hafi.profile")||"{}"))}catch(_){}
 /* migration: profiles saved before v93 spoke French by default; the agent now speaks English unless the guest chose otherwise after v93 */
+/* ملفات الإصدارات السابقة كانت تحمل اسم العرض عبدالرحمن؛ بلا حساب يعود الاسم عاما حتى يسأله الوكيل */
+if(!profile.accountId&&!profile.selfNamed&&profile.name==="عبدالرحمن"){profile.name="ضيف الرحمن";profile.nameAsked=0;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(profile.pv!==93){if(profile.speakLang==="fr")profile.speakLang="en";if(!profile.gender)profile.gender="m";profile.pv=93;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(!Array.isArray(profile.family)||!profile.family.length)profile.family=DEFAULT_PROFILE.family.map(f=>Object.assign({},f));
 if(!profile.homes||!profile.homes.makkah||!profile.homes.madinah)profile.homes=JSON.parse(JSON.stringify(DEFAULT_PROFILE.homes));
@@ -831,16 +833,23 @@ const voice={on:true,ok:"speechSynthesis" in window,lang:{ar:"ar-SA",fr:"fr-FR",
 /* iOS: speech works later only if a user gesture unlocked it once; a silent utterance on the first tap does that */
 function unlockVoice(){if(voice.unlocked||!voice.ok)return;voice.unlocked=true;try{const u=new SpeechSynthesisUtterance(" ");u.volume=0;u.lang="ar-SA";speechSynthesis.speak(u)}catch(_){}}
 ["pointerdown","touchstart","keydown"].forEach(ev=>document.addEventListener(ev,unlockVoice,{once:false,passive:true}));
-function pickVoice(code){try{const vs=speechSynthesis.getVoices();return vs.find(v=>v.lang===code)||vs.find(v=>v.lang.startsWith(code.slice(0,2)))||null}catch(_){return null}}
+/* اختيار أفضل صوت متاح على الجهاز: الأصوات المحسنة والعصبية أولا (ماجد المحسن على الآيفون، أصوات Google وMicrosoft Natural)، وتجنب الأصوات المضغوطة */
+function pickVoice(code){try{const vs=speechSynthesis.getVoices();const lang=code.slice(0,2);const cand=vs.filter(v=>v.lang&&v.lang.toLowerCase().replace("_","-").startsWith(lang));if(!cand.length)return null;
+  const score=v=>{const n=(v.name||"").toLowerCase();let sc=0;if(/enhanced|premium|natural|neural|محسن|عالي/.test(n))sc+=40;if(/google|microsoft|apple/.test(n))sc+=10;if(/majed|maged|ماجد|hamed|naayf|salma|zariyah|laila|tarik|zeina/.test(n))sc+=15;if(/compact|espeak|eloquence/.test(n))sc-=40;if(v.lang.toLowerCase().replace("_","-")===code.toLowerCase())sc+=5;if(v.localService)sc+=2;return sc};
+  return cand.sort((a,b)=>score(b)-score(a))[0]}catch(_){return null}}
+/* تهيئة النص للنطق: إزالة الرموز والاختصارات، وتفكيكه جملا قصيرة ليخرج سلسا */
+function ttsPrep(text){let t=String(text||"");t=t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu," ").replace(/[·•|]/g,"، ").replace(/\(([^)]{1,40})\)/g,"، $1،").replace(/(\d+)\s*م(?=[\s،,.)؛]|$)/g,"$1 متر").replace(/(\d+)\s*د(?=[\s،,.)؛]|$)/g,"$1 دقيقة").replace(/(\d+)\s*ث(?=[\s،,.)؛]|$)/g,"$1 ثانية").replace(/°/g," درجة").replace(/\s*-\s*(?=\d)/g," إلى ").replace(/%/g," بالمئة").replace(/[«»"]/g,"").replace(/\s+/g," ").trim();
+  return t.split(/(?<=[.!؟?؛])\s+|\n+/).map(x=>x.trim()).filter(Boolean)}
 function speak(text,opt={}){
   if(state.signMode&&!opt.force){try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(_){}return Promise.resolve()}
   if((!voice.on&&!opt.force)||!voice.ok||!text)return Promise.resolve();
-  return new Promise(res=>{try{const u=new SpeechSynthesisUtterance(text);const code=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";u.lang=code;const v=pickVoice(code);if(v)u.voice=v;u.rate=opt.rate||0.95;
-    let done=false;const fin=()=>{if(!done){done=true;res()}};u.onend=fin;u.onerror=e=>{voice.err=e.error||"error";voiceStatus();fin()};u.onstart=()=>{voice.err="";voice.spoke=true;voiceStatus()};
+  return new Promise(res=>{try{const code=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";const v=pickVoice(code);const parts=ttsPrep(text);if(!parts.length){res();return}
+    let done=false;const fin=()=>{if(!done){done=true;res()}};let left=parts.length;
+    const us=parts.map(pt=>{const u=new SpeechSynthesisUtterance(pt);u.lang=code;if(v)u.voice=v;u.rate=opt.rate||1.0;u.pitch=1;u.onend=()=>{if(--left<=0)fin()};u.onerror=e=>{voice.err=e.error||"error";voiceStatus();if(--left<=0)fin()};u.onstart=()=>{voice.err="";voice.spoke=true;voiceStatus()};return u});
     if(!opt.queue)speechSynthesis.cancel();
-    if(opt.force){try{if(speechSynthesis.paused)speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){voice.err=String(e);voiceStatus();fin()}}
-    else setTimeout(()=>{try{speechSynthesis.speak(u)}catch(e){voice.err=String(e);voiceStatus();fin()}},60);
-    setTimeout(fin,Math.min(20000,2500+text.length*120));
+    const go=()=>{try{if(speechSynthesis.paused)speechSynthesis.resume();us.forEach(u=>speechSynthesis.speak(u))}catch(e){voice.err=String(e);voiceStatus();fin()}};
+    if(opt.force)go();else setTimeout(go,60);
+    setTimeout(fin,Math.min(30000,2500+String(text).length*110));
   }catch(_){res()}})
 }
 function voiceStatus(){const el=$("#voiceStat");if(!el)return;let vs=[];try{vs=speechSynthesis.getVoices()}catch(_){}
