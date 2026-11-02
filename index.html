@@ -487,7 +487,10 @@ const SRC={name:"من حسابه",gender:"من حسابه",age:"من حسابه"
 try{Object.assign(profile,JSON.parse(localStorage.getItem("hafi.profile")||"{}"))}catch(_){}
 /* migration: profiles saved before v93 spoke French by default; the agent now speaks English unless the guest chose otherwise after v93 */
 /* ملفات الإصدارات السابقة كانت تحمل اسم العرض عبدالرحمن؛ بلا حساب يعود الاسم عاما حتى يسأله الوكيل */
-if(!profile.accountId&&!profile.selfNamed&&profile.name==="عبدالرحمن"){profile.name="ضيف الرحمن";profile.nameAsked=0;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
+if(!profile.accountId&&!profile.selfNamed&&profile.name==="عبدالرحمن"){profile.name="ضيف الرحمن";profile.nameAsked=0}
+/* العائلة في الإصدارات السابقة كانت عينة عرض؛ بلا حساب وبلا سؤال سابق لا نفترض أحدا */
+if(!profile.accountId&&!profile.familyAsked){profile.family=[]}
+if(!profile.accountId){try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(profile.pv!==93){if(profile.speakLang==="fr")profile.speakLang="en";if(!profile.gender)profile.gender="m";profile.pv=93;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(!Array.isArray(profile.family)||!profile.family.length)profile.family=DEFAULT_PROFILE.family.map(f=>Object.assign({},f));
 if(!profile.homes||!profile.homes.makkah||!profile.homes.madinah)profile.homes=JSON.parse(JSON.stringify(DEFAULT_PROFILE.homes));
