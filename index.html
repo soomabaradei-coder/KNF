@@ -1534,7 +1534,10 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 
 async function ask(text,img){
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
-  if(state.onb){msg("user",text);box.value="";if(await onbStep(text)){scrollBottom();return}}
+  /* أثناء التعريف: إن كتب الضيف طلبا أو ضغط زرا، نخدمه فورا ولا نعامل طلبه كاسم */
+  if(state.onb){const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||ROUTES.some(([re])=>re.test(text));
+    if(cmd){const was=state.onb;state.onb=null;box.placeholder="اكتب أو تحدث… مثل: وين أقرب عربة؟";log("sup","أجل التعريف لأن الضيف طلب خدمة",was)}
+    else{msg("user",text);box.value="";if(await onbStep(text)){scrollBottom();return}}}
   if(state.pendingSign){const ps=state.pendingSign;
     if(/^\s*(نعم|ايوه|أيوه|اي|إي|أي|اعتمد|اعتمده|تمام|yes|oui)\s*[.!؟]?\s*$/i.test(text)){state.pendingSign=null;confirmSign(ps);return}
     if(/^\s*(لا|لأ|لاء|no|non)\s*[.!؟]?\s*$/i.test(text)){state.pendingSign=null;cancelSign(ps);return}}
@@ -1612,7 +1615,7 @@ function onboardChat(){
   setTimeout(()=>{const t="أهلا بك. ما اسمك؟";msg("bot",t);speak(t,{lang:"ar"});box.placeholder="اكتب اسمك…"},600)}
 async function onbStep(text){
   const t=text.trim();
-  if(state.onb==="name"){const n=t.replace(/^(أنا|انا|اسمي|إسمي|اسمي هو)\s+/i,"").replace(/[.!؟]+$/,"").trim();if(!n){msg("bot","ما اسمك؟");return true}
+  if(state.onb==="name"){const n=t.replace(/^(أنا|انا|اسمي|إسمي|اسمي هو|my name is|i am|je suis)\s+/i,"").replace(/[.!؟]+$/,"").trim();if(!n||n.split(/\s+/).length>4){msg("bot","ما اسمك؟ اكتبه فقط.");return true}
     state.onbName=n;state.onb="email";const r="أهلا "+n+". وما بريدك الإلكتروني؟ به أنشئ حسابك وأحفظ تفضيلاتك على أي جهاز.";msg("bot",r);speak(r,{lang:"ar"});box.placeholder="بريدك الإلكتروني…";return true}
   if(state.onb==="email"){const m=t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);if(!m){const r="أحتاج بريدا إلكترونيا صحيحا، مثل name@example.com";msg("bot",r);return true}
     ACCT.create(state.onbName,m[0]);state.onb="family";const r="تم، أنشأت حسابك يا "+profile.name+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:"ar"});box.placeholder="أسماء من معك، أو وحدي…";
