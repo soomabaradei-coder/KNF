@@ -1226,7 +1226,7 @@ const TOOLS={
       card(head("☎️","لا أملك جوابا مؤكدا لهذا","مركز اتصال الهيئة")+`<div>تواصل مع مركز اتصال الهيئة العامة للعناية بشؤون المسجد الحرام والمسجد النبوي على الرقم <b dir="ltr">1966</b>، يرد عليك على مدار الساعة. وأنا أساعدك في: الإرشاد، الكثافة والمصليات، العربات، عائلتك، المفقودات، ضيافة الأطفال، ترجمة الخطبة، الدروس، العودة للسكن، والطوارئ.</div><div class="acts"><a class="chip" href="tel:1966" style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)">اتصال بـ 1966</a></div>`);
       return{referred_to:"1966",topic:topic||null}}},
   family_setup:{agent:"svc",desc:"يسأل الضيف من معه في رحلته ويحفظ أسماء أفراد عائلته وصلتهم، ثم يعطيه رابط ربطهم بمجموعته. استخدمه عندما يقول من معي أو يريد تسجيل عائلته أو إضافة أفراد بالاسم.",schema:{type:"object",properties:{}},
-    run(){profile.familyAsked=0;familyCard();return{asked:true}}},
+    run(){state.onb="family";const r=(profile.family&&profile.family.length?"من تريد أن تضيف؟ اكتب اسمه.":"من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.");msg("bot",r);speak(r,{lang:"ar"});box.placeholder="اكتب الاسم…";return{asked:true}}},
   umrah_now:{agent:"sup",desc:"عندما يقول الضيف إنه يريد أن يعتمر الآن (أبغى أعتمر، بأعتمر، أريد العمرة): يجمع كل احتياجه في بطاقة واحدة من ملفه والقراءة الحية: الدور الأخف للطواف والمسعى الآن، العربة إن كان يحتاجها، الماء والظل في الحر، أفضل وقت، نقطة لقاء العائلة، وأزرار الإرشاد والمطوف. في المسجد الحرام فقط.",schema:{type:"object",properties:{}},
     run(){if(state.site!=="makkah"){TOOLS.trip_plan.run({action:"build"});return{site:state.site}}
       const s0=site();const slow=profile.mobility!=="walk"||(+profile.age||0)>=60;const hot=(s0.temp||0)>=35;const m=LIVE.mataf();const bestT=m?m["المطاف"][0]:null;const bestS=m?m["المسعى"][0]:null;
@@ -1522,6 +1522,7 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 
 async function ask(text,img){
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
+  if(state.onb){msg("user",text);box.value="";if(await onbStep(text)){scrollBottom();return}}
   if(state.pendingSign){const ps=state.pendingSign;
     if(/^\s*(نعم|ايوه|أيوه|اي|إي|أي|اعتمد|اعتمده|تمام|yes|oui)\s*[.!؟]?\s*$/i.test(text)){state.pendingSign=null;confirmSign(ps);return}
     if(/^\s*(لا|لأ|لاء|no|non)\s*[.!؟]?\s*$/i.test(text)){state.pendingSign=null;cancelSign(ps);return}}
@@ -1585,6 +1586,31 @@ function realSense(){
   },err=>{log("sup","تحديد الموقع الحقيقي غير متاح هنا ("+(err&&err.message||"")+")","أبقي موقع المحاكاة");setTimeout(()=>{const s=site();$("#locText").innerHTML="موقعك الآن: <b>"+esc(s.name)+"</b> · "+esc(s.spot)+' <span style="color:var(--muted)">(محاكاة: الجوال لم يأذن بالموقع، اسمح به من إعدادات المتصفح)</span>'},950)},{timeout:8000,maximumAge:60000});}
 /* أول فتح على الجهاز: طلب إذن الموقع بلمسة من الضيف (الجوال لا يعرض نافذة الإذن إلا بعد لمسة)، ثم يختفي بعد الموافقة */
 /* أول فتح: من معك في رحلتك؟ الوكيل لا يفترض العائلة، يسأل ويحفظ الأسماء ثم يعطي رابط الربط لكل فرد */
+/* الحساب: اسم وبريد فقط، بالمحادثة لا بنموذج. المعرف يشتق من البريد فيعمل الحساب نفسه على أي جهاز، والملف يتزامن عبر قناة كنف (بلا البريد نفسه) */
+const ACCT={id(email){let h=5381;const e=String(email||"").trim().toLowerCase();for(let i=0;i<e.length;i++)h=((h<<5)+h+e.charCodeAt(i))|0;return "u"+(h>>>0).toString(36)},
+  create(name,email){const id=this.id(email);profile.name=name;profile.email=email;profile.accountId=id;profile.selfNamed=true;profile.familyAsked=1;profile.nameAsked=1;try{localStorage.setItem("knf_peer",id)}catch(_){}saveProfile();renderKnown();renderQuick();if(state.pushPresence)state.pushPresence();const h=feed.querySelector(".hero b");if(h)h.textContent="أهلا "+name+"، أنا كنف";log("svc","أنشأ حساب الضيف","المعرف "+id+" · الاسم والبريد على الجهاز، والملف يتزامن بين أجهزته");this.sync(true);return id},
+  payload(){const P=profile;return JSON.stringify({name:P.name,family:P.family||[],readLang:P.readLang,speakLang:P.speakLang,mobility:P.mobility,age:P.age,kids:P.kids,gender:P.gender,hearing:P.hearing,homes:P.homes,t:Date.now()})},
+  async sync(push){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return;const tp="kanaf/demo/acct/"+profile.accountId;
+    if(push){EVT.client.publish(tp,this.payload(),{retain:true});return}
+    await new Promise(res=>{const t=setTimeout(()=>{EVT.client.unsubscribe(tp);res()},3000);const h=(topic,m)=>{if(topic!==tp)return;clearTimeout(t);EVT.client.removeListener("message",h);EVT.client.unsubscribe(tp);try{const d=JSON.parse(m.toString());if(d&&d.name){Object.assign(profile,{name:d.name,family:d.family||[],readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes});saveProfile();renderKnown();renderQuick();log("svc","استعاد ملف الحساب من جهاز آخر",d.name+" · "+(d.family||[]).length+" أفراد");msg("sys","استعدت حسابك: "+d.name+(d.family&&d.family.length?"، ومعك "+d.family.map(f=>f.name).join("، "):""))}}catch(_){}res()};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){}}};
+/* حوار البداية: الاسم، ثم البريد، ثم من معه. كله في المحادثة وبالصوت أيضا */
+function onboardChat(){
+  if(profile.accountId||profile.nameAsked)return;state.onb="name";
+  log("sup","أول فتح: يطلب الاسم والبريد بالمحادثة لإنشاء الحساب","لا نموذج؛ سؤالان فقط");
+  setTimeout(()=>{const t="أهلا بك. ما اسمك؟";msg("bot",t);speak(t,{lang:"ar"});box.placeholder="اكتب اسمك…"},600)}
+async function onbStep(text){
+  const t=text.trim();
+  if(state.onb==="name"){const n=t.replace(/^(أنا|انا|اسمي|إسمي|اسمي هو)\s+/i,"").replace(/[.!؟]+$/,"").trim();if(!n){msg("bot","ما اسمك؟");return true}
+    state.onbName=n;state.onb="email";const r="أهلا "+n+". وما بريدك الإلكتروني؟ به أنشئ حسابك وأحفظ تفضيلاتك على أي جهاز.";msg("bot",r);speak(r,{lang:"ar"});box.placeholder="بريدك الإلكتروني…";return true}
+  if(state.onb==="email"){const m=t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);if(!m){const r="أحتاج بريدا إلكترونيا صحيحا، مثل name@example.com";msg("bot",r);return true}
+    ACCT.create(state.onbName,m[0]);state.onb="family";const r="تم، أنشأت حسابك يا "+profile.name+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:"ar"});box.placeholder="أسماء من معك، أو وحدي…";
+    try{localStorage.removeItem("knf_group")}catch(_){}return true}
+  if(state.onb==="family"){state.onb=null;box.placeholder="اكتب أو تحدث… مثل: وين أقرب عربة؟";
+    if(/^\s*(وحدي|لوحدي|وحيد|لا أحد|لا احد|ما معي أحد|ما معي احد|alone|nobody)\s*[.!؟]?$/i.test(t)){profile.family=[];saveProfile();renderQuick();const r="تمام، أنا معك. اسألني عن أي شيء، أو ابدأ بزر «أبغى أعتمر».";msg("bot",r);speak(r,{lang:"ar"});ACCT.sync(true);return true}
+    const names=t.replace(/^(معي|معاي|معاي)\s+/i,"").split(/\s*[،,]\s*|\s+و(?=\S)/).map(x=>x.trim()).filter(x=>x&&x.length<=30);
+    const have=(profile.family||[]).filter(f=>!names.includes(f.name));profile.family=have.concat(names.map(n=>({name:n,rel:"فرد",phone:"",sharing:0})));saveProfile();renderKnown();renderQuick();ACCT.sync(true);
+    log("svc","حفظ أفراد العائلة من المحادثة",names.join("، "));const r="حفظت: "+names.join("، ")+". أرسل لهم الرابط ليظهر موقعهم عندك وتسأل: وين "+names[0].split(" ")[0]+"؟";msg("bot",r);speak(r,{lang:"ar"});TOOLS.invite_member.run({});return true}
+  return false}
 function familyCard(){
   if(profile.familyAsked)return;const RELS=["زوجتي","زوجي","ابني","ابنتي","والدي","والدتي","أخي","أختي","صديقي"];
   log("svc","أول فتح: يسأل الضيف من معه في رحلته","يحفظ الأسماء على الجهاز ويربطهم بالرابط");
@@ -1618,7 +1644,8 @@ function start(){
   else msg("sys","أهلا "+profile.name+" في "+s.name+". أعرف موقعك ووقتك والكثافة حولك، وأتذكر ما تفضله، وأكلمك بلغتك.");
   renderKnown();
   permCard();
-  familyCard();
+  onboardChat();
+  if(profile.accountId)setTimeout(()=>ACCT.sync(false),2500);
   const before=feed.querySelectorAll(".card").length;proactive();
   {const cards=[...feed.querySelectorAll(".card")].slice(before);const calm=!!document.querySelector(".screen.calm");const keep=calm?0:2;if(cards.length>keep){const extra=cards.slice(keep);
     if(calm){/* الوضع الهادئ: عند الفتح تبقى بطاقة موعد الروضة فقط، وبقية الاستباقيات تأتي في وقتها أو عند السؤال */
