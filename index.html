@@ -374,7 +374,12 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
           <div class="sec">
             <label>الاسم <input id="pName" type="text" value="عبدالرحمن"></label>
             <label>الجنس <select id="pGender"><option value="m">ذكر</option><option value="f">أنثى</option></select></label>
-            <label>العمر <input id="pAge" type="number" value="68" min="1" max="110"></label>
+            <label>العمر <input id="pAge" type="number" value="" min="1" max="110"></label>
+          </div>
+          <div class="sec">
+            <label>الجوال <input id="pPhone" type="tel" inputmode="tel" placeholder="05xxxxxxxx" style="direction:ltr"></label><span class="hint" id="pPhoneSt"></span>
+            <label>الحملة <input id="pCamp" type="text" placeholder="بلا حملة"></label>
+            <label>البريد <input id="pEmail" type="email" inputmode="email" placeholder="للخطة اليومية" style="direction:ltr"></label>
           </div>
           <div class="sec"><div class="lbl">يقرأ بـ</div>
             <div class="opts" data-pref="readLang"><button data-v="ar" aria-pressed="true">العربية</button><button data-v="fr">Français</button><button data-v="en" aria-pressed="true">English</button></div></div>
@@ -399,8 +404,8 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
             <div class="lbl">في مجموعتك الآن (مباشر عبر هذا الرابط)</div><div id="livePeers" class="fam"><div class="hint">يظهر هنا كل من يفتح الرابط نفسه ويأذن بموقعه</div></div>
             <div class="opts"><button class="chip" id="famInvite" type="button">دعوة فرد عبر الرابط</button><button class="chip" id="famAdd" type="button">+ أضف فردا</button></div></div>
           <div class="sec"><div class="lbl">مكان السكن</div>
-            <label style="flex:1;min-width:0">السكن <input id="pHome" type="text" style="width:100%" value="فندق أجياد مكارم، 650 م من باب أجياد"></label>
-            <button class="chip" id="homeAuto" type="button">تحديده تلقائيا</button></div>
+            <label style="flex:1;min-width:0">السكن <input id="pHome" type="text" style="width:100%" value="" placeholder="اسم الفندق أو السكن"></label>
+            <button class="chip" id="homeAuto" type="button">سكني هنا الآن</button></div>
           <p class="hint">تعلمها كنف من حسابك ومن حركتك في الحرم ومن حديثه معك، وتبقى على جهازك.</p>
         </div>
         <div class="feed" id="feed" aria-live="polite"></div>
@@ -547,7 +552,8 @@ function renderKnown(){
   const ms=$("#mSign");if(ms){ms.hidden=!profile.hearing&&!state.signMode}
   $("#known").innerHTML=profileText().map(([k,v,key])=>`<dt>${k}</dt><dd>${esc(v)}<span class="src">${SRC[key]||""}</span></dd>`).join("");
   $("#profBtn").textContent="👤 "+profile.name;
-  $("#pName").value=profile.name;$("#pAge").value=profile.age;if($("#pGender"))$("#pGender").value=profile.gender||"m";$("#pHome").value=HOME().home;
+  $("#pName").value=profile.name;$("#pAge").value=profile.age||"";if($("#pGender"))$("#pGender").value=profile.gender||"m";$("#pHome").value=(HOME()&&HOME().confirmed)?HOME().home:"";
+  if($("#pPhone")){$("#pPhone").value=profile.phone||"";$("#pPhoneSt").textContent=profile.phone?(profile.phoneVerified?"مؤكد":"غير مؤكد"):"";$("#pCamp").value=profile.campaign||"";$("#pEmail").value=profile.email||""}
   $("#famList").innerHTML=profile.family.map((f,i)=>`<div class="fm"><div><b>${esc(f.name)}</b> <span style="color:var(--muted)">${esc(relYou(f.rel))}</span><small>${esc(f.phone)}</small></div><button class="sw" type="button" data-i="${i}" aria-pressed="${f.sharing?"true":"false"}">${f.sharing?(f.g==="f"||/^(والدتي|ابنتي|زوجتي|أختي|جدتي|عمتي|خالتي|حفيدتي|المرشدة|مشرفة الحملة)$/.test(f.rel||"")?"تشارك موقعها":"يشارك موقعه"):(f.g==="f"||/^(والدتي|ابنتي|زوجتي|أختي|جدتي|عمتي|خالتي|حفيدتي|المرشدة|مشرفة الحملة)$/.test(f.rel||"")?"لا تشارك":"لا يشارك")}</button><button class="rm" type="button" data-rm="${i}" aria-label="حذف">✕</button></div>`).join("");
   document.querySelectorAll(".opts [data-pref]").forEach(b=>{const k=b.dataset.pref;b.setAttribute("aria-pressed",String(profile[k])===b.dataset.v?"true":"false")});
   document.querySelectorAll(".opts[data-pref]").forEach(g=>{const k=g.dataset.pref;g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(profile[k])===b.dataset.v?"true":"false"))});
@@ -1748,7 +1754,7 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 async function ask(text,img){
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
   /* أثناء التعريف: إن كتب الضيف طلبا أو ضغط زرا، نخدمه فورا ولا نعامل طلبه كاسم */
-  if(state.onb){const answerStep=/^(home|relother|otp|campaign|planmail)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
+  if(state.onb){const answerStep=/^(home|relother|otp|campaign|planmail|gender)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
     if(cmd){const was=state.onb;state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";log("sup","أجل التعريف لأن الضيف طلب خدمة",was)}
     else{msg("user",text);box.value="";if(await onbStep(text)){scrollBottom();return}}}
   if(state.pendingSign){const ps=state.pendingSign;
@@ -1901,11 +1907,11 @@ const SITE_EN={makkah:{name:"Masjid al-Haram",city:"Makkah"},madinah:{name:"The 
 const ACCT={id(email){let h=5381;const e=String(email||"").trim().toLowerCase();for(let i=0;i<e.length;i++)h=((h<<5)+h+e.charCodeAt(i))|0;return "u"+(h>>>0).toString(36)},
   async create(name,key){const id=this.id(key);profile.name=name;if(/@/.test(key))profile.email=key;else profile.phone=key;profile.accountId=id;profile.selfNamed=true;profile.familyAsked=1;profile.nameAsked=1;try{localStorage.setItem("knf_peer",id)}catch(_){}saveProfile(true);renderKnown();renderQuick();if(state.pushPresence)state.pushPresence();const h=feed.querySelector(".hero b");if(h)h.textContent=isEN()?UI_EN.heroNamed(name):"أهلا "+name+"، أنا كنف";
     log("svc","حساب الضيف بالجوال","المعرف "+id+" · يبحث أولا عن ملف محفوظ لهذا الرقم قبل إنشاء ملف جديد");const back=await this.pull(true);if(!back){log("svc","أنشأ حساب الضيف","لا ملف سابق لهذا الرقم · الملف يتزامن بين أجهزته");this.sync(true)}return back},
-  payload(){const P=profile;profile.syncT=Date.now();return JSON.stringify({name:P.name,family:P.family||[],readLang:P.readLang,speakLang:P.speakLang,email:P.email||"",prefsStated:P.prefsStated||0,quiet:P.quiet,lessons:P.lessons,rest:P.rest,tawafFloor:P.tawafFloor,langChosen:P.langChosen,voiceChosen:P.voiceChosen||0,campaign:P.campaign||"",campaignAsked:P.campaignAsked||0,mobility:P.mobility,age:P.age,kids:P.kids,gender:P.gender,hearing:P.hearing,homes:P.homes,phoneVerified:P.phoneVerified,t:profile.syncT})},
+  payload(){const P=profile;profile.syncT=Date.now();return JSON.stringify({name:P.name,family:P.family||[],readLang:P.readLang,speakLang:P.speakLang,email:P.email||"",genderStated:P.genderStated||0,prefsStated:P.prefsStated||0,quiet:P.quiet,lessons:P.lessons,rest:P.rest,tawafFloor:P.tawafFloor,langChosen:P.langChosen,voiceChosen:P.voiceChosen||0,campaign:P.campaign||"",campaignAsked:P.campaignAsked||0,mobility:P.mobility,age:P.age,kids:P.kids,gender:P.gender,hearing:P.hearing,homes:P.homes,phoneVerified:P.phoneVerified,t:profile.syncT})},
   /* يسحب الملف المحفوظ لهذا الحساب من القناة؛ يطبقه فقط إن كان أحدث مما على الجهاز، ويعيد true إن استعاد شيئا */
   async pull(quiet){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return false;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return false;const tp="kanaf/demo/acct/"+profile.accountId;
     return await new Promise(res=>{const t=setTimeout(()=>{try{EVT.client.unsubscribe(tp);EVT.client.removeListener("message",h)}catch(_){}res(false)},3500);const h=(topic,m)=>{if(topic!==tp)return;clearTimeout(t);EVT.client.removeListener("message",h);EVT.client.unsubscribe(tp);let got=false;try{const d=JSON.parse(m.toString());
-        if(d&&d.name&&(!profile.syncT||+d.t>profile.syncT||!(profile.family||[]).length)){const fam=Array.isArray(d.family)?d.family:[];Object.assign(profile,{name:d.name||profile.name,family:fam.length?fam:(profile.family||[]),readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,email:d.email||profile.email,prefsStated:d.prefsStated||profile.prefsStated||0,quiet:d.quiet??profile.quiet,lessons:d.lessons??profile.lessons,rest:d.rest??profile.rest,tawafFloor:d.tawafFloor??profile.tawafFloor,langChosen:d.langChosen||profile.langChosen,voiceChosen:d.voiceChosen||profile.voiceChosen||0,campaign:d.campaign||profile.campaign||"",campaignAsked:d.campaignAsked||profile.campaignAsked||0,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes,phoneVerified:d.phoneVerified||profile.phoneVerified,syncT:+d.t||Date.now()});try{normFamily()}catch(_){}saveProfile(true);renderKnown();renderQuick();const h2=feed.querySelector(".hero b");if(h2)h2.textContent=isEN()?UI_EN.heroNamed(profile.name):"أهلا "+profile.name+"، أنا كنف";log("svc","استعاد ملف الحساب المحفوظ",d.name+" · "+fam.length+" أفراد");got=true}}catch(_){}res(got)};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){return false}},
+        if(d&&d.name&&(!profile.syncT||+d.t>profile.syncT||!(profile.family||[]).length)){const fam=Array.isArray(d.family)?d.family:[];Object.assign(profile,{name:d.name||profile.name,family:fam.length?fam:(profile.family||[]),readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,email:d.email||profile.email,genderStated:d.genderStated||profile.genderStated||0,prefsStated:d.prefsStated||profile.prefsStated||0,quiet:d.quiet??profile.quiet,lessons:d.lessons??profile.lessons,rest:d.rest??profile.rest,tawafFloor:d.tawafFloor??profile.tawafFloor,langChosen:d.langChosen||profile.langChosen,voiceChosen:d.voiceChosen||profile.voiceChosen||0,campaign:d.campaign||profile.campaign||"",campaignAsked:d.campaignAsked||profile.campaignAsked||0,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes,phoneVerified:d.phoneVerified||profile.phoneVerified,syncT:+d.t||Date.now()});try{normFamily()}catch(_){}saveProfile(true);renderKnown();renderQuick();const h2=feed.querySelector(".hero b");if(h2)h2.textContent=isEN()?UI_EN.heroNamed(profile.name):"أهلا "+profile.name+"، أنا كنف";log("svc","استعاد ملف الحساب المحفوظ",d.name+" · "+fam.length+" أفراد");got=true}}catch(_){}res(got)};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){return false}},
   async sync(push){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return;const tp="kanaf/demo/acct/"+profile.accountId;
     if(push){EVT.client.publish(tp,this.payload(),{retain:true});return}
     await this.pull(false)}catch(_){}}};
@@ -1914,6 +1920,10 @@ const FAM_RELS=/^(والدتي|والدي|ابني|ابنتي|زوجتي|زوج�
 function normFamily(){let ch=false;(profile.family||[]).forEach(f=>{if(!f||!f.name)return;const code=REL_CODE[REL_SYN[f.name.trim()]||f.name.trim()];if(code&&(!f.rel||f.rel==="فرد")){f.rel=relLabel(code);ch=true}});return ch}
 function famOnly(){return (profile.family||[]).filter(f=>f&&f.name&&FAM_RELS.test(f.rel||""))}
 /* سطر الترحيب الوحيد: [الاسم، أفراد العائلة إن وجدوا، الحملة إن وجدت] ولا شيء غيره */
+/* الجنس يسأل مرة واحدة بعد الاسم لأنه يحدد المداخل ومسار السلام والروضة وصيغة الكلام */
+function askGender(n){state.onb="gender";const en=isEN();const r=en?"Welcome "+n+". Are you male or female? It decides your entrances and the Rawdah and prayer areas.":"أهلا "+n+". أنت ذكر أم أنثى؟ يحدد مداخلك ومسار السلام والمصليات.";msg("bot",r);speak(r,{lang:en?"en":"ar"});box.placeholder=en?"Male or female…":"ذكر أو أنثى…";
+  const c=card(`<div class="opts" data-gsel><button type="button" class="chip" data-g="m">${en?"Male":"ذكر"}</button><button type="button" class="chip" data-g="f">${en?"Female":"أنثى"}</button></div>`);c.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{c.remove();msg("user",b.textContent);setGender(b.dataset.g)}))}
+function setGender(g){profile.gender=g;profile.genderStated=1;saveProfile(true);renderKnown();const n=state.onbName||profile.name;document.querySelectorAll("[data-gsel]").forEach(x=>x.closest(".card")&&x.closest(".card").remove());state.onb="email";const r=isEN()?UI_EN.askPhone(n):"وما رقم جوالك؟ به أنشئ حسابك وأتذكرك على أي جهاز، وأرسل لك خطتك.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phPhone:"رقم جوالك، مثل 05xxxxxxxx…";log("svc","حفظ جنس الضيف",g==="f"?"أنثى":"ذكر")}
 function welcomeLine(){const fam=famOnly().map(f=>famWho(f));return isEN()?"Welcome, "+profile.name+(fam.length?", with you "+fam.join(", "):"")+(profile.campaign?", with campaign "+profile.campaign:"")+".":"أهلا "+profile.name+(fam.length?"، معك "+fam.join("، "):"")+(profile.campaign?"، مع حملة "+profile.campaign:"")+"."}
 /* لا سطر ترحيب إطلاقا: استعادة الحساب تتم بصمت، والعنوان في أعلى الشاشة يحمل الاسم */
 function welcomeBack(){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";state.welcomed=1;log("svc","استعاد الحساب بصمت",welcomeLine());if(state.groupCode&&state.joinedViaLink)joinGroupDone();return true}
@@ -1944,7 +1954,8 @@ const OTP={async send(phone){if(!LLM.ok()||!phone)return{sent:false,reason:"offl
 async function onbStep(text){
   const t=text.trim();
   if(state.onb==="name"){const n=t.replace(/^(أنا|انا|اسمي|إسمي|اسمي هو|my name is|i am|je suis)\s+/i,"").replace(/[.!؟]+$/,"").trim();if(!n||n.split(/\s+/).length>4){msg("bot",isEN()?UI_EN.askNameOnly:"ما اسمك؟ اكتبه فقط.");return true}
-    state.onbName=n;state.onb="email";const r=isEN()?UI_EN.askPhone(n):"أهلا "+n+". وما رقم جوالك؟ به أنشئ حسابك وأتذكرك على أي جهاز، وأرسل لك خطتك.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phPhone:"رقم جوالك، مثل 05xxxxxxxx…";return true}
+    state.onbName=n;askGender(n);return true}
+  if(state.onb==="gender"){const g=/^\s*(أنثى|انثى|امرأة|امراة|بنت|سيدة|female|woman|f)\s*[.!؟]?$/i.test(t)?"f":/^\s*(ذكر|رجل|male|man|m)\s*[.!؟]?$/i.test(t)?"m":"";if(!g){const r=isEN()?"Male or female? Choose above or type it.":"ذكر أم أنثى؟ اختر من الأزرار أو اكتبها.";msg("bot",r);return true}setGender(g);return true}
   if(state.onb==="email"){const em=t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);const ph=normPhone(t);
     if(!ph&&!em){const r=isEN()?UI_EN.badPhone:"الرقم غير مكتمل. اكتب جوالك كاملا مثل 0512345678، أو بالصيغة الدولية مثل +9665xxxxxxxx.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});return true}
     if(ph)profile.phone=ph;if(em)profile.email=em[0];
@@ -2313,12 +2324,15 @@ $("#famList").addEventListener("click",e=>{const sw=e.target.closest(".sw");cons
   SRC.family="أضافهم بنفسه";saveProfile();renderKnown()});
 $("#famInvite").addEventListener("click",()=>{$("#sheet").hidden=true;ask("أضف فردا")});
 $("#famAdd").addEventListener("click",()=>{$("#sheet").hidden=true;TOOLS.family_setup.run({})});
-$("#homeAuto").addEventListener("click",()=>{HOME().home=DEFAULT_PROFILE.homes[state.site].home;HOME().auto=1;HOME().confirmed=0;SRC.home="استنتجه كنف، بانتظار تأكيدك";saveProfile();renderKnown();$("#sheet").hidden=true;start()});
-$("#pHome").addEventListener("change",e=>{HOME().home=e.target.value.trim()||DEFAULT_PROFILE.homes[state.site].home;HOME().confirmed=1;HOME().auto=0;SRC.home="أدخله بنفسه";saveProfile();renderKnown()});
+$("#homeAuto").addEventListener("click",()=>{const r=state.real;if(!r||typeof r.la!=="number"){msg("sys","لم يصلني موقعك بعد؛ اسمح بالموقع ثم اضغط «سكني هنا الآن».");return}const H=HOME();const nm=($("#pHome").value.trim())||("سكني: "+describePos(r.la,r.lo).text);Object.assign(H,{home:nm,la:+r.la.toFixed(5),lo:+r.lo.toFixed(5),confirmed:1,auto:0});$("#pHome").value=nm;SRC.home="حدده من موقعه";saveProfile();renderKnown();log("svc","حفظ السكن من موقع الجوال",nm);msg("sys","حفظت سكنك عند موقعك الحالي: "+nm+".")});
+$("#pHome").addEventListener("change",e=>{const v=e.target.value.trim();const H=HOME();if(!v){H.home="";H.confirmed=0;delete H.la;delete H.lo}else{const hp=hotelOf(v);Object.assign(H,{home:v,confirmed:1,auto:0,la:hp?hp[1]:H.la,lo:hp?hp[2]:H.lo})}SRC.home="أدخله بنفسه";saveProfile();renderKnown()});
+$("#pPhone")&&$("#pPhone").addEventListener("change",e=>{const ph=normPhone(e.target.value);if(!ph){$("#pPhoneSt").textContent="رقم غير مكتمل";return}if(ph!==profile.phone){profile.phone=ph;profile.phoneVerified=0;$("#pPhoneSt").textContent="غير مؤكد";saveProfile();renderKnown()}});
+$("#pCamp")&&$("#pCamp").addEventListener("change",e=>{profile.campaign=campName(e.target.value);profile.campaignAsked=1;saveProfile();renderKnown()});
+$("#pEmail")&&$("#pEmail").addEventListener("change",e=>{const em=(e.target.value.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)||[])[0]||"";profile.email=em;saveProfile();renderKnown();if(em)pushPlan()});
 $("#pName").addEventListener("change",e=>{profile.selfNamed=true});
 $("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
 $("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||0;profile.basicsStated=1;saveProfile();renderKnown()});
-$("#pGender")&&$("#pGender").addEventListener("change",e=>{profile.gender=e.target.value;saveProfile();renderKnown()});
+$("#pGender")&&$("#pGender").addEventListener("change",e=>{profile.gender=e.target.value;profile.genderStated=1;saveProfile();renderKnown()});
 function clock(){const d=new Date();$("#clock").textContent=d.toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})}
 clock();setInterval(clock,30000);setInterval(wbRender,30000);
 
