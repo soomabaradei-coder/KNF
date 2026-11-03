@@ -289,7 +289,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .menuPop .wb{border-radius:12px;border:0;width:100%}
 .calm .loc{background:transparent;border:0;padding:0 16px 6px;font-size:.72rem;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .calm .loc .dot{display:none}.calm .loc b{font-weight:600}
-.calm .screen > .wb{display:none}
+.calm > .wb{display:flex;width:auto;margin:0 14px 8px;padding:6px 12px;border-radius:999px;border:0;font-size:.8rem;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.calm > .wb b{font-weight:600}.calm > .wb .wbdot{width:9px;height:9px;box-shadow:0 0 0 3px rgba(255,255,255,.3)}.calm > .wb .wbic .ic{padding:2px 7px;font-size:.72rem}
 .calm .feed{padding:12px 14px 8px;gap:14px}
 .calm .msg{font-size:.95rem;line-height:1.65}
 .calm .msg.bot{background:transparent;border:0;padding:2px 2px;max-width:100%;border-radius:0;text-align:right}
@@ -2020,7 +2020,7 @@ setTimeout(()=>{const vv=window.visualViewport;const scr=$(".screen");if(scr&&do
   box.addEventListener("focus",()=>{if(ios){setTimeout(()=>{try{box.scrollIntoView({block:"end",behavior:"smooth"})}catch(_){}},350);return}setTimeout(fit,300);setTimeout(fit,700)});box.addEventListener("blur",()=>{if(ios){setTimeout(()=>{try{window.scrollTo(0,0)}catch(_){}},200);return}setTimeout(fit,300)})}},0);
 /* الوضع الهادئ افتراضي؛ ?calm=0 يعيد الواجهة الكاملة */
 {const q=new URLSearchParams(location.search);const scr=$(".screen");if(scr&&q.get("calm")!=="0"){scr.classList.add("calm");
-  const pop=$("#menuPop");["#resetBtn","#thrBtn","#voiceBtn","#wb","#sosBtn"].forEach(id=>{const el=$(id);if(el)pop.appendChild(el)});
+  const pop=$("#menuPop");["#resetBtn","#thrBtn","#voiceBtn","#sosBtn"].forEach(id=>{const el=$(id);if(el)pop.appendChild(el)});
   const lbl={"#resetBtn":"محادثة جديدة","#thrBtn":"محادثاتي","#voiceBtn":"الصوت","#sosBtn":"طوارئ"};Object.keys(lbl).forEach(id=>{const el=$(id);if(!el)return;const sp=document.createElement("span");sp.textContent=lbl[id];sp.style.flex="1";sp.style.textAlign="right";el.appendChild(sp)});
   const mb=$("#menuBtn");mb.addEventListener("click",e=>{e.stopPropagation();pop.hidden=!pop.hidden});document.addEventListener("click",e=>{if(!pop.hidden&&!pop.contains(e.target))pop.hidden=true});pop.addEventListener("click",e=>{if(e.target.closest("button")&&!e.target.closest("#voiceBtn"))pop.hidden=true});
   const pb=$("#plusBtn");if(pb)pb.addEventListener("click",()=>{pb.parentElement.classList.toggle("open")});}}
