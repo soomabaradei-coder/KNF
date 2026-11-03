@@ -871,9 +871,22 @@ function pickVoice(code){try{const vs=speechSynthesis.getVoices();const lang=cod
 /* تهيئة النص للنطق: إزالة الرموز والاختصارات، وتفكيكه جملا قصيرة ليخرج سلسا */
 function ttsPrep(text){let t=String(text||"");t=t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu," ").replace(/[·•|]/g,"، ").replace(/\(([^)]{1,40})\)/g,"، $1،").replace(/(\d+)\s*م(?=[\s،,.)؛]|$)/g,"$1 متر").replace(/(\d+)\s*د(?=[\s،,.)؛]|$)/g,"$1 دقيقة").replace(/(\d+)\s*ث(?=[\s،,.)؛]|$)/g,"$1 ثانية").replace(/°/g," درجة").replace(/\s*-\s*(?=\d)/g," إلى ").replace(/%/g," بالمئة").replace(/[«»"]/g,"").replace(/\s+/g," ").trim();
   return t.split(/(?<=[.!؟?؛])\s+|\n+/).map(x=>x.trim()).filter(Boolean)}
+/* صوت عصبي من البوابة (صوت تشات جي بي تي نفسه عبر واجهة أوبن إيه آي): الووركر يولد الصوت ويعيده ملفا، والصفحة تشغله؛ وبلا بوابة أو اتصال يعود صوت الجوال */
+const CTTS={cache:new Map(),ok(){return LLM.ok()&&CTTS.enabled!==false&&!state.offline},enabled:true,audio:null,
+  async get(text,lang){const key=lang+"|"+text;if(this.cache.has(key))return this.cache.get(key);
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),9000);
+    try{const r=await fetch(LLM.url.replace(/\/$/,"")+"/tts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text,lang}),signal:ctl.signal});
+      if(!r.ok)throw new Error("HTTP "+r.status);const ct=r.headers.get("content-type")||"";if(!/audio/.test(ct))throw new Error("no audio");const b=await r.blob();const u=URL.createObjectURL(b);this.cache.set(key,u);if(this.cache.size>40){const k0=this.cache.keys().next().value;URL.revokeObjectURL(this.cache.get(k0));this.cache.delete(k0)}return u}
+    finally{clearTimeout(t)}},
+  stop(){if(this.audio){try{this.audio.pause()}catch(_){}this.audio=null}},
+  async play(text,lang){const u=await this.get(text,lang);this.stop();const a=new Audio(u);this.audio=a;voice.cloud=true;return new Promise(res=>{a.onended=()=>{if(this.audio===a)this.audio=null;res(true)};a.onerror=()=>res(false);a.play().catch(()=>res(false))})}};
 function speak(text,opt={}){
   if(state.signMode&&!opt.force){try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(_){}return Promise.resolve()}
-  if((!voice.on&&!opt.force)||!voice.ok||!text)return Promise.resolve();
+  if((!voice.on&&!opt.force)||!text)return Promise.resolve();
+  const codeC=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";const plain=ttsPrep(text).join(" ");
+  if(CTTS.ok()&&plain&&plain.length<=900&&!CTTS.failed){if(!opt.queue)stopSpeak();return CTTS.play(plain,codeC.slice(0,2)).then(okp=>{if(okp)return true;CTTS.failed=Date.now();log("sup","الصوت العصبي غير متاح الآن من البوابة","يعود إلى صوت الجوال");return speakLocal(text,opt)}).catch(()=>speakLocal(text,opt))}
+  return speakLocal(text,opt)}
+function speakLocal(text,opt={}){if(!voice.ok)return Promise.resolve();if(CTTS.failed&&Date.now()-CTTS.failed>120000)CTTS.failed=0;
   return new Promise(res=>{try{const code=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";const v=pickVoice(code);const parts=ttsPrep(text);if(!parts.length){res();return}
     let done=false;const fin=()=>{if(!done){done=true;res()}};let left=parts.length;
     const us=parts.map(pt=>{const u=new SpeechSynthesisUtterance(pt);u.lang=code;if(v)u.voice=v;u.rate=opt.rate||1.0;u.pitch=1;u.onend=()=>{if(--left<=0)fin()};u.onerror=e=>{voice.err=e.error||"error";voiceStatus();if(--left<=0)fin()};u.onstart=()=>{voice.err="";voice.spoke=true;voiceStatus()};return u});
@@ -885,8 +898,8 @@ function speak(text,opt={}){
 }
 function voiceStatus(){const el=$("#voiceStat");if(!el)return;let vs=[];try{vs=speechSynthesis.getVoices()}catch(_){}
   const ar=vs.filter(v=>v.lang.startsWith("ar")).map(v=>v.name);const fr=vs.filter(v=>v.lang.startsWith("fr")).length;
-  el.innerHTML=!voice.ok?"المتصفح لا يدعم النطق (Web Speech)":`الأصوات في هذا الجهاز: ${vs.length}${ar.length?` · عربي: ${esc(ar.slice(0,2).join("، "))}`:" · <b style='color:var(--crit)'>لا يوجد صوت عربي مثبت</b>"}${fr?" · فرنسي متاح":""}${voice.err?` · <b style='color:var(--crit)'>خطأ: ${esc(voice.err)}</b>`:voice.spoke?" · نطق بنجاح":" · لم ينطق بعد، اضغط 🔊 ثم أرسل رسالة"}`}
-function stopSpeak(){try{speechSynthesis.cancel()}catch(_){}}
+  el.innerHTML=(voice.cloud?"الصوت العصبي من البوابة يعمل · ":"")+(!voice.ok?"المتصفح لا يدعم النطق (Web Speech)":`الأصوات في هذا الجهاز: ${vs.length}${ar.length?` · عربي: ${esc(ar.slice(0,2).join("، "))}`:" · <b style='color:var(--crit)'>لا يوجد صوت عربي مثبت</b>"}${fr?" · فرنسي متاح":""}${voice.err?` · <b style='color:var(--crit)'>خطأ: ${esc(voice.err)}</b>`:voice.spoke?" · نطق بنجاح":" · لم ينطق بعد، اضغط 🔊 ثم أرسل رسالة"}`)}
+function stopSpeak(){try{speechSynthesis.cancel()}catch(_){}try{CTTS.stop()}catch(_){}}
 let navRun=0;
 function liveMemberGuidance(f,id){
   const first=f.name.split(" ")[0];const me=state.real;
@@ -1109,9 +1122,9 @@ const TOOLS={
       return{gps:true,lat:+r.la.toFixed(5),lng:+r.lo.toFixed(5),km_to_mosque:+km.toFixed(2),direction:d,inside}}},
   invite_member:{agent:"svc",desc:"يدعو فردا من العائلة أو الحملة إلى مجموعة كنف بمشاركة رابط الوكيل نفسه؛ من يفتحه على جواله ويأذن بموقعه يظهر مباشرة في مجموعة الضيف. استخدمه عندما يريد الضيف إضافة فرد أو مشاركة الرابط.",schema:{type:"object",properties:{}},
     run(){const U=new URL(location.href);if(state.groupCode)U.searchParams.set("g",state.groupCode);const url=U.toString();log("svc","دعوة فرد إلى مجموعة كنف","مشاركة الرابط · من يفتحه يظهر في «في مجموعتك الآن»"+(state.groupCode?" · رمز المجموعة "+state.groupCode:""));
-      const c=card(head("👨‍👩‍👧","أضف فردا إلى مجموعتك","مجموعة كنف")+`<div>أرسل هذا الرابط لمن تريد. عندما يفتحه على جواله ويكتب اسمه ويأذن بموقعه، يظهر عندك مباشرة في «في مجموعتك الآن»، وتسأل: وين فلان؟${state.groupCode?" رمز مجموعتك: <b>"+esc(state.groupCode)+"</b>. عندما يفتح الرابط يسأله الوكيل عن اسمه أولا.":""}</div><div class="ticket" style="direction:ltr;text-align:left;font-size:.78rem;word-break:break-all">${esc(url)}</div><div class="acts"><button class="primary" data-share="1">شارك الرابط</button><button data-copy="1">انسخ الرابط</button><button data-say="بعدت عن عائلتي">من معي الآن</button></div>`);
-      c.querySelector("[data-share]").addEventListener("click",async()=>{try{if(navigator.share){await navigator.share({title:"وكيل كنف",text:"افتح الرابط واكتب اسمك ليظهر موقعك لعائلتك في كنف",url});log("svc","فتح نافذة المشاركة","")}else{await navigator.clipboard.writeText(url);msg("sys","نسخت الرابط، أرسله لمن تريد.")}}catch(_){}});
-      c.querySelector("[data-copy]").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(url);msg("sys","نسخت الرابط، أرسله لمن تريد.")}catch(_){msg("sys","حدد الرابط وانسخه يدويا.")}});
+      const en=isEN();const c=card(head("👨‍👩‍👧",en?"Add someone to your group":"أضف فردا إلى مجموعتك",en?"KNF group":"مجموعة كنف")+`<div>${en?"Send this link to whoever you like. When they open it on their phone, type their name and allow location, they appear with you right away under “In your group now”, and you can ask: where is …?"+(state.groupCode?" Your group code: <b>"+esc(state.groupCode)+"</b>. When they open the link, the agent asks their name first.":""):"أرسل هذا الرابط لمن تريد. عندما يفتحه على جواله ويكتب اسمه ويأذن بموقعه، يظهر عندك مباشرة في «في مجموعتك الآن»، وتسأل: وين فلان؟"+(state.groupCode?" رمز مجموعتك: <b>"+esc(state.groupCode)+"</b>. عندما يفتح الرابط يسأله الوكيل عن اسمه أولا.":"")}</div><div class="ticket" style="direction:ltr;text-align:left;font-size:.78rem;word-break:break-all">${esc(url)}</div><div class="acts"><button class="primary" data-share="1">${en?"Share the link":"شارك الرابط"}</button><button data-copy="1">${en?"Copy the link":"انسخ الرابط"}</button><button data-say="${en?"who is with me":"بعدت عن عائلتي"}">${en?"Who is with me now":"من معي الآن"}</button></div>`);
+      c.querySelector("[data-share]").addEventListener("click",async()=>{try{if(navigator.share){await navigator.share({title:en?"KNF":"وكيل كنف",text:en?"Open the link and type your name so your family can see your location in KNF":"افتح الرابط واكتب اسمك ليظهر موقعك لعائلتك في كنف",url});log("svc","فتح نافذة المشاركة","")}else{await navigator.clipboard.writeText(url);msg("sys",en?"Link copied, send it to whoever you like.":"نسخت الرابط، أرسله لمن تريد.")}}catch(_){}});
+      c.querySelector("[data-copy]").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(url);msg("sys",en?"Link copied, send it to whoever you like.":"نسخت الرابط، أرسله لمن تريد.")}catch(_){msg("sys",en?"Select the link and copy it manually.":"حدد الرابط وانسخه يدويا.")}});
       return{url}}},
   open_threads:{agent:"sup",desc:"يفتح قائمة محادثات الضيف المحفوظة على جهازه (زيارة الروضة، العمرة، العائلة…) ليرجع لأي منها، وتعمل بلا إنترنت.",schema:{type:"object",properties:{}},
     run(){log("sup","فتح محادثات الضيف المحفوظة",THR.list.length+" محادثة على الجهاز");THR.render();$("#threads").hidden=false;$("#sheet").hidden=true;return{threads:THR.list.map(t=>t.title)}}},
@@ -1280,7 +1293,7 @@ const TOOLS={
       card(head("☎️","لا أملك جوابا مؤكدا لهذا","مركز اتصال الهيئة")+`<div>تواصل مع مركز اتصال الهيئة العامة للعناية بشؤون المسجد الحرام والمسجد النبوي على الرقم <b dir="ltr">1966</b>، يرد عليك على مدار الساعة. وأنا أساعدك في: الإرشاد، الكثافة والمصليات، العربات، عائلتك، المفقودات، ضيافة الأطفال، ترجمة الخطبة، الدروس، العودة للسكن، والطوارئ.</div><div class="acts"><a class="chip" href="tel:1966" style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)">اتصال بـ 1966</a></div>`);
       return{referred_to:"1966",topic:topic||null}}},
   family_setup:{agent:"svc",desc:"يسأل الضيف من معه في رحلته ويحفظ أسماء أفراد عائلته وصلتهم، ثم يعطيه رابط ربطهم بمجموعته. استخدمه عندما يقول من معي أو يريد تسجيل عائلته أو إضافة أفراد بالاسم.",schema:{type:"object",properties:{}},
-    run(){state.onb="family";const r=(profile.family&&profile.family.length?"من تريد أن تضيف؟ اكتب اسمه.":"من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.");msg("bot",r);speak(r,{lang:"ar"});box.placeholder="اكتب الاسم…";return{asked:true}}},
+    run(){state.onb="family";const en=isEN();const r=en?(profile.family&&profile.family.length?"Who would you like to add? Type their name.":"Who is with you on this trip? Type their names, or say alone."):(profile.family&&profile.family.length?"من تريد أن تضيف؟ اكتب اسمه.":"من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.");msg("bot",r);speak(r,{lang:en?"en":"ar"});box.placeholder=en?"Type the name…":"اكتب الاسم…";return{asked:true}}},
   umrah_now:{agent:"sup",desc:"عندما يقول الضيف إنه يريد أن يعتمر الآن (أبغى أعتمر، بأعتمر، أريد العمرة): يجمع كل احتياجه في بطاقة واحدة من ملفه والقراءة الحية: الدور الأخف للطواف والمسعى الآن، العربة إن كان يحتاجها، الماء والظل في الحر، أفضل وقت، نقطة لقاء العائلة، وأزرار الإرشاد والمطوف. في المسجد الحرام فقط.",schema:{type:"object",properties:{}},
     run(){if(state.site!=="makkah"){TOOLS.trip_plan.run({action:"build"});return{site:state.site}}
       const s0=site();const slow=profile.mobility!=="walk"||(+profile.age||0)>=60;const hot=(s0.temp||0)>=35;const m=LIVE.mataf();const bestT=m?m["المطاف"][0]:null;const bestS=m?m["المسعى"][0]:null;
