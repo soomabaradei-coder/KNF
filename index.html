@@ -1777,6 +1777,9 @@ function setMode(live){$("#modeTag").innerHTML=live?"الوضع: <b>وكيل م�
 function renderQuick(){
   if(state.offline){$("#quick").innerHTML=["خطتي","محادثاتي","التقييم","وين أقرب زمزم؟","دلني على الفندق","أبغى عربة","تنفس معي","بعدت عن عائلتي","شغل البث"].map(x=>`<button class="q" type="button">${esc(x)}</button>`).join("");return}
   const q=state.site==="makkah"?(isEN()?[UI_EN.chipsM[0],UI_EN.chipsM[1],(profile.family[0]?UI_EN.chipWhere(profile.family[0].name.split(" ")[0]):UI_EN.chipAdd),UI_EN.chipsM[2]]:["أبغى أعتمر","كثافة المطاف الآن؟",(profile.family[0]?"وين "+profile.family[0].name.split(" ")[0]+"؟":"أضف فردا"),"كيف أتجنب الحر والزحام؟"]):(isEN()?[UI_EN.chipsD[0],UI_EN.chipsD[1],UI_EN.chipsD[2],(profile.family[0]?UI_EN.chipWhere(profile.family[0].name.split(" ")[0]):UI_EN.chipAdd)]:["متى أسلم على الرسول؟","وين أصلي؟","كيف أوصل للروضة؟",(profile.family[0]?"وين "+profile.family[0].name.split(" ")[0]+"؟":"أضف فردا")]);
+  /* زر الاتصال بالمرشد أو المرشدة إن كان في المجموعة؛ و«وين» لأول فرد من العائلة بالصلة لا بالاسم الخام */
+  const g=(profile.family||[]).find(f=>/^(المرشد|المرشدة|مشرف الحملة|مشرفة الحملة)$/.test(f.rel||""));if(g){const w=/^(المرشدة|مشرفة الحملة)$/.test(g.rel)?(g.rel==="المرشدة"?"المرشدة":"المشرفة"):(g.rel==="المرشد"?"المرشد":"المشرف");q.splice(2,0,isEN()?"Call the guide":"اتصل على "+w)}
+  const fam0=famOnly()[0];if(fam0){const i=q.findIndex(x=>/^(وين |Where is )/.test(x));const lbl=isEN()?UI_EN.chipWhere(firstName(fam0.name)):"وين "+(isRelWord(fam0.name)?fam0.name:firstName(fam0.name))+"؟";if(i>=0)q[i]=lbl}
   $("#quick").innerHTML=q.map(x=>`<button class="q" type="button">${esc(x)}</button>`).join("");
 }
 /* ---------- real phone signals when the page allows them: GPS and live weather (Open-Meteo). Elsewhere the demo values stay. ---------- */
@@ -1888,7 +1891,7 @@ const ACCT={id(email){let h=5381;const e=String(email||"").trim().toLowerCase();
   /* يسحب الملف المحفوظ لهذا الحساب من القناة؛ يطبقه فقط إن كان أحدث مما على الجهاز، ويعيد true إن استعاد شيئا */
   async pull(quiet){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return false;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return false;const tp="kanaf/demo/acct/"+profile.accountId;
     return await new Promise(res=>{const t=setTimeout(()=>{try{EVT.client.unsubscribe(tp);EVT.client.removeListener("message",h)}catch(_){}res(false)},3500);const h=(topic,m)=>{if(topic!==tp)return;clearTimeout(t);EVT.client.removeListener("message",h);EVT.client.unsubscribe(tp);let got=false;try{const d=JSON.parse(m.toString());
-        if(d&&d.name&&(!profile.syncT||+d.t>profile.syncT||!(profile.family||[]).length)){const fam=Array.isArray(d.family)?d.family:[];Object.assign(profile,{name:d.name||profile.name,family:fam.length?fam:(profile.family||[]),readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,langChosen:d.langChosen||profile.langChosen,voiceChosen:d.voiceChosen||profile.voiceChosen||0,campaign:d.campaign||profile.campaign||"",campaignAsked:d.campaignAsked||profile.campaignAsked||0,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes,phoneVerified:d.phoneVerified||profile.phoneVerified,syncT:+d.t||Date.now()});try{normFamily()}catch(_){}saveProfile(true);renderKnown();renderQuick();const h2=feed.querySelector(".hero b");if(h2)h2.textContent=isEN()?UI_EN.heroNamed(profile.name):"أهلا "+profile.name+"، أنا كنف";log("svc","استعاد ملف الحساب المحفوظ",d.name+" · "+fam.length+" أفراد");if(!quiet&&!state.welcomed){state.welcomed=1;msg("bot",welcomeLine())}got=true}}catch(_){}res(got)};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){return false}},
+        if(d&&d.name&&(!profile.syncT||+d.t>profile.syncT||!(profile.family||[]).length)){const fam=Array.isArray(d.family)?d.family:[];Object.assign(profile,{name:d.name||profile.name,family:fam.length?fam:(profile.family||[]),readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,langChosen:d.langChosen||profile.langChosen,voiceChosen:d.voiceChosen||profile.voiceChosen||0,campaign:d.campaign||profile.campaign||"",campaignAsked:d.campaignAsked||profile.campaignAsked||0,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes,phoneVerified:d.phoneVerified||profile.phoneVerified,syncT:+d.t||Date.now()});try{normFamily()}catch(_){}saveProfile(true);renderKnown();renderQuick();const h2=feed.querySelector(".hero b");if(h2)h2.textContent=isEN()?UI_EN.heroNamed(profile.name):"أهلا "+profile.name+"، أنا كنف";log("svc","استعاد ملف الحساب المحفوظ",d.name+" · "+fam.length+" أفراد");got=true}}catch(_){}res(got)};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){return false}},
   async sync(push){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return;const tp="kanaf/demo/acct/"+profile.accountId;
     if(push){EVT.client.publish(tp,this.payload(),{retain:true});return}
     await this.pull(false)}catch(_){}}};
@@ -1898,7 +1901,8 @@ function normFamily(){let ch=false;(profile.family||[]).forEach(f=>{if(!f||!f.na
 function famOnly(){return (profile.family||[]).filter(f=>f&&f.name&&FAM_RELS.test(f.rel||""))}
 /* سطر الترحيب الوحيد: [الاسم، أفراد العائلة إن وجدوا، الحملة إن وجدت] ولا شيء غيره */
 function welcomeLine(){const fam=famOnly().map(f=>famWho(f));return isEN()?"Welcome, "+profile.name+(fam.length?", with you "+fam.join(", "):"")+(profile.campaign?", with campaign "+profile.campaign:"")+".":"أهلا "+profile.name+(fam.length?"، معك "+fam.join("، "):"")+(profile.campaign?"، مع حملة "+profile.campaign:"")+"."}
-function welcomeBack(){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";const r=welcomeLine();msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});state.welcomed=1;if(state.groupCode&&state.joinedViaLink)joinGroupDone();return true}
+/* لا سطر ترحيب إطلاقا: استعادة الحساب تتم بصمت، والعنوان في أعلى الشاشة يحمل الاسم */
+function welcomeBack(){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";state.welcomed=1;log("svc","استعاد الحساب بصمت",welcomeLine());if(state.groupCode&&state.joinedViaLink)joinGroupDone();return true}
 /* حوار البداية: الاسم، ثم البريد، ثم من معه. كله في المحادثة وبالصوت أيضا */
 function onboardChat(){
   if(profile.accountId||profile.nameAsked)return;state.onb="name";
@@ -1976,7 +1980,7 @@ function start(){
   renderKnown();
   permCard();
   onboardChat();
-  if(profile.accountId)setTimeout(async()=>{await ACCT.sync(false);if(!state.welcomed){state.welcomed=1;msg("bot",welcomeLine())}},2500);
+  if(profile.accountId)setTimeout(()=>ACCT.sync(false),2500);
   const before=feed.querySelectorAll(".card").length;proactive();
   {const cards=[...feed.querySelectorAll(".card")].slice(before);const calm=!!document.querySelector(".screen.calm");const keep=calm?0:2;if(cards.length>keep){const extra=cards.slice(keep);
     if(calm){/* الوضع الهادئ: عند الفتح تبقى بطاقة موعد الروضة فقط، وبقية الاستباقيات تأتي في وقتها أو عند السؤال */
