@@ -1631,7 +1631,7 @@ async function scripted(text){
   await wait(500);
   /* with the gateway available, free-form sentences go to Claude first; short commands and quick chips stay local for speed */
   /* الطلبات الصريحة عن الوصول والفتوى تحسم محليا قبل البوابة حتى لا تذهب إلى الخريطة */
-  const LOCAL_FIRST=["transport_options","fatwa_refer"];const lf=ROUTES.find(([re,name,,guard])=>LOCAL_FIRST.includes(name)&&re.test(text)&&(!guard||guard(text)));
+  const LOCAL_FIRST=["transport_options","fatwa_refer","share_location","family_locate","set_meeting_point","invite_member","set_campaign"];const lf=ROUTES.find(([re,name,,guard])=>LOCAL_FIRST.includes(name)&&re.test(text)&&(!guard||guard(text)));
   if(LLM.ok()&&!state.fromChip&&!lf){const g=await viaGateway(text);if(g)return g}
   if(/^\s*(دلني|أرشدني|ارشدني|وجهني|دليني)\s*[.؟!]?\s*$/i.test(text)&&!state.lastDest){
     log("sup","طلب إرشاد بلا وجهة","يعرض الخريطة ويسأل إلى أين");await wait(300);TOOLS.show_map.run({});
