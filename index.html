@@ -1869,7 +1869,10 @@ const ACCT={id(email){let h=5381;const e=String(email||"").trim().toLowerCase();
   async sync(push){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return;const tp="kanaf/demo/acct/"+profile.accountId;
     if(push){EVT.client.publish(tp,this.payload(),{retain:true});return}
     await this.pull(false)}catch(_){}}};
-function welcomeBack(){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";const fam=(profile.family||[]).map(f=>famWho(f));const H=profile.homes&&profile.homes[state.site];
+/* الترحيب: الاسم، ثم أفراد العائلة فقط (لا أفراد المجموعة أو الحملة أو المشرف أو المرشد)، ثم الحملة إن وجدت */
+const FAM_RELS=/^(والدتي|والدي|ابني|ابنتي|زوجتي|زوجي|أخي|أختي|جدتي|جدي|عمتي|خالتي|عمي|خالي|حفيدي|حفيدتي|زوجة ابني|من العائلة|فرد)$/;
+function famOnly(){return (profile.family||[]).filter(f=>f&&f.name&&(!f.rel||FAM_RELS.test(f.rel)))}
+function welcomeBack(){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";const fam=famOnly().map(f=>famWho(f));const H=profile.homes&&profile.homes[state.site];
   const r=isEN()?"Welcome, "+profile.name+(fam.length?", with you "+fam.join(", "):"")+(profile.campaign?", with campaign "+profile.campaign:"")+".":"أهلا "+profile.name+(fam.length?"، معك "+fam.join("، "):"")+(profile.campaign?"، مع حملة "+profile.campaign:"")+".";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});if(state.groupCode&&state.joinedViaLink)joinGroupDone();return true}
 /* حوار البداية: الاسم، ثم البريد، ثم من معه. كله في المحادثة وبالصوت أيضا */
 function onboardChat(){
