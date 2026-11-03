@@ -488,7 +488,9 @@ const MAPIMG="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgk
 {const qd=new URLSearchParams(location.search);if(qd.get("dash")==="1"||location.hash==="#dash"){dashPage();return}}
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
 const state={site:"makkah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
-const DEV_LANG=(()=>{const l=(navigator.language||"ar").toLowerCase();return l.startsWith("ar")?"ar":l.startsWith("fr")?"fr":"en"})();
+/* لغة الجوال مباشرة: الصوت بلغة الجهاز نفسها (12 لغة)، والغلاف بالعربية للعربية وبالإنجليزية لغيرها؛ تتغير بطلب صريح فقط */
+const DEV_CODE=(()=>{const l=(navigator.language||"ar").toLowerCase().split("-")[0];return ["ar","en","fr","ur","id","tr","bn","ha","hi","fa","ms","es"].includes(l)?l:"en"})();
+const DEV_LANG=DEV_CODE==="ar"?"ar":DEV_CODE==="fr"?"fr":"en";
 const DEFAULT_PROFILE={name:"ضيف الرحمن",gender:"m",age:0,from:"",langs:"العربية والإنجليزية",readLang:DEV_LANG,speakLang:DEV_LANG,rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"walk",kids:0,tawafFloor:0,quiet:0,lessons:0,rest:0,hearing:0,stage:"",meds:[],homes:{makkah:{home:"",dist:0,auto:0,confirmed:0},madinah:{home:"",dist:0,auto:0,confirmed:0}},
   family:[]};
 const profile=Object.assign({},DEFAULT_PROFILE);
@@ -522,6 +524,8 @@ const REL_YOUR={"والدتي":"والدتك","والدي":"والدك","ابن�
 const REL_F={mom:1,daughter:1,sup_f:1,guide_f:1};const REL_CODE={"والدتي":"mom","والدي":"dad","ابني":"son","ابنتي":"daughter","من العائلة":"family","من الحملة":"camp","مشرف الحملة":"sup","مشرفة الحملة":"sup_f","المرشد":"guide","المرشدة":"guide_f"};
 const REL_SYN={"امي":"والدتي","أمي":"والدتي","ماما":"والدتي","ابوي":"والدي","أبوي":"والدي","أبي":"والدي","ابي":"والدي","بابا":"والدي","ولدي":"ابني","بنتي":"ابنتي","المشرف":"مشرف الحملة","مشرفنا":"مشرف الحملة","مرشدنا":"المرشد","المرشده":"المرشدة","مرشدتنا":"المرشدة","المشرفة":"مشرفة الحملة","المشرفه":"مشرفة الحملة","مشرفتنا":"مشرفة الحملة"};
 try{normFamily()}catch(_){} /* ملفات قديمة كتب فيها «والدتي» اسما بلا صلة */
+if(!profile.langChosen&&!profile.langSet){profile.speakLang=DEV_CODE;profile.readLang=DEV_CODE==="ar"?"ar":"en";profile.langChosen=1;profile.voiceChosen=DEV_CODE!==profile.readLang?1:0;profile.langFromDevice=1;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
+state.lang=["ar","en","fr"].includes(profile.speakLang)?profile.speakLang:(profile.readLang==="ar"?"ar":"en");
 /* الصوت يتبع لغة القراءة ما لم يطلب الضيف صراحة صوتا بلغة أخرى (كلمني بالإنجليزي) */
 if(profile.speakLang&&profile.speakLang!=="auto"&&profile.readLang&&profile.speakLang!==profile.readLang&&!profile.voiceChosen){profile.speakLang=profile.readLang;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 function relLabel(code){code=String(code||"");if(!code)return"";if(code.startsWith("x:"))return code.slice(2,42);return REL_LABEL[code]||""}
@@ -1994,7 +1998,10 @@ async function onbStep(text){
 async function permCard(){
   /* تظهر في كل فتح: الضيف هو من يأذن بلمسته، حتى لو كان الجهاز قد أذن من قبل */
   if(!navigator.geolocation){realSense();return}
-  log("sup","أول فتح: يطلب إذن الموقع بلمسة الضيف","لا يحدد الموقع تلقائيا قبل الإذن");
+  /* الموقع يطلب مباشرة عند الفتح؛ البطاقة تظهر فقط إن رفض الجوال أو لم يرد */
+  const direct=await new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};try{navigator.geolocation.getCurrentPosition(()=>fin(true),()=>fin(false),{timeout:8000,maximumAge:60000})}catch(_){fin(false)}setTimeout(()=>fin(false),9000)});
+  if(direct){try{localStorage.setItem("knf_geo_ok","1")}catch(_){}log("sup","إذن الموقع من الجوال مباشرة","بلا بطاقة");state.realTried=false;realSense();return}
+  log("sup","لم يصل إذن الموقع مباشرة: يعرض بطاقة الإذن","");
   const c=card(head("📍",isEN()?UI_EN.permT:"اسمح لكنف بمعرفة موقعك",isEN()?UI_EN.permS:"أول مرة على هذا الجهاز")+`<div>${isEN()?UI_EN.permB:"لأرشدك إلى أقرب باب وأعرف بعدك عن المسجد وأين عائلتك، أحتاج إذن الموقع. يبقى على جهازك ولا يرسل للهيئة."}</div><div class="acts"><button class="primary" type="button" data-allow="1">${isEN()?UI_EN.permAllow:"السماح بالموقع"}</button><button type="button" data-later="1">${isEN()?UI_EN.permLater:"لاحقا"}</button></div><div data-st style="font-size:.76rem;color:var(--muted);margin-top:4px"></div>`,"alert");
   feed.prepend(c);state.holdTop=Date.now()+10000;[0,200,600,1500,3000].forEach(t=>setTimeout(()=>{feed.scrollTop=0},t));
   c.querySelector("[data-later]").addEventListener("click",()=>{c.remove();state.holdTop=0;log("sup","أجل الضيف إذن الموقع","يبقى موقع المحاكاة")});
