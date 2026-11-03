@@ -482,7 +482,7 @@ const MAPIMG="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgk
 const feed=$("#feed"), trace=$("#trace"), form=$("#form"), box=$("#box"), send=$("#send");
 const state={site:"makkah",lang:"ar",turns:[],busy:false,sample:null,toolsOK:false};
 const DEV_LANG=(()=>{const l=(navigator.language||"ar").toLowerCase();return l.startsWith("ar")?"ar":l.startsWith("fr")?"fr":"en"})();
-const DEFAULT_PROFILE={name:"ضيف الرحمن",gender:"m",age:68,from:"فاس، المغرب",langs:"العربية والإنجليزية",readLang:DEV_LANG,speakLang:DEV_LANG,rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"slow",kids:2,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:1,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
+const DEFAULT_PROFILE={name:"ضيف الرحمن",gender:"m",age:0,from:"",langs:"العربية والإنجليزية",readLang:DEV_LANG,speakLang:DEV_LANG,rawdah:{slot:"21:30",bookedVia:"كنف",waitMin:40,stage:0},mobility:"walk",kids:0,tawafFloor:1,quiet:1,lessons:1,rest:1,hearing:1,stage:"tawaf",meds:[{name:"دواء الضغط",times:["08:00","20:00"],withFood:1}],homes:{makkah:{home:"فندق أجياد مكارم، 650 م من باب أجياد",dist:650,auto:1,confirmed:0},madinah:{home:"فندق المدينة موفنبيك، 400 م من باب السلام",dist:400,auto:1,confirmed:0}},
   family:[]};
 const profile=Object.assign({},DEFAULT_PROFILE);
 const SRC={name:"من حسابه",gender:"من حسابه",age:"من حسابه",from:"من حسابه",langs:"من حسابه",family:"أضافهم بنفسه",home:"حدده كنف من مبيتك وأكدته أنت",mobility:"من حديثه",kids:"من حسابه",tawafFloor:"من سلوكه",quiet:"من حديثه",lessons:"من سلوكه",rest:"أدخله بنفسه",hearing:"أدخله بنفسه",stage:"قاله في المحادثة",meds:"قاله في المحادثة، ولا يقرأ كنف سجله الطبي"};
@@ -493,16 +493,23 @@ if(!profile.accountId&&!profile.selfNamed&&profile.name==="عبدالرحمن"){
 /* العائلة في الإصدارات السابقة كانت عينة عرض؛ بلا حساب وبلا سؤال سابق لا نفترض أحدا */
 if(!profile.accountId&&!profile.familyAsked){profile.family=[]}
 if(!profile.accountId&&!profile.langSet){profile.readLang=DEV_LANG;profile.speakLang=DEV_LANG}
+/* قيم العرض القديمة (68 سنة، فاس، يتعب من المشي، طفلان) لا تفترض على ضيف حقيقي؛ تمسح مرة واحدة ما لم يصرح بها الضيف */
+if(!profile.basicsStated&&profile.pv2!==164){if(profile.age===68)profile.age=0;if(profile.from==="فاس، المغرب")profile.from="";if(profile.mobility==="slow")profile.mobility="walk";if(profile.kids===2)profile.kids=0;profile.pv2=164;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(!profile.accountId){try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(profile.pv!==93){if(profile.speakLang==="fr")profile.speakLang="en";if(!profile.gender)profile.gender="m";profile.pv=93;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
 if(!Array.isArray(profile.family)||!profile.family.length)profile.family=DEFAULT_PROFILE.family.map(f=>Object.assign({},f));
 if(!profile.homes||!profile.homes.makkah||!profile.homes.madinah)profile.homes=JSON.parse(JSON.stringify(DEFAULT_PROFILE.homes));
 function HOME(){return profile.homes[state.site]||profile.homes.makkah}if(!profile.from)profile.from=DEFAULT_PROFILE.from;if(!profile.readLang)profile.readLang="ar";if(!profile.rawdah)profile.rawdah=DEFAULT_PROFILE.rawdah;if(!Array.isArray(profile.meds))profile.meds=DEFAULT_PROFILE.meds.map(m=>Object.assign({},m));if(!profile.speakLang)profile.speakLang="fr";
 function saveProfile(){try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}if(state.pushPresence)try{state.pushPresence()}catch(_){}}
+/* من في العائلة يحتاج عربة على الأرجح: أحد الوالدين أو الأجداد أو من ذكر عمره أو حركته */
+const REL_DEP=/^(والدتي|امي|أمي|ماما|والدي|ابوي|أبوي|أبي|ابي|بابا|جدتي|جدي|عمتي|خالتي|عمي|خالي)$/;
+function famDependent(){return (profile.family||[]).find(f=>f&&f.name&&(REL_DEP.test(f.name.trim())||(+f.age||0)>=60||f.mobility==="cart"||f.mobility==="slow"))||null}
+/* «والدتي» تصبح «والدتك» عند مخاطبة الضيف، مع حرف جر اختياري: toYour("والدتي","ل") = لوالدتك */
+function toYour(name,prep){const n=String(name||"").trim();const M={"والدتي":"والدتك","امي":"أمك","أمي":"أمك","ماما":"والدتك","والدي":"والدك","ابوي":"أبوك","أبوي":"أبوك","أبي":"أبيك","ابي":"أبيك","بابا":"والدك","جدتي":"جدتك","جدي":"جدك","عمتي":"عمتك","خالتي":"خالتك","عمي":"عمك","خالي":"خالك"};const y=M[n];if(y)return (prep||"")+y;return prep?prep+(prep==="ل"?"":" ")+n:n}
 function profileText(){
   const m={walk:"يمشي بلا مساعدة",slow:"يتعب من المشي الطويل",cart:"يحتاج عربة"}[profile.mobility];
   const st={arrive:"وصل للتو",tawaf:"أتم الطواف وبقي السعي",saee:"أتم الطواف والسعي"}[profile.stage];
-  return [["الاسم",profile.name,"name"],["الجنس",profile.gender==="f"?"أنثى":"ذكر","gender"],["العمر",profile.age,"age"],["من",profile.from,"from"],["اللغة","يقرأ بـ"+(LANGS[profile.readLang]||"العربية")+" ويسمع بـ"+(LANGS[profile.speakLang]||"English"),"langs"],["العائلة",profile.family.filter(f=>f.sharing).length+" من "+profile.family.length+" يشاركون موقعهم","family"],["السكن",HOME().home,"home"],["الحركة",m,"mobility"],["الرفقة",profile.kids>0?"معه "+profile.kids+" من الأطفال":"بلا أطفال","kids"],
+  return [["الاسم",profile.name,"name"],["الجنس",profile.gender==="f"?"أنثى":"ذكر","gender"],["العمر",profile.age||"لم يذكر","age"],["من",profile.from||"لم يذكر","from"],["اللغة","يقرأ بـ"+(LANGS[profile.readLang]||"العربية")+" ويسمع بـ"+(LANGS[profile.speakLang]||"English"),"langs"],["العائلة",profile.family.filter(f=>f.sharing).length+" من "+profile.family.length+" يشاركون موقعهم","family"],["السكن",HOME().home,"home"],["الحركة",m,"mobility"],["الرفقة",profile.kids>0?"معه "+profile.kids+" من الأطفال":"بلا أطفال","kids"],
    ["الطواف",profile.tawafFloor?"يفضل الدور الأول":"المطاف الأرضي","tawafFloor"],["المصلى",profile.quiet?"يفضل الهدوء":"لا تفضيل","quiet"],["الدروس",profile.lessons?"يحب حضورها":"لا يهتم","lessons"],
    ["الراحة",profile.rest?"تذكير كل 20 دقيقة":"بلا تذكير","rest"],["السمع",profile.hearing?"ضعف سمع":"طبيعي","hearing"],["الدواء",profile.meds.length?profile.meds.map(m=>m.name+" "+m.times.join(" و")).join("، "):"لم يذكر دواء","meds"],["رحلته اليوم",st,"stage"]];
 }
@@ -1279,13 +1286,15 @@ const TOOLS={
       const rows=[];
       rows.push(["الطواف الآن",m?esc(bestT[0])+" بكثافة "+lvlText(lvT)+(bestT[3]?"، نحو "+esc(bestT[3])+" دقيقة":"")+(bestT[2]?"، من "+esc(bestT[2]):""):"لم تصل قراءة الهيئة الحية بعد"]);
       rows.push(["السعي",m?esc(bestS[0])+" بكثافة "+lvlText(bestS[1])+(bestS[3]?"، نحو "+esc(bestS[3])+" دقيقة":""):"لم تصل قراءة الهيئة الحية بعد"]);
+      const dep=famDependent();
       if(slow)rows.push(["عربة",(profile.mobility==="cart"?"تحتاج عربة":"تتعب من المشي الطويل")+"؛ أقرب نقطة "+esc(s0.places.cart[0][0])+" ("+s0.places.cart[0][1]+" م)، والطواف بالعربة من الدور الأول"]);
+      else if(dep)rows.push(["عربة","إن أحببت أحجز "+esc(toYour(dep.name,"ل"))+" عربة من أقرب "+esc(s0.places.cart[0][0])+" ("+s0.places.cart[0][1]+" م)، والطواف بالعربة من الدور الأول"]);
       if(hot)rows.push(["الحر "+s0.temp+"°","اشرب قبل أن تعطش: أقرب زمزم "+esc(s0.places.zamzam[0][0])+" ("+s0.places.zamzam[0][1]+" م)، وامش تحت المظلات، وأذكرك بالماء في منتصف الطواف"]);
-      rows.push(["العائلة","نقطة اللقاء بعد السعي عند "+esc(g[0])+(profile.family.length?"، وأبلغ "+esc(profile.family[0].name.split(" ")[0]):"")]);
+      rows.push(["العائلة","نقطة اللقاء بعد السعي عند "+esc(g[0])+(profile.family.length?"، وأبلغ "+esc(toYour(profile.family[0].name.split(" ")[0],"")):"")]);
       rows.push(["الترتيب","طواف سبعة أشواط، ركعتان خلف المقام أو في أي موضع، زمزم، سعي، ثم الحلق أو التقصير عند باب المروة"]);
       const tip=lvT?advise(lvT,"tawaf"):"";
-      card(head("🕋","عمرتك الآن: كل ما تحتاجه","من ملفك وقراءة الهيئة الحية")+farNote()+`<dl class="kv">${rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>${tip}<div class="acts"><button class="primary" data-say="دلني على المطاف">ابدأ الإرشاد إلى المطاف</button><button data-say="افتح المطوف">المطوف الرقمي</button>${slow?'<button data-say="اطلب لي عربة">اطلب عربة</button>':""}<button data-say="حدد نقطة لقاء لنا كلنا">نقطة لقاء</button><button data-say="جهز رحلتي">الخطة كاملة</button></div>`,"nav");
-      return{best_tawaf:bestT?bestT[0]:null,best_saee:bestS?bestS[0]:null,cart:slow,heat:hot}}},
+      card(head("🕋","عمرتك الآن: كل ما تحتاجه","من ملفك وقراءة الهيئة الحية")+farNote()+`<dl class="kv">${rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>${tip}<div class="acts"><button class="primary" data-say="دلني على المطاف">ابدأ الإرشاد إلى المطاف</button><button data-say="افتح المطوف">المطوف الرقمي</button>${slow?'<button data-say="اطلب لي عربة">اطلب عربة</button>':dep?'<button data-say="اطلب عربة '+esc(toYour(dep.name,"ل").replace(/ /g," "))+'">اطلب عربة '+esc(toYour(dep.name,"ل"))+'</button>':""}<button data-say="حدد نقطة لقاء لنا كلنا">نقطة لقاء</button><button data-say="جهز رحلتي">الخطة كاملة</button></div>`,"nav");
+      return{best_tawaf:bestT?bestT[0]:null,best_saee:bestS?bestS[0]:null,cart:slow,cart_for:dep?dep.name:null,heat:hot}}},
   transport_options:{agent:"nav",desc:"كيف يصل الضيف إلى المسجد الحرام من مكانه الحالي أو يغادره: أقرب محطة حافلات مكة ومسافتها مشيا، وأقرب موقف سيارات من مواقف الحرم، وطلب سيارة أجرة عبر أوبر أو كريم، مع روابط الاتجاهات. استخدمه عندما يسأل عن الحافلات أو الباص أو المحطة أو المواقف أو موقف السيارة أو أوبر أو كريم أو التاكسي أو كيف يروح للحرم أو يرجع منه أو إلى فندقه.",schema:{type:"object",properties:{mode:{type:"string",enum:["bus","car","ride","all"]}}},
     run(input){const mode=(input&&input.mode)||"all";const [ca,co]=CENTER.makkah;const en=isEN();const me=state.real&&typeof state.real.la==="number"?state.real:null;
       const mkTransit="https://www.google.com/maps/dir/?api=1&destination="+ca+","+co+"&travelmode=transit"+(me?"&origin="+me.la+","+me.lo:"");
@@ -2044,7 +2053,7 @@ $("#homeAuto").addEventListener("click",()=>{HOME().home=DEFAULT_PROFILE.homes[s
 $("#pHome").addEventListener("change",e=>{HOME().home=e.target.value.trim()||DEFAULT_PROFILE.homes[state.site].home;HOME().confirmed=1;HOME().auto=0;SRC.home="أدخله بنفسه";saveProfile();renderKnown()});
 $("#pName").addEventListener("change",e=>{profile.selfNamed=true});
 $("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
-$("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||DEFAULT_PROFILE.age;saveProfile();renderKnown()});
+$("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||0;profile.basicsStated=1;saveProfile();renderKnown()});
 $("#pGender")&&$("#pGender").addEventListener("change",e=>{profile.gender=e.target.value;saveProfile();renderKnown()});
 function clock(){const d=new Date();$("#clock").textContent=d.toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})}
 clock();setInterval(clock,30000);setInterval(wbRender,30000);
