@@ -872,19 +872,22 @@ function pickVoice(code){try{const vs=speechSynthesis.getVoices();const lang=cod
 function ttsPrep(text){let t=String(text||"");t=t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu," ").replace(/[·•|]/g,"، ").replace(/\(([^)]{1,40})\)/g,"، $1،").replace(/(\d+)\s*م(?=[\s،,.)؛]|$)/g,"$1 متر").replace(/(\d+)\s*د(?=[\s،,.)؛]|$)/g,"$1 دقيقة").replace(/(\d+)\s*ث(?=[\s،,.)؛]|$)/g,"$1 ثانية").replace(/°/g," درجة").replace(/\s*-\s*(?=\d)/g," إلى ").replace(/%/g," بالمئة").replace(/[«»"]/g,"").replace(/\s+/g," ").trim();
   return t.split(/(?<=[.!؟?؛])\s+|\n+/).map(x=>x.trim()).filter(Boolean)}
 /* صوت عصبي من البوابة (صوت تشات جي بي تي نفسه عبر واجهة أوبن إيه آي): الووركر يولد الصوت ويعيده ملفا، والصفحة تشغله؛ وبلا بوابة أو اتصال يعود صوت الجوال */
-const CTTS={cache:new Map(),ok(){return LLM.ok()&&CTTS.enabled!==false&&!state.offline},enabled:true,audio:null,
+const CTTS={cache:new Map(),ok(){return LLM.ok()&&CTTS.enabled!==false&&!state.offline},enabled:true,audio:null,el:null,unlocked:false,
+  /* آيفون لا يشغل الصوت إلا بلمسة من الضيف: نفتح عنصر صوت واحدا عند أول لمسة ونعيد استخدامه بعد ذلك */
+  unlock(){if(this.unlocked)return;try{const a=this.el||(this.el=new Audio());a.src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";a.muted=true;const p=a.play();if(p&&p.then)p.then(()=>{a.muted=false;this.unlocked=true}).catch(()=>{a.muted=false});else{a.muted=false;this.unlocked=true}}catch(_){}},
   async get(text,lang){const key=lang+"|"+text;if(this.cache.has(key))return this.cache.get(key);
     const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),9000);
     try{const r=await fetch(LLM.url.replace(/\/$/,"")+"/tts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text,lang}),signal:ctl.signal});
       if(!r.ok)throw new Error("HTTP "+r.status);const ct=r.headers.get("content-type")||"";if(!/audio/.test(ct))throw new Error("no audio");const b=await r.blob();const u=URL.createObjectURL(b);this.cache.set(key,u);if(this.cache.size>40){const k0=this.cache.keys().next().value;URL.revokeObjectURL(this.cache.get(k0));this.cache.delete(k0)}return u}
     finally{clearTimeout(t)}},
   stop(){if(this.audio){try{this.audio.pause()}catch(_){}this.audio=null}},
-  async play(text,lang){const u=await this.get(text,lang);this.stop();const a=new Audio(u);this.audio=a;voice.cloud=true;return new Promise(res=>{a.onended=()=>{if(this.audio===a)this.audio=null;res(true)};a.onerror=()=>res(false);a.play().catch(()=>res(false))})}};
+  async play(text,lang){const u=await this.get(text,lang);this.stop();const a=this.el||(this.el=new Audio());a.muted=false;a.src=u;this.audio=a;voice.cloud=true;return new Promise(res=>{a.onended=()=>{if(this.audio===a)this.audio=null;res(true)};a.onerror=()=>res(false);const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==="NotAllowedError"){this.unlocked=false;log("sup","الجوال لم يسمح بتشغيل الصوت قبل لمسة","سيعمل بعد أول لمسة")}res(false)})})}};
+["pointerdown","touchend","keydown","click"].forEach(ev=>document.addEventListener(ev,()=>{try{CTTS.unlock()}catch(_){}},{capture:true,passive:true}));
 function speak(text,opt={}){
   if(state.signMode&&!opt.force){try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(_){}return Promise.resolve()}
   if((!voice.on&&!opt.force)||!text)return Promise.resolve();
   const codeC=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";const plain=ttsPrep(text).join(" ");
-  if(CTTS.ok()&&plain&&plain.length<=900&&!CTTS.failed){if(!opt.queue)stopSpeak();return CTTS.play(plain,codeC.slice(0,2)).then(okp=>{if(okp)return true;CTTS.failed=Date.now();log("sup","الصوت العصبي غير متاح الآن من البوابة","يعود إلى صوت الجوال");return speakLocal(text,opt)}).catch(()=>speakLocal(text,opt))}
+  if(CTTS.ok()&&plain&&plain.length<=900&&!CTTS.failed){if(!opt.queue)stopSpeak();return CTTS.play(plain,codeC.slice(0,2)).then(okp=>{if(okp)return true;if(CTTS.unlocked){CTTS.failed=Date.now();log("sup","الصوت العصبي غير متاح الآن من البوابة","يعود إلى صوت الجوال")}return speakLocal(text,opt)}).catch(()=>{CTTS.failed=Date.now();return speakLocal(text,opt)})}
   return speakLocal(text,opt)}
 function speakLocal(text,opt={}){if(!voice.ok)return Promise.resolve();if(CTTS.failed&&Date.now()-CTTS.failed>120000)CTTS.failed=0;
   return new Promise(res=>{try{const code=voice.lang[opt.lang||profile.speakLang||state.lang]||"ar-SA";const v=pickVoice(code);const parts=ttsPrep(text);if(!parts.length){res();return}
@@ -1110,7 +1113,7 @@ const TOOLS={
       return{shown:["cart","zamzam","lost","medical","mataf"],source:"الخريطة التفاعلية للهيئة"}}},
   find_nearest:{agent:"nav",desc:"يبحث في الخريطة التفاعلية للهيئة عن أقرب نقطة خدمة من فئة محددة ويعرض للضيف بطاقة مسار. الفئات: cart (عربات), zamzam, wc (دورات مياه), medical, lost (التائهين والمفقودات), kids (ضيافة الأطفال), lift (مصاعد), pray (مصليات كبار السن وذوي الإعاقة), library, gate. يعيد الاسم والمسافة بالمتر والموقع.",
     schema:{type:"object",properties:{category:{type:"string",enum:Object.keys(CATS)}},required:["category"]},
-    run({category}){const c=String(category in CATS?category:"gate");log("nav","استدعاء: الخريطة التفاعلية","فئة: "+CATS[c]);
+    run({category}){const c=String(category in CATS?category:"gate");if(c==="cart"&&state.site==="makkah")return TOOLS.request_cart.run({kind:"wheelchair"});log("nav","استدعاء: الخريطة التفاعلية","فئة: "+CATS[c]);
       const list0=site().places[c]||site().places.gate;const list=arguments[0]&&arguments[0].alt&&list0.length>1?list0.slice(1).concat(list0[0]):list0;const [n,d,w]=list[0];state.lastDest=n;state.lastDist=d;state.lastCat=c;
       card(head(ICON.map,"أقرب "+CATS[c],d+" م · "+walk(d)+" د مشيا")+farNote()+`<div><b>${esc(n)}</b>${w?`<br><span style="color:var(--muted)">${esc(w)}</span>`:""}</div>${authMap([c],c)||svgMap(d)}<div class="acts"><button class="primary" data-say="ابدأ الإرشاد الصوتي إلى ${esc(n)}">ابدأ الإرشاد</button></div>`);
       return{nearest:n,distance_m:d,where:w,alternatives:list.slice(1).map(x=>({name:x[0],distance_m:x[1]}))}}},
@@ -1137,12 +1140,17 @@ const TOOLS={
   request_cart:{agent:"svc",desc:"يرسل طلب عربة (كرسي متحرك مع دافع أو عربة كهربائية) إلى أقرب نقطة عربات ويعيد رقم تذكرة ووقت الوصول المتوقع. استخدمه عندما يطلب الضيف عربة أو يصعب عليه المشي. نوع العربة: wheelchair أو electric. في المسجد النبوي يختار مركز الرجال أو مركز النساء من جنس الضيف المسجل في حسابه دون سؤاله؛ مرر gender فقط إذا كانت العربة لمرافق من الجنس الآخر.",
     schema:{type:"object",properties:{kind:{type:"string",enum:["wheelchair","electric"]},gender:{type:"string",enum:["m","f"]},note:{type:"string"}}},
     run({kind,gender}){const k=kind==="electric"?"عربة كهربائية":"كرسي متحرك مع دافع";log("svc","استدعاء: طلب عربة","نوع: "+k);
+      if(state.site==="makkah"){refreshCartPlaces();const en=isEN();const ns=nearestCarts(kind==="electric"?"electric":"any",2);const dep=famDependent();const slow=profile.mobility!=="walk"||(+profile.age||0)>=60;const who=slow?(en?"for you":"لك"):dep?(en?"for "+dep.name:toYour(dep.name,"ل")):(en?"for you":"لك");
+        log("svc","أقرب نقاط العربات الحقيقية من خدمة التنقل الموحدة",ns.map(x=>x.n+" ("+x.m+" م)").join(" · ")+(ns[0]&&ns[0].gps?" · من موقع الجوال":" · من مركز المسجد لأن الجوال لم يأذن بالموقع"));
+        const row=x=>`<div class="step"><i>♿</i><span><b>${esc(x.n)}</b> · ${en?x.m+" m, about "+walk(x.m)+" min on foot":AR2(x.m)+" م، نحو "+AR2(walk(x.m))+" دقيقة مشيا"}${x.approx?(en?" (approximate location)":" (موقع تقريبي)"):""}<br><span style="color:var(--muted)">${esc(x.how)}</span> <a class="chip" href="https://www.google.com/maps/dir/?api=1&destination=${x.la},${x.lo}&travelmode=walking" target="_blank" rel="noopener" style="text-decoration:none">${en?"Directions":"اتجاهات"}</a></span></div>`;
+        card(head(ICON.cart,en?"Carts: nearest pickup points "+who:"العربات: أقرب نقاط الاستلام "+who,en?"Unified mobility service, Authority":"خدمة التنقل الموحدة، الهيئة")+farNote()+`<div class="steps">${ns.map(row).join("")}</div><div style="font-size:.8rem;color:var(--muted);margin-top:6px">${en?"Booking, payment and the ticket are done in the Authority's own service (free cart, pushed cart, or electric cart; for umrah, tawaf, saee or prayer). Guests with a disability get a free electric cart after verifying online.":"الحجز والدفع والتذكرة من خدمة الهيئة نفسها (عربة مجانية، أو بدافع، أو كهربائية؛ لرحلة عمرة أو طواف أو سعي أو صلاة). وذوو الإعاقة لهم عربة كهربائية مجانية بعد التوثيق إلكترونيا."}</div><div class="acts"><a class="chip" href="${CARTS.book}" target="_blank" rel="noopener" style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)">${en?"Book a cart":"احجز عربة"}</a><button data-say="${en?"guide me to "+ns[0].n:"دلني على "+ns[0].n}">${en?"Guide me there":"دلني إليها"}</button><a class="chip" href="${CARTS.special}" target="_blank" rel="noopener" style="text-decoration:none">${en?"Free electric cart (disability)":"عربة كهربائية مجانية لذوي الإعاقة"}</a></div><div style="font-size:.72rem;color:var(--muted);margin-top:6px">${en?"Points and directions from the Authority's cart service as of "+CARTS.at+".":"النقاط وإرشادات الوصول من خدمة العربات في الهيئة، لقطة "+CARTS.at+"."}</div>`);
+        return{nearest:ns.map(x=>({name:x.n,distance_m:x.m,how:x.how})),book_url:CARTS.book,kind:k}}
       const g=gender||profile.gender||"m";const forOther=!!gender&&gender!==profile.gender;
-      if(state.site==="madinah")log("sup","اختار مركز العربات من ملف الضيف",(g==="f"?"مركز النساء، باب السلام":"مركز الرجال، باب 21")+(forOther?" · طلب لمرافق":" · الجنس من حسابه، لم يسأل"));
-      const id="CART-"+Math.floor(1000+Math.random()*9000);const eta=4+Math.floor(Math.random()*5);const [n,d]=state.site==="madinah"?site().places.cart[g==="f"?1:0]:site().places.cart[0];
-      card(head(ICON.cart,"طلب عربة أرسل",n)+farNote()+`<dl class="kv"><dt>النوع</dt><dd>${k}</dd>${state.site==="madinah"?`<dt>المركز</dt><dd>${forOther?(g==="f"?"مركز النساء لمرافقتك":"مركز الرجال لمرافقك"):(g==="f"?"مركز النساء، من حسابك":"مركز الرجال، من حسابك")}</dd>`:""}<dt>نقطة الانطلاق</dt><dd>${esc(n)} (${d} م)</dd><dt>الوصول المتوقع</dt><dd>${eta} دقائق</dd></dl><div class="ticket">رقم الطلب <b>${id}</b><br><small style="color:var(--muted)">اعرض الرقم لمشرف العربات، وسيصلك تنبيه عند اقتراب الدافع</small></div><div class="acts"><button data-say="أين وصل طلبي ${id}؟">تتبع الطلب</button><button data-say="ألغ الطلب ${id}">إلغاء</button></div>`);
-      log("svc","أرسل الطلب إلى مقدم الخدمة","تذكرة "+id+" · لوحة الجهات التشغيلية محدثة");
-      return{ticket:id,eta_min:eta,pickup:n,kind:k}}},
+      log("sup","اختار مركز العربات من ملف الضيف",(g==="f"?"مركز النساء، باب السلام":"مركز الرجال، باب 21")+(forOther?" · طلب لمرافق":" · الجنس من حسابه، لم يسأل"));
+      const id="CART-"+Math.floor(1000+Math.random()*9000);const eta=4+Math.floor(Math.random()*5);const [n,d]=site().places.cart[g==="f"?1:0];
+      card(head(ICON.cart,"طلب عربة (محاكاة للعرض)",n)+farNote()+`<dl class="kv"><dt>النوع</dt><dd>${k}</dd><dt>المركز</dt><dd>${forOther?(g==="f"?"مركز النساء لمرافقتك":"مركز الرجال لمرافقك"):(g==="f"?"مركز النساء، من حسابك":"مركز الرجال، من حسابك")}</dd><dt>نقطة الانطلاق</dt><dd>${esc(n)} (${d} م)</dd><dt>الوصول المتوقع</dt><dd>${eta} دقائق</dd></dl><div class="ticket">رقم الطلب <b>${id}</b><br><small style="color:var(--muted)">محاكاة: الحجز الفعلي في المسجد النبوي عبر خدمة التنقل الموحدة للهيئة</small></div><div class="acts"><a class="chip" href="${CARTS.book}" target="_blank" rel="noopener" style="text-decoration:none">احجز من خدمة الهيئة</a></div>`);
+      log("svc","محاكاة طلب عربة في المسجد النبوي","تذكرة "+id);
+      return{ticket:id,eta_min:eta,pickup:n,kind:k,simulated:true}}},
   report_lost:{agent:"svc",desc:"يفتح بلاغا في مكاتب التائهين والمفقودات: شخص تائه (person) أو غرض مفقود (item). يعيد رقم البلاغ والمكتب الأقرب. اجمع الوصف أولا إن لم يكن موجودا.",
     schema:{type:"object",properties:{type:{type:"string",enum:["person","item"]},description:{type:"string"}},required:["type","description"]},
     run({type,description}){const p=type==="person";log("svc","استدعاء: بلاغ "+(p?"شخص تائه":"غرض مفقود"),String(description||""));
@@ -1700,7 +1708,7 @@ function realSense(){
   if(!navigator.geolocation||state.realTried)return;state.realTried=true;
   navigator.geolocation.getCurrentPosition(async pos=>{
     const {latitude:la,longitude:lo}=pos.coords;const near=Object.keys(CENTER).map(k=>[k,kmBetween(la,lo,...CENTER[k])]).sort((a,b)=>a[1]-b[1])[0];if(near[1]<3&&near[0]!==state.site){log("sup","موقع الهاتف الحقيقي داخل "+SITES[near[0]].name,"تبديل الموقع تلقائيا");state.realTried=false;setSite(near[0]);return}
-    const [ca,co]=CENTER[state.site];const km=kmBetween(la,lo,ca,co);state.real={la,lo,km};
+    const [ca,co]=CENTER[state.site];const km=kmBetween(la,lo,ca,co);state.real={la,lo,km};refreshCartPlaces();
     if(state.site==="makkah"&&km<0.15&&!state.mutawwifOffered){state.mutawwifOffered=true;log("rite","الموقع الحقيقي داخل المطاف: يعرض المطوف الرقمي تلقائيا",Math.round(km*1000)+" م من الكعبة");
       card(head("🕋","أنت في المطاف","من موقع جوالك")+`<div>أفتح لك المطوف الرقمي: عداد الأشواط والأدعية بلغتك، وأذكرك بالماء في منتصف الطواف.</div><div class="acts"><button class="primary" data-say="افتح المطوف">افتح المطوف</button><button data-say="كثافة المطاف الآن؟">كثافة المطاف</button></div>`,"nav")}
     const dir=(()=>{const dLon=(lo-co)*Math.PI/180,p1=ca*Math.PI/180,p2=la*Math.PI/180;const y=Math.sin(dLon)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dLon);const b=(Math.atan2(y,x)*180/Math.PI+360)%360;return ["شمال","شمال شرق","شرق","جنوب شرق","جنوب","جنوب غرب","غرب","شمال غرب"][Math.round(b/45)%8]})();
@@ -1737,6 +1745,42 @@ function applyLang(code){profile.speakLang=code;profile.readLang=code==="ar"?"ar
   const tb=$(".appbar .t b");if(tb)tb.textContent=isEN()?"KNF":"كنف";const sl=$("#subline");if(sl)sl.textContent=isEN()?"Smart assistant for the Guests of Allah":"مساعد ضيف الرحمن الذكي";
   const hero=feed.querySelector(".hero");if(hero){hero.setAttribute("dir",isEN()?"ltr":"rtl");const hb=hero.querySelector("b"),hs=hero.querySelector("span"),he=hero.querySelector("em");const named=profile.name&&profile.name!=="ضيف الرحمن";if(hb)hb.textContent=isEN()?(named?UI_EN.heroNamed(profile.name):UI_EN.hero):(named?"أهلا "+profile.name+"، أنا كنف":"أهلا، أنا كنف");if(hs)hs.textContent=isEN()?UI_EN.heroSub:"رفيقك الذكي في الحرمين. أفهمك بلغتك، وأرشدك إلى ما يناسبك من خدمات، وأساعدك على التخطيط لزيارتك والاطمئنان على مرافقيك، لتتفرغ لعبادتك بطمأنينة.";if(he)he.textContent=isEN()?UI_EN.heroQ:"كيف أقدر أساعدك اليوم؟"}
   if(box&&!state.onb)box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";try{renderQuick()}catch(_){}try{wbRender()}catch(_){}try{if(state.pushPresence)state.pushPresence()}catch(_){}}
+/* نقاط العربات الحقيقية في المسجد الحرام من خدمة التنقل الموحدة للهيئة (carts.alharamain.gov.sa)، لقطة 3 نوفمبر 2026. [الاسم، النوع، خط العرض، خط الطول، إرشاد الوصول، تقريبي] */
+const CARTS={src:"https://carts.alharamain.gov.sa/",book:"https://carts.alharamain.gov.sa/carts",special:"https://carts.alharamain.gov.sa/SpecialNeedsForm",at:"3 نوفمبر 2026",
+ kinds:{electric:"عربة كهربائية",manual:"عربة يدوية مطورة",pushed:"عربة بدافع",free:"عربة يدوية مجانية",hotel:"عربة بدافع من الفندق"},
+ pts:[["عربات كهربائية: جسر الشبيكة","electric",21.422396,39.822919,"توجه إلى جسر الشبيكة بجوار فندق دار التوحيد، وبعد عبور مسارات الدخول اصعد إلى الجسر، وعند نهايته يسارا ثم يمينا لصعود مزلقان العربات"],
+ ["عربات كهربائية: جسر أجياد","electric",21.419897,39.827073,"من باب 3 أمام فندق الصفوة، ثم عند مفرق الطريق يمينا نحو منطقة الفرز والانتظار، ثم الجسر الحديدي المقابل للمطاف الأول"],
+ ["عربات كهربائية: منطقة فرز المروة","electric",21.425682,39.826986,"من باب 23 عند الساحة الشرقية، ثم يمينا نحو منطقة الفرز والانتظار، ثم الجسر الحديدي المقابل للمطاف الأول"],
+ ["عربات كهربائية: الميزان (الدور الأول والثاني)","electric",21.4205,39.8248,"بجوار باب الملك عبدالعزيز: الدخول من باب 2، ثم سلالم أجياد إلى السطح، ثم يسارا حتى منطقة الانتظار وفحص التذاكر، ثم السلم الكهربائي المقابل",1],
+ ["استلام عربة يدوية مطورة: المسعى الدور الأول","manual",21.42451,39.827065,"الدخول من باب 14"],
+ ["استلام عربة يدوية مطورة: الساحة الغربية جسر الشبيكة","manual",21.422396,39.822919,"عبر جسر الشبيكة بجوار فندق دار التوحيد، باب 64",1],
+ ["استلام عربة يدوية مطورة: أجياد الداخلية","manual",21.419897,39.827073,"بجانب نقطة العربات الكهربائية، من جسر أجياد قرب قصر الصفا",1],
+ ["استلام عربة يدوية مطورة: الساحة الجنوبية","manual",21.4203,39.8262,"بجانب دورة مياه رقم 2",1],
+ ["عربة بدافع: نقطة تجمع ساحة أجياد","pushed",21.419941,39.826971,"خارج المسجد، ساحة أجياد"],
+ ["عربة بدافع: نقطة تجمع المسيال","pushed",21.4197,39.8248,"خارج المسجد، المسيال قرب مصرف الراجحي بين برج الساعة وشركة مكة",1],
+ ["عربة بدافع: نقطة تجمع الشبيكة","pushed",21.422241,39.822899,"خارج المسجد، الشبيكة"],
+ ["عربة بدافع: نقطة تجمع جبل الكعبة","pushed",21.427344,39.824977,"خارج المسجد، جبل الكعبة"],
+ ["عربة بدافع: نقطة تجمع الغزة","pushed",21.4286,39.829037,"خارج المسجد، الغزة"],
+ ["عربة بدافع: نقطة تجمع باب علي","pushed",21.424461,39.829899,"خارج المسجد، باب علي بجوار مركز حفظ الأمتعة"],
+ ["عربة يدوية مجانية: الساحة الشرقية (الغزة)","free",21.419897,39.827073,"بجوار جسر أجياد"],
+ ["عربة بدافع من الفندق: هيلتون جبل عمر","hotel",21.422804,39.820086,"مدخل طريق إبراهيم الخليل"],
+ ["عربة بدافع من الفندق: برج الساعة","hotel",21.420094,39.825675,"بوابة أبراج البيت الرئيسية مقابل باب الملك عبدالعزيز"],
+ ["عربة بدافع من الفندق: سويس أوتيل المقام","hotel",21.418983,39.823723,"البوابة الرئيسية للفندق، طريق المسيال"],
+ ["عربة بدافع من الفندق: سويس أوتيل مكة","hotel",21.419023,39.827021,"طريق أجياد مقابل دورات مياه 2"],
+ ["عربة بدافع من الفندق: إيلاف كندة","hotel",21.418849,39.824232,"طريق المسيال، البوابة الرئيسية"],
+ ["عربة بدافع من الفندق: حياة ريجنسي","hotel",21.420896,39.822206,"البوابة الرئيسية للفندق مقابل فندق دار التوحيد"],
+ ["عربة بدافع من الفندق: جميرا","hotel",21.418983,39.822551,"البوابة الرئيسية بجوار دارة القهوة"],
+ ["عربة بدافع من الفندق: كونراد","hotel",21.419406,39.822547,"البوابة الرئيسية بجوار مطعم الرومنسية"],
+ ["عربة بدافع من الفندق: أنجم","hotel",21.424765,39.823007,"مقابل توسعة الملك عبدالله"],
+ ["عربة بدافع من الفندق: شركة مكة","hotel",21.420246,39.824074,"البوابة الرئيسية بجوار كنتاكي"],
+ ["عربة بدافع من الفندق: دار التوحيد","hotel",21.420937,39.823032,"بوابة فندق دار التوحيد الرئيسية بجوار صيدلية النهدي"],
+ ["عربة بدافع من الفندق: برج الصفوة","hotel",21.419361,39.826912,"الصفوة غفران مقابل دورة مياه رقم 2"]]};
+/* أقرب نقاط العربات من موقع الجوال (أو من مركز المسجد إن لم يأذن)، بحسب النوع المطلوب */
+function nearestCarts(kind,n){const me=state.real&&typeof state.real.la==="number"?state.real:null;const [ca,co]=CENTER.makkah;const la=me?me.la:ca,lo=me?me.lo:co;
+  const pref=kind==="electric"?["electric"]:kind==="hotel"?["hotel"]:["manual","pushed","free","electric"];
+  return CARTS.pts.filter(p=>pref.includes(p[1])).map(p=>({n:p[0],type:p[1],la:p[2],lo:p[3],how:p[4],approx:!!p[5],m:Math.round(kmBetween(la,lo,p[2],p[3])*1000),gps:!!me})).sort((a,b)=>a.m-b.m).slice(0,n||3)}
+/* نقاط العربات في ملف المسجد الحرام تؤخذ من النقاط الحقيقية الأقرب، فتتحدث كل البطاقات تلقائيا */
+function refreshCartPlaces(){try{const ns=nearestCarts("any",3);if(ns.length)SITES.makkah.places.cart=ns.map(x=>[x.n,x.m,x.how])}catch(_){}}
 const SITE_EN={makkah:{name:"Masjid al-Haram",city:"Makkah"},madinah:{name:"The Prophet's Mosque",city:"Madinah"}};const T=(ar,en)=>isEN()?en:ar;const cityName=()=>isEN()?SITE_EN[state.site].city:site().city;const siteName=()=>isEN()?SITE_EN[state.site].name:site().name;
 const ACCT={id(email){let h=5381;const e=String(email||"").trim().toLowerCase();for(let i=0;i<e.length;i++)h=((h<<5)+h+e.charCodeAt(i))|0;return "u"+(h>>>0).toString(36)},
   create(name,key){const id=this.id(key);profile.name=name;if(/@/.test(key))profile.email=key;else profile.phone=key;profile.accountId=id;profile.selfNamed=true;profile.familyAsked=1;profile.nameAsked=1;try{localStorage.setItem("knf_peer",id)}catch(_){}saveProfile();renderKnown();renderQuick();if(state.pushPresence)state.pushPresence();const h=feed.querySelector(".hero b");if(h)h.textContent=isEN()?UI_EN.heroNamed(name):"أهلا "+name+"، أنا كنف";log("svc","أنشأ حساب الضيف","المعرف "+id+" · الاسم والجوال على الجهاز، والملف يتزامن بين أجهزته");this.sync(true);return id},
@@ -1749,6 +1793,12 @@ function onboardChat(){
   if(profile.accountId||profile.nameAsked)return;state.onb="name";
   log("sup","أول فتح: يطلب الاسم والبريد بالمحادثة لإنشاء الحساب","لا نموذج؛ سؤالان فقط");
   setTimeout(()=>{const t=isEN()?"What is your name?":"ما اسمك؟";msg("bot",t);speak(t,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phName:"اكتب اسمك…"},600)}
+/* من فتح رابط المجموعة فهو مع صاحب الرابط: لا نسأله من معك، بل نضيف أفراد المجموعة الحاضرين إلى عائلته تلقائيا */
+function groupMates(){const me=(profile.name||"").trim();return (state.peers||[]).map(p=>String((p.presence&&p.presence.name)||"").trim()).filter(n=>n&&n!==me&&n!=="ضيف الرحمن")}
+function addMates(names){let added=[];names.forEach(n=>{if(!(profile.family||[]).some(f=>f.name===n)){profile.family.push({name:n,rel:"من المجموعة",phone:"",sharing:1});added.push(n)}});if(added.length){saveProfile();renderKnown();renderQuick()}return added}
+function joinGroupDone(){profile.familyAsked=1;state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";const mates=groupMates();addMates(mates);const en=isEN();const first=mates[0]?toYour(mates[0].split(" ")[0],""):"";
+  const r=mates.length?(en?"You are in "+first+"'s group now: your locations appear to each other, and you can ask me: where is "+first+"?":"أنت الآن في مجموعة "+first+": موقعكما يظهر لبعضكما، واسألني: وين "+first+"؟"):(en?"You are in the group now; whoever opened the same link appears here, and you can ask: where is …?":"أنت الآن في المجموعة؛ من فتح الرابط نفسه يظهر عندك، وتسأل: وين فلان؟");
+  msg("bot",r);speak(r,{lang:en?"en":"ar"});log("svc","انضم عبر رابط المجموعة: أضيف أفراد المجموعة تلقائيا بلا سؤال «من معك»",mates.join("، ")||"لا أحد ظاهر بعد");ACCT.sync(true)}
 /* تأكيد الجوال برمز عبر البوابة: يرسل ويتحقق، وبلا مزود مضبوط يعيد sent:false فيستمر إنشاء الحساب بلا تأكيد */
 const OTP={async send(phone){if(!LLM.ok()||!phone)return{sent:false,reason:"offline"};try{const r=await fetch(LLM.url.replace(/\/$/,"")+"/otp/send",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({phone})});return await r.json()}catch(e){return{sent:false,reason:String(e.message||e)}}},
   async verify(phone,code){try{const r=await fetch(LLM.url.replace(/\/$/,"")+"/otp/verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({phone,code})});return await r.json()}catch(e){return{verified:false,reason:String(e.message||e)}}}};
@@ -1762,15 +1812,17 @@ async function onbStep(text){
     if(ph){typing(true);const o=await OTP.send(ph);typing(false);
       if(o&&o.sent){state.onb="otp";state.onbKey=ph;state.onbTries=0;log("svc","أرسل رمز تأكيد إلى جوال الضيف","عبر "+(o.provider||"المزود")+" · الرمز لا يمر بالصفحة");const r=isEN()?UI_EN.otpSent:"أرسلت رمز تأكيد إلى جوالك، اكتبه هنا. أو اكتب تخطي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phOtp:"رمز التأكيد…";return true}
       log("svc","تأكيد الجوال غير مفعل بعد في البوابة"+(o&&o.reason?" ("+o.reason+")":""),"ينشأ الحساب بلا تأكيد")}
-    ACCT.create(state.onbName,ph||em[0]);state.onb="family";const r=isEN()?UI_EN.created(profile.name,profile.phone):"تم، أنشأت حسابك يا "+profile.name+(profile.phone?" على الرقم "+profile.phone:"")+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";
+    ACCT.create(state.onbName,ph||em[0]);
+    if(state.groupCode&&state.joinedViaLink){const r0=isEN()?"Done, your account is ready, "+profile.name+".":"تم، أنشأت حسابك يا "+profile.name+".";msg("bot",r0);joinGroupDone();return true}
+    state.onb="family";const r=isEN()?UI_EN.created(profile.name,profile.phone):"تم، أنشأت حسابك يا "+profile.name+(profile.phone?" على الرقم "+profile.phone:"")+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";
     try{localStorage.removeItem("knf_group")}catch(_){}return true}
   if(state.onb==="otp"){const ph=state.onbKey;
-    if(/^\s*(تخطي|تخطى|لاحقا|skip|later)\s*[.!؟]?$/i.test(t)){log("svc","الضيف تخطى تأكيد الجوال","");ACCT.create(state.onbName,ph);state.onb="family";const r=isEN()?UI_EN.created(profile.name,profile.phone):"تم، أنشأت حسابك يا "+profile.name+" على الرقم "+ph+" بلا تأكيد الآن. من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";return true}
+    if(/^\s*(تخطي|تخطى|لاحقا|skip|later)\s*[.!؟]?$/i.test(t)){log("svc","الضيف تخطى تأكيد الجوال","");ACCT.create(state.onbName,ph);if(state.groupCode&&state.joinedViaLink){joinGroupDone();return true}state.onb="family";const r=isEN()?UI_EN.created(profile.name,profile.phone):"تم، أنشأت حسابك يا "+profile.name+" على الرقم "+ph+" بلا تأكيد الآن. من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";return true}
     if(/^\s*(أعد الإرسال|اعد الارسال|أعد|ما وصل|ما وصلني|resend|send again)\s*[.!؟]?$/i.test(t)){typing(true);const o=await OTP.send(ph);typing(false);const r=o&&o.sent?(isEN()?"Sent again.":"أرسلته من جديد."):(isEN()?"I could not send it now; type skip to continue.":"لم أستطع إرساله الآن، اكتب تخطي للمتابعة.");msg("bot",r);return true}
     const code=t.replace(/[٠-٩]/g,d=>"0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(d)]).replace(/\D/g,"");
     if(code.length<4){msg("bot",isEN()?UI_EN.otpBad:"اكتب الرمز المكون من أرقام، أو اكتب تخطي.");return true}
     typing(true);const v=await OTP.verify(ph,code);typing(false);
-    if(v&&v.verified){profile.phoneVerified=1;log("svc","تم تأكيد جوال الضيف","رمز صحيح");ACCT.create(state.onbName,ph);profile.phoneVerified=1;saveProfile();state.onb="family";const r=isEN()?UI_EN.otpOk(profile.name):"تم تأكيد جوالك وأنشأت حسابك يا "+profile.name+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";try{localStorage.removeItem("knf_group")}catch(_){}return true}
+    if(v&&v.verified){profile.phoneVerified=1;log("svc","تم تأكيد جوال الضيف","رمز صحيح");ACCT.create(state.onbName,ph);profile.phoneVerified=1;saveProfile();if(state.groupCode&&state.joinedViaLink){const r0=isEN()?"Your phone is confirmed and your account is ready, "+profile.name+".":"تم تأكيد جوالك وأنشأت حسابك يا "+profile.name+".";msg("bot",r0);joinGroupDone();return true}state.onb="family";const r=isEN()?UI_EN.otpOk(profile.name):"تم تأكيد جوالك وأنشأت حسابك يا "+profile.name+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";try{localStorage.removeItem("knf_group")}catch(_){}return true}
     state.onbTries=(state.onbTries||0)+1;const r=state.onbTries>=3?(isEN()?"Still not matching. Type skip to continue without confirmation.":"ما زال غير مطابق. اكتب تخطي للمتابعة بلا تأكيد."):(isEN()?UI_EN.otpBad:"الرمز غير صحيح. حاول مرة أخرى، أو اكتب أعد الإرسال، أو تخطي.");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});return true}
   if(state.onb==="mailonly"){const em=t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);if(!em){msg("bot","أحتاج بريدا صحيحا مثل name@example.com");return true}profile.email=em[0];saveProfile();state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";ACCT.sync(true);sharePlan("mail");return true}
   if(state.onb==="family"){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";
@@ -1804,7 +1856,7 @@ async function permCard(){
     navigator.geolocation.getCurrentPosition(()=>{try{localStorage.setItem("knf_geo_ok","1")}catch(_){}stEl.textContent="✓ تم، أحدد موقعك الآن";state.holdTop=0;state.realTried=false;realSense();setTimeout(()=>c.remove(),1200)},err=>{stEl.innerHTML="<b style='color:var(--crit)'>لم يصل الإذن</b> ("+esc(err&&err.message||"")+"). في الآيفون: الإعدادات ← الخصوصية ← خدمات الموقع ← سفاري ← أثناء الاستخدام."},{timeout:15000,maximumAge:0})})}
 function start(){
   THR.cur=null;feed.innerHTML="";trace.innerHTML='<div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div>';state.turns=[];t0=Date.now();
-  const s=site();$("#subline").textContent=isEN()?"Smart assistant for the Guests of Allah":"مساعد ضيف الرحمن الذكي";if(isEN()){const tb=$(".appbar .t b");if(tb)tb.textContent="KNF";if(box&&!state.onb)box.placeholder=UI_EN.phDefault}
+  try{refreshCartPlaces()}catch(_){}const s=site();$("#subline").textContent=isEN()?"Smart assistant for the Guests of Allah":"مساعد ضيف الرحمن الذكي";if(isEN()){const tb=$(".appbar .t b");if(tb)tb.textContent="KNF";if(box&&!state.onb)box.placeholder=UI_EN.phDefault}
   $("#locText").textContent=T("جار تحديد موقعك…","Finding your location…");setTimeout(()=>{$("#locText").innerHTML=state.realWhere?T("موقعك الآن: ","Your location: ")+"<b>"+esc(isEN()?state.realWhereEN:state.realWhere)+"</b> <span style=\"color:var(--muted)\">(GPS)</span>":T("موقعك الآن: ","Your location: ")+"<b>"+esc(siteName())+"</b>"+(isEN()?" <span style=\"color:var(--muted)\">(simulated until the phone allows location)</span>":" · "+esc(s.spot)+" <span style=\"color:var(--muted)\">(محاكاة حتى يأذن الجوال بالموقع)</span>");},700);
   log("sup","حدد موقع الضيف تلقائيا",s.name+" · "+s.spot);$(".sb span:last-child").textContent=cityName()+" · "+s.temp+"°";
   if(state.judge&&!state.onboarded){realSense();onboard();renderKnown();renderQuick();return}
@@ -1851,7 +1903,7 @@ const API=[
  {id:"map",url:{makkah:PORTAL+"page=interactive_maps_ar",madinah:PORTAL+"page=interactive_maps_ar"},name:"الخريطة التفاعلية",ep:"GET /v1/{site}/map/points?category=&near=lat,lng",lvl:1,io:"نقاط الخدمة والمسافة والمسار",tools:["find_nearest","show_map","start_guidance","go_home"]},
  {id:"density",url:{makkah:PORTAL+"module=mataf_say_ar",madinah:PORTAL+"module=salam_to_the_messenger_of_Allah_ar"},name:"حالة كثافة المطاف والمسعى / مسار السلام",ep:"GET haram-api/api/pry/TawafSaiStatus · salamStatus",lvl:1,live:["mataf","salam"],io:"مستوى لوني لكل منطقة + وقت التحديث",tools:["get_density"]},
  {id:"halls",url:{makkah:PORTAL+"module=prayers_ar",madinah:PORTAL+"module=prayers_ar"},name:"حالة إشغال المصليات",ep:"GET haram-api/api/pry/prayerLocationsStatusHaramain",lvl:1,live:["halls"],io:"نسبة الإشغال لكل مصلى (أخضر، أصفر، وردي، رمادي)",tools:["get_prayer_hall_occupancy","plan_prayer"]},
- {id:"cart",url:{makkah:PORTAL+"page=haram-elderly-services-ar",madinah:PORTAL+"page=nabawi-disabled-services-ar"},name:"عربات كبار السن وذوي الإعاقة (مركز الرجال ومركز النساء)",ep:"POST /v1/{site}/carts/requests",lvl:2,io:"نوع العربة والمركز → رقم طلب ووقت الوصول",tools:["request_cart","track_request"]},
+ {id:"cart",url:{makkah:"https://carts.alharamain.gov.sa/",madinah:"https://carts.alharamain.gov.sa/"},name:"خدمة التنقل الموحدة: حجز العربات ومواقعها",ep:"POST /v1/{site}/carts/requests",lvl:2,io:"نوع العربة والمركز → رقم طلب ووقت الوصول",tools:["request_cart","track_request"]},
  {id:"lost",url:{makkah:PORTAL+"page=haram-services-ar",madinah:PORTAL+"page=nabawi-services-ar"},name:"مكاتب التائهين والمفقودات",ep:"POST /v1/{site}/lost-and-found/reports",lvl:2,io:"الوصف والموقع → رقم بلاغ والمكتب الأقرب",tools:["report_lost"]},
  {id:"kids",url:{makkah:PORTAL+"page=haram-services-ar",madinah:PORTAL+"page=nabawi-services-ar"},name:"مركز ضيافة الأطفال",ep:"POST /v1/{site}/children-center/bookings",lvl:2,io:"عدد الأطفال والوقت → رقم حجز وموعد الاستلام",tools:["book_children_center"]},
  {id:"manara",url:{makkah:"https://alharamain.gov.sa/manaratalharamain/",madinah:"https://alharamain.gov.sa/manaratalharamain/"},name:"منارة الحرمين (البث والترجمة والدروس)",ep:"GET /v1/manara/streams?lang= · GET /v1/{site}/lessons",lvl:1,io:"قنوات الترجمة وجدول الدروس",tools:["sermon_translation","play_stream","get_lessons_and_prayers"]},
@@ -2208,7 +2260,7 @@ function liveFamilyStart(room){
   push();state.pushPresence=push;
   if(navigator.geolocation){try{navigator.geolocation.watchPosition(pos=>{const {latitude:la,longitude:lo}=pos.coords;state.real=Object.assign(state.real||{},{la,lo});push()},()=>{},{maximumAge:10000,enableHighAccuracy:true})}catch(_){}}
   const known=new Set();
-  room.onPeers(ch=>{state.peers=ch.peers.filter(p=>!p.sameTab&&p.kind==="viewer");
+  room.onPeers(ch=>{state.peers=ch.peers.filter(p=>!p.sameTab&&p.kind==="viewer");if(state.joinedViaLink&&profile.familyAsked){try{addMates(groupMates())}catch(_){}}
     for(const p of ch.joined){if(p.isMe||p.kind!=="viewer")continue;if(!known.has(p.peer)){known.add(p.peer);setTimeout(()=>{const nm=String((p.presence&&p.presence.name)||"ضيف");log("svc","انضم إلى مجموعة كنف (مباشر)",nm);msg("sys","انضم "+nm+" إلى مجموعتك في كنف، وتقدر تسأل: وين "+nm+"؟")},1500)}}
     for(const p of ch.left){if(!p.isMe&&p.kind==="viewer")log("svc","غادر مجموعة كنف",String((p.presence&&p.presence.name)||"ضيف"))}
     renderLivePeers()});
