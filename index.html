@@ -699,7 +699,9 @@ const MATAF={"المطاف":[["سطح المطاف",1,"92-91-2-84-65-66","50 - 6
  "المسعى":[["سطح المسعى",1,"الصفا 1 - 2","35 - 45",1],["المسعى الدور الأول",2,"المروة 1 - 2 - 4","45 - 55",1],["المسعى الدور الأرضي",3,"الصفا 3 - 5","55 - 65",0]]};
 const RING='<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"><path d="M12 8 L28 6 L34 16 L30 30 L14 34 L6 24 Z"/></svg>';
 /* ---------- intent gateway: a small server (Cloudflare Worker) that asks Claude which tool fits the guest's wording; the API key stays on the server ---------- */
-const LLM={url:"",load(){try{const q=new URLSearchParams(location.search);const u=q.get("llm");if(u!==null){if(u)localStorage.setItem("knf_llm",u);else localStorage.removeItem("knf_llm")}this.url=localStorage.getItem("knf_llm")||this.url}catch(_){}},
+const LLM={url:"",load(){try{const q=new URLSearchParams(location.search);const u=q.get("llm");if(u!==null){if(u)localStorage.setItem("knf_llm",u);else localStorage.removeItem("knf_llm")}this.url=localStorage.getItem("knf_llm")||this.url}catch(_){}
+    /* بوابة كنف افتراضية على موقع كنف نفسه: كل جوال يفتح الرابط يفهم عبر Claude ويسمع الصوت الطبيعي، لا جوال سمية وحده (كانت البوابة تحفظ فقط على الجهاز الذي فتح رابط ?llm=) */
+    if(!this.url&&/^soomabaradei-coder\.github\.io$/.test(location.hostname))this.url="https://kanaf-gateway.soomabaradei.workers.dev"},
   ok(){return !!this.url&&!state.offline},
   async classify(text){if(!this.ok())return null;const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),7000);
     try{const tools=Object.keys(TOOLS).map(k=>({name:k,desc:TOOLS[k].desc,schema:TOOLS[k].schema||{type:"object",properties:{}}}));
@@ -2005,7 +2007,9 @@ const ROUTES=[
  [/طوار|ضايق|emergency|help/i,"emergency",m=>({description:m,type:"unknown"})],
  [/عربة|عربه|كرسي|wheelchair|cart|أمشي|امشي|تعب/i,"request_cart",()=>({kind:"wheelchair"})],
  [/ضاع|ضايع|تاه|تائه|فقدت|مفقود|lost/i,"report_lost",m=>({type:/ولد|بنت|طفل|أم|أب|زوج|جد|شخص|child|son|daughter|mother|father/i.test(m)?"person":"item",description:m})],
- [/أطفال|اطفال|طفل|ضيافة|kids|child/i,"book_children_center",m=>({children:Number((m.match(/\d+/)||[profile.kids||1])[0])||profile.kids||1,prayer:(m.match(/(الفجر|الظهر|العصر|المغرب|العشاء)/)||[""])[0]})],
+ /* «مخيم بشرى الضيافة» سؤال عن الحملة لا عن ضيافة الأطفال */
+ [/(مخيم|خيم[ةه])\s*(ال)?(حمل[ةه]|حملتي|حملتنا|بشرى|بشري)/i,"call_campaign",t=>({question:t})],
+ [/أطفال|اطفال|طفل|ضيافة|kids|child/i,"book_children_center",m=>({children:Number((m.match(/\d+/)||[profile.kids||1])[0])||profile.kids||1,prayer:(m.match(/(الفجر|الظهر|العصر|المغرب|العشاء)/)||[""])[0]}),t=>!/بشر[ىي]\s*(ال)?ضياف/.test(t)],
  [/ترجم|خطبة|اردو|urdu|english|translat|سماعة/i,"sermon_translation",()=>({lang:state.lang})],
  [/روضة|الروضه|تصريح|rawdah/i,"rawdah_permit",()=>({})],
  [/كثاف|زحم|زحام|ازدحام|وقت.*(طواف|سعي|روضة)|crowd|busy/i,"get_density",()=>({})],
