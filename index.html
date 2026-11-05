@@ -2742,7 +2742,7 @@ start();voiceStatus();setTimeout(voiceStatus,1500);
     if(s){const lim=await s.limits().catch(()=>null);state.sample=s;state.toolsOK=!!(lim&&lim.tools);state.imagesOK=!!(lim&&lim.images);setMode(state.toolsOK);if(!state.toolsOK)state.sample=null}
     else setMode(false)}
   catch(_){setMode(false)}
-  try{const room=window.claude&&window.claude.use?await window.claude.use("room"):null;if(room)liveFamilyStart(room);else{const r=await mqttRoom();if(r)liveFamilyStart(r)}}catch(_){}
+  try{const room=window.claude&&window.claude.use?await window.claude.use("room"):null;if(room)liveFamilyStart(room,"claude");else{const r=await mqttRoom();if(r)liveFamilyStart(r,"mqtt")}}catch(_){}
 })();
 /* ---------- group channel for self-hosted copies (GitHub Pages / inside the platform): a public MQTT broker over WebSocket. Demo only: open broker, anonymous, group code in the link ---------- */
 function groupCode(){const q=new URLSearchParams(location.search);let g=(q.get("g")||"").replace(/[^A-Za-z0-9]/g,"").toUpperCase();let prev="";try{prev=localStorage.getItem("knf_group")||""}catch(_){}if(g)state.joinedViaLink=true;const rr=(q.get("r")||"").slice(0,42);const by=(q.get("by")||"").slice(0,30);if(g&&by){state.joinBy=by;try{localStorage.setItem("knf_by",by)}catch(_){}}else if(!g){try{state.joinBy=localStorage.getItem("knf_by")||""}catch(_){}}if(g&&rr){state.joinRel=rr;try{localStorage.setItem("knf_rel",rr)}catch(_){}}else if(!g){try{state.joinRel=localStorage.getItem("knf_rel")||""}catch(_){}}else{state.joinRel="";try{localStorage.removeItem("knf_rel")}catch(_){}}if(!g){g=prev}if(!g){g=Math.random().toString(36).slice(2,6).toUpperCase()}try{localStorage.setItem("knf_group",g)}catch(_){}return g}
@@ -2802,13 +2802,15 @@ const CALL={pc:null,stream:null,peer:null,name:"",card:null,pending:null,q:[],li
     try{this.pc&&this.pc.close()}catch(_){}if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.pc=null;this.stream=null;this.live=false;this.peer=null;clearTimeout(this.timer);clearTimeout(this.ackTimer);
     if(this.card)this.ui("مكالمة مع "+this.name,"عبر كنف",R[reason]||"انتهت المكالمة.",/no_answer|failed|busy|reject/.test(reason||"")?this.tel():"");log("svc","انتهاء المكالمة",reason||"");this.card=null}};
 /* ---------- live family group: everyone who has this page open shares presence (name + GPS) ---------- */
-function liveFamilyStart(room){
-  state.room=room;state.peers=[];
-  const push=()=>{const r=state.real;room.presence({name:profile.name,rel:relLabel(state.joinRel)||"",ph:profile.phone||"",g:profile.gender||"",camp:profile.campaign||"",meet:state.meet||null,ping:state.ping||null,la:r?+r.la.toFixed(4):null,lo:r?+r.lo.toFixed(4):null,t:Date.now()})};
+function liveFamilyStart(room,kind){
+  state.room=room;state.peers=[];state.roomKind=kind||"claude";if(!state.groupCode)state.groupCode=groupCode();
+  /* المجموعة تعزل برمزها: في غرفة المنصة المشتركة يرى كل زائر للرابط الآخرين، فلا يحسب فردا إلا من يحمل رمز مجموعتك */
+  const mine=p=>{const gc=String((p.presence&&p.presence.gc)||"");return gc?gc===state.groupCode:state.roomKind==="mqtt"};
+  const push=()=>{const r=state.real;room.presence({gc:state.groupCode,name:profile.name,rel:relLabel(state.joinRel)||"",ph:profile.phone||"",g:profile.gender||"",camp:profile.campaign||"",meet:state.meet||null,ping:state.ping||null,la:r?+r.la.toFixed(4):null,lo:r?+r.lo.toFixed(4):null,t:Date.now()})};
   push();state.pushPresence=push;
   if(navigator.geolocation){try{navigator.geolocation.watchPosition(pos=>{const {latitude:la,longitude:lo}=pos.coords;state.real=Object.assign(state.real||{},{la,lo});push()},()=>{},{maximumAge:10000,enableHighAccuracy:true})}catch(_){}}
   const known=new Set();
-  room.onPeers(ch=>{state.peers=ch.peers.filter(p=>!p.sameTab&&p.kind==="viewer");if(profile.familyAsked){try{addMates(groupMates())}catch(_){}}
+  room.onPeers(ch=>{state.peers=ch.peers.filter(p=>!p.sameTab&&p.kind==="viewer"&&mine(p));ch={joined:(ch.joined||[]).filter(p=>p.isMe||mine(p)),left:(ch.left||[]).filter(p=>p.isMe||mine(p)),peers:ch.peers};if(profile.familyAsked){try{addMates(groupMates())}catch(_){}}
     if(state.joinedViaLink&&profile.familyAsked&&!state.joinConfirmed){const m0=groupMates()[0];if(m0){state.joinConfirmed=true;const w=firstName(m0.name);const r0="تم، أضيفت مع "+w+" في كنف. موقعكما يظهر لبعضكما، واسألني: وين "+w+"؟";msg("bot",r0);speak(r0,{lang:"ar"})}}
     /* نقطة لقاء أو موقع مرسل من فرد آخر يصلان عبر الحضور نفسه */
     for(const p of state.peers){const pr=p.presence||{};const me=profile.name||"";
