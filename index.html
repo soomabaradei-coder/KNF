@@ -380,6 +380,7 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
           <div class="sec">
             <label>الجوال <input id="pPhone" type="tel" inputmode="tel" placeholder="05xxxxxxxx" style="direction:ltr"></label><span class="hint" id="pPhoneSt"></span>
             <label>الحملة <input id="pCamp" type="text" placeholder="بلا حملة"></label>
+            <label>رقم الحملة أو واتسابها <input id="pCampPh" type="tel" inputmode="tel" placeholder="05xxxxxxxx"></label>
             <label>البريد <input id="pEmail" type="email" inputmode="email" placeholder="للخطة اليومية" style="direction:ltr"></label>
           </div>
           <div class="sec"><div class="lbl">يقرأ بـ</div>
@@ -558,7 +559,7 @@ function renderKnown(){
   $("#known").innerHTML=profileText().map(([k,v,key])=>`<dt>${k}</dt><dd>${esc(v)}<span class="src">${SRC[key]||""}</span></dd>`).join("");
   $("#profBtn").textContent="👤 "+profile.name;
   $("#pName").value=profile.name;$("#pAge").value=profile.age||"";if($("#pGender"))$("#pGender").value=profile.gender||"m";$("#pHome").value=(HOME()&&HOME().confirmed)?HOME().home:"";
-  if($("#pPhone")){$("#pPhone").value=profile.phone||"";$("#pPhoneSt").textContent=profile.phone?(profile.phoneVerified?"مؤكد":"غير مؤكد"):"";$("#pCamp").value=profile.campaign||"";$("#pEmail").value=profile.email||""}
+  if($("#pPhone")){$("#pPhone").value=profile.phone||"";$("#pPhoneSt").textContent=profile.phone?(profile.phoneVerified?"مؤكد":"غير مؤكد"):"";$("#pCamp").value=profile.campaign||"";if($("#pCampPh"))$("#pCampPh").value=profile.campaignPhone||"";$("#pEmail").value=profile.email||""}
   $("#famList").innerHTML=profile.family.map((f,i)=>`<div class="fm"><div><b>${esc(f.name)}</b> <span style="color:var(--muted)">${esc(relYou(f.rel))}</span><small>${esc(f.phone)}</small></div><button class="sw" type="button" data-i="${i}" aria-pressed="${f.sharing?"true":"false"}">${f.sharing?(f.g==="f"||/^(والدتي|ابنتي|زوجتي|أختي|جدتي|عمتي|خالتي|حفيدتي|المرشدة|مشرفة الحملة)$/.test(f.rel||"")?"تشارك موقعها":"يشارك موقعه"):(f.g==="f"||/^(والدتي|ابنتي|زوجتي|أختي|جدتي|عمتي|خالتي|حفيدتي|المرشدة|مشرفة الحملة)$/.test(f.rel||"")?"لا تشارك":"لا يشارك")}</button><button class="rm" type="button" data-rm="${i}" aria-label="حذف">✕</button></div>`).join("");
   document.querySelectorAll(".opts [data-pref]").forEach(b=>{const k=b.dataset.pref;b.setAttribute("aria-pressed",String(profile[k])===b.dataset.v?"true":"false")});
   document.querySelectorAll(".opts[data-pref]").forEach(g=>{const k=g.dataset.pref;g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(profile[k])===b.dataset.v?"true":"false"))});
@@ -1198,6 +1199,12 @@ const DOMAIN_WORDS="حج|حاج|حجاج|حجه|عمره|معتمر|معتمري
 const DOMAIN_EN=/\b(hajj|umrah|umra|ihram|tawaf|sa'?i|safa|marwa|miqat|kaaba|haram|mosque|masjid|prophet|rawdah|rawda|zamzam|makkah|mecca|madinah|medina|nusuk|prayer|pray|imam|sermon|gate|door|hotel|family|wheelchair|cart|lost|child|permit|visa|train|bus|taxi|parking|emergency|hospital|pilgrim|mina|arafat|muzdalifa|baqi|quba|uhud|guide|mutawwif)\b/i;
 function inDomain(text){if(!DOMAIN_RE)DOMAIN_RE=new RegExp("(^|\\s)(ال|لل|بال|وال|و|ف|ب|ل)?("+DOMAIN_WORDS.map(w=>normAr(w)).join("|")+")(\\s|$)");const n=kbNorm(text);return DOMAIN_RE.test(n)||DOMAIN_EN.test(text)}
 function kbTake(){const k=state.kbReply;state.kbReply=null;return k||null}
+/* جهة الضيف حين لا يجد كنف الجواب: رقم الحملة أو واتسابها إن وجد، أو مرشد/مشرف الحملة المضاف بين المرافقين، وإلا الرقم الموحد 1966 */
+function campContact(){const ph=normPhone(profile.campaignPhone||"");if(ph)return{name:profile.campaign?"حملة "+profile.campaign:"حملتك",phone:ph};
+  const m=(profile.family||[]).find(f=>f&&f.phone&&/حمل|مشرف|مرشد/.test(f.rel||""));if(m)return{name:(m.rel||"")+" "+(m.name||""),phone:normPhone(m.phone)};
+  const pr=(typeof groupMates==="function"?groupMates():[]).find(f=>f&&f.phone&&/حمل|مشرف|مرشد/.test(f.rel||""));if(pr)return{name:(pr.rel||"")+" "+(pr.name||""),phone:normPhone(pr.phone)};
+  return null}
+function waNum(ph){let d=String(ph||"").replace(/[^\d]/g,"");if(d.startsWith("05"))d="966"+d.slice(1);return d}
 
 const TOOLS={
   campaign:{agent:"sup",desc:"يعرض لوحة الحملة لمرشد المجموعة: مواقع الضيوف بإذنهم، من يحتاج مساعدة، جدول اليوم على كثافة الهيئة، رسالة للمجموعة بلغة كل ضيف، طلب عربات دفعة واحدة، وتقرير الرحلة.",
@@ -1508,12 +1515,18 @@ const TOOLS={
     run({question}={}){log("rite","سؤال فقهي شخصي: لا يفتي الوكيل، يحيل إلى إجابة السائلين والإفتاء و1966",question||"");
       card(head("📿","هذا سؤال يحتاج فتوى، ولا أفتي فيه","إجابة السائلين · الإفتاء")+`<div>اتصل مجانا بأرقام إجابة السائلين <b dir="ltr">8001222100</b> أو <b dir="ltr">8001222400</b>، أو اسأل العلماء في مواقع الإفتاء داخل ${esc(site().name)}${state.site==="madinah"?" (أبرزها عند باب 12 في الدور الأول)":""}، أو الرقم الموحد <b dir="ltr">1966</b>.</div><div class="kbsrc">المصدر: <a href="${KSRC.hg.u}" target="_blank" rel="noopener">دليل المسجد الحرام التوعوي</a>، <a href="${KSRC.ns.u}" target="_blank" rel="noopener">دليل خدمات المسجد النبوي</a> (وزارة الحج والعمرة)</div><div class="acts"><a class="chip" href="tel:8001222100" style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)">إجابة السائلين</a><a class="chip" href="tel:1966" style="text-decoration:none">1966</a>${state.site==="madinah"?'<button data-say="أذكار وآداب الروضة">آداب الزيارة</button>':'<button data-say="ما خطوات العمرة؟">خطوات العمرة</button>'}</div>`);
       return{referred_to:["8001222100","8001222400","مواقع الإفتاء","1966"],question:question||null}}},
-  refer_call_center:{agent:"svc",desc:"للأسئلة المتعلقة بالحج أو العمرة أو الزيارة أو خدمات الحرمين التي لا يوجد جوابها في مصادر كنف (الأدلة الرسمية في knowledge_answer وأدوات الخدمات). يحيل إلى الرقم الموحد 1966 بدل التخمين وبدل show_map. لا تستخدمها لما هو خارج نطاق الحج والعمرة؛ ذلك لأداة out_of_scope.",schema:{type:"object",properties:{topic:{type:"string"}}},
-    run({topic}={}){log("sup","سؤال من الحج والعمرة لا جواب له في المصادر، يحيل إلى الرقم الموحد 1966","لا يخمن"+(topic?" · "+topic:""));
-      card(head("☎️","لا أجد جواب هذا في مصادري","الرقم الموحد 1966")+`<div>لا أجيب إلا من المصادر الرسمية التي أعتمد عليها، ولا أخمن. اتصل بالرقم الموحد <b dir="ltr">1966</b> لاستفسارات ضيوف الرحمن، ومن خارج المملكة <b dir="ltr">+966920002814</b>.</div><div class="kbsrc">الرقمان من <a href="${KSRC.lib.u}" target="_blank" rel="noopener">الأدلة التوعوية لوزارة الحج والعمرة</a>، و1966 هو الرقم الموحد في موقع الهيئة كذلك.</div><div class="acts"><a class="chip" href="tel:1966" style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)">اتصال بـ 1966</a></div>`);
+  refer_call_center:{agent:"svc",desc:"للأسئلة المتعلقة بالحج أو العمرة أو الزيارة أو خدمات الحرمين التي لا يوجد جوابها في مصادر كنف (الأدلة الرسمية في knowledge_answer وأدوات الخدمات). يحيل إلى حملة الضيف (اتصال أو واتساب) إن كان مع حملة، وإلا إلى الرقم الموحد 1966، بدل التخمين وبدل show_map. لا تستخدمها لما هو خارج نطاق الحج والعمرة؛ ذلك لأداة out_of_scope.",schema:{type:"object",properties:{topic:{type:"string"}}},
+    run({topic}={}){const cc=campContact();const btn='style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)"';
+      if(cc){log("sup","سؤال من الحج والعمرة لا جواب له في المصادر، يحيل إلى الحملة",cc.name+" · لا يخمن"+(topic?" · "+topic:""));
+        card(head("☎️","لا أجد جواب هذا في مصادري",cc.name)+`<div>لا أجيب إلا من المصادر الرسمية التي أعتمد عليها، ولا أخمن. حملتك أقرب من يجيبك: اتصل بهم أو راسلهم على واتساب.</div><div class="acts"><a class="chip" href="tel:${esc(cc.phone)}" ${btn}>اتصال بالحملة</a><a class="chip" href="https://wa.me/${waNum(cc.phone)}?text=${encodeURIComponent("السلام عليكم، عندي سؤال: "+(topic||""))}" target="_blank" rel="noopener" style="text-decoration:none">واتساب الحملة</a></div>`);
+        state.kbReply=pick({ar:"لا أجد جواب هذا في مصادري، ولا أخمن؛ تواصل مع "+cc.name+" باتصال أو واتساب من البطاقة.",en:"I cannot find this in my sources and I do not guess; contact your campaign by call or WhatsApp from the card.",fr:"Je ne trouve pas cela dans mes sources et je ne devine pas ; contactez votre groupe par appel ou WhatsApp depuis la carte."});
+        return{referred_to:"campaign",campaign:cc.name,topic:topic||null}}
+      log("sup","سؤال من الحج والعمرة لا جواب له في المصادر وبلا حملة، يحيل إلى الرقم الموحد 1966","لا يخمن"+(topic?" · "+topic:""));
+      card(head("☎️","لا أجد جواب هذا في مصادري","الرقم الموحد 1966")+`<div>لا أجيب إلا من المصادر الرسمية التي أعتمد عليها، ولا أخمن. اتصل بالرقم الموحد <b dir="ltr">1966</b> لاستفسارات ضيوف الرحمن، ومن خارج المملكة <b dir="ltr">+966920002814</b>.</div><div class="kbsrc">الرقمان من <a href="${KSRC.lib.u}" target="_blank" rel="noopener">الأدلة التوعوية لوزارة الحج والعمرة</a>، و1966 هو الرقم الموحد في موقع الهيئة كذلك.</div><div class="acts"><a class="chip" href="tel:1966" ${btn}>اتصال بـ 1966</a></div>`);
+      state.kbReply=pick({ar:"لا أجد جواب هذا في مصادري، ولا أخمن؛ اتصل بالرقم الموحد 1966 وهم يجيبونك.",en:"I cannot find this in my sources and I do not guess; please call the unified number 1966.",fr:"Je ne trouve pas cela dans mes sources et je ne devine pas ; appelez le numéro unifié 1966."});
       return{referred_to:"1966",topic:topic||null}}},
   knowledge_answer:{agent:"rite",desc:"يجيب عن أسئلة الحج والعمرة وزيارة المسجد النبوي وآداب الحرمين ومعلوماتهما من المصادر الرسمية فقط (الأدلة التوعوية لوزارة الحج والعمرة وصفحات التوعية في موقع الهيئة). اختر الموضوع الأقرب لسؤال الضيف من القائمة. إن لم يكن جواب السؤال في أحد هذه الموضوعات فلا تستخدمها واستخدم refer_call_center. ولا تستخدمها لطلب خدمة الآن (عربة، إرشاد، كثافة، عائلة).",schema:{type:"object",properties:{topic:{type:"string",enum:KB.map(e=>e.t)}},required:["topic"]},
-    run({topic}={}){const nt=normAr(topic||"");const e=KB.find(x=>x.t===topic)||KB.find(x=>normAr(x.t)===nt);
+    run({topic}={}){const nt=normAr(topic||"");const e=KB.find(x=>x.t===topic)||KB.find(x=>normAr(x.t)===nt)||((kbMatch(topic||"")||{}).e);
       if(!e)return TOOLS.refer_call_center.run({topic});
       const ss=e.s.map(k=>KSRC[k]).filter(Boolean);
       log("rite","أجاب من المصدر الرسمي: "+e.t,ss.map(x=>x.n+" ("+x.o+")").join(" · "));
@@ -1523,7 +1536,7 @@ const TOOLS={
       return{topic:e.t,sources:ss.map(x=>x.n+" ("+x.o+")")}}},
   out_of_scope:{agent:"sup",desc:"لأي سؤال أو طلب خارج نطاق كنف: كل ما لا يتعلق بالحج أو العمرة أو زيارة المسجد النبوي أو المسجد الحرام والمسجد النبوي وخدماتهما أو رحلة الضيف في مكة والمدينة (سكنه وتنقله وعائلته وحملته وصحته وسلامته هناك). أمثلة: الأخبار والسياسة والرياضة والطبخ والبرمجة والواجبات والمعلومات العامة. يرد بأن السؤال خارج نطاق معرفته.",schema:{type:"object",properties:{}},
     run(){log("sup","السؤال خارج نطاق الحج والعمرة والزيارة","يعتذر ولا يجيب من خارج مصادره");
-      state.kbReply=pick({ar:"هذا خارج نطاق معرفتي. أنا مختص بالعمرة والحج وزيارة المسجد النبوي وخدمات الحرمين ورحلتك فيهما.",en:"That is outside my knowledge. I cover Umrah, Hajj, visiting the Prophet's Mosque, the services of the Two Holy Mosques and your trip there.",fr:"Cela dépasse mon domaine. Je couvre la Omra, le Hajj, la visite de la Mosquée du Prophète, les services des deux Saintes Mosquées et votre séjour."});
+      state.kbReply=pick({ar:"لا أعرف هذا، فهو خارج نطاقي. أنا مختص بالعمرة والحج وزيارة المسجد النبوي وخدمات الحرمين ورحلتك فيهما.",en:"I do not know this; it is outside my scope. I cover Umrah, Hajj, visiting the Prophet's Mosque, the services of the Two Holy Mosques and your trip there.",fr:"Cela dépasse mon domaine. Je couvre la Omra, le Hajj, la visite de la Mosquée du Prophète, les services des deux Saintes Mosquées et votre séjour."});
       return{out_of_scope:true}}},
   family_setup:{agent:"svc",desc:"يسأل الضيف من معه في رحلته ويحفظ أسماء أفراد عائلته وصلتهم، ثم يعطيه رابط ربطهم بمجموعته. استخدمه عندما يقول من معي أو يريد تسجيل عائلته أو إضافة أفراد بالاسم.",schema:{type:"object",properties:{}},
     run(){state.onb="family";const en=isEN();const r=en?(profile.family&&profile.family.length?"Who would you like to add? Type their name.":"Who is with you on this trip? Type their names, or say alone."):(profile.family&&profile.family.length?"من تريد أن تضيف؟ اكتب اسمه.":"من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.");msg("bot",r);speak(r,{lang:en?"en":"ar"});box.placeholder=en?"Type the name…":"اكتب الاسم…";return{asked:true}}},
@@ -1616,6 +1629,17 @@ const TOOLS={
       card(head(ICON.pray,"تصريح الروضة الشريفة","خدمة خارجية")+`<dl class="kv"><dt>الحالة</dt><dd>مؤكد</dd><dt>الوقت</dt><dd>اليوم 21:30 إلى 22:00</dd><dt>الدخول</dt><dd>عبر الساحات الجنوبية من أمام باب مكة (37) ضمن التفويج، وفق إعلان الهيئة</dd><dt>كبار السن</dt><dd>يسمح بالدخول بالعربة اليدوية ضمن ضوابط الهيئة</dd><dt>ما الفرق؟</dt><dd>الروضة الشريفة للصلاة وتحتاج تصريحا، أما السلام على النبي فمن مسار السلام للرجال بلا تصريح: من باب السلام 1 إلى باب البقيع</dd><dt>كثافة مسار السلام الآن</dt><dd>${d?`<span class="lvl ${LVL[d][1]}">${LVL[d][0]}</span>`:"لا قراءة حية"}</dd></dl><div class="acts"><button class="primary" data-say="ذكرني قبل موعد الروضة بنصف ساعة">ذكرني قبل الموعد</button></div>`);
       return{status:"confirmed",slot:"21:30-22:00",gate:"باب السلام",density:lvlText(d)}}}
 };
+/* التوعية مع الخدمة: بعد الاستجابة للطلب يعرض كنف سطر توعية من المصدر الرسمي إن وجد لهذا السياق، مرة واحدة لكل موضوع في الجلسة */
+const AWARE={request_cart:"الطواف في الزحام والأدوار",get_density:a=>state.site==="madinah"?"الروضة الشريفة: الحجز والمواعيد":"الطواف في الزحام والأدوار",mutawwif:"كيف أطوف",umrah_now:"خطوات العمرة",
+  find_nearest:a=>a&&/zamzam/.test(a.category||"")?"ماء زمزم: الآداب والتعبئة والسفر":null,report_lost:a=>a&&a.type==="person"?(state.site==="madinah"?"مراكز الخدمة حول المسجد النبوي":"الأطفال في المسجد الحرام وضيافتهم"):null,
+  book_children_center:a=>state.site==="madinah"?null:"الأطفال في المسجد الحرام وضيافتهم",sermon_translation:"ترجمة خطبة الجمعة",heat_protection:"وصايا صحية للمعتمر",hydration_rest:"وصايا صحية للمعتمر",avoid_heat_crowd:"وصايا صحية للمعتمر",
+  rawdah_permit:"الروضة الشريفة: الحجز والمواعيد",rawdah_route:"السلام على النبي صلى الله عليه وسلم وصاحبيه",accessibility_services:a=>state.site==="madinah"?"خدمات ذوي الإعاقة وكبار السن في المسجد النبوي":"الطواف في الزحام والأدوار",
+  emergency:"أرقام مهمة لضيوف الرحمن",start_guidance:a=>{const d=String(a&&a.destination||"");return /مطاف|طواف|كعبه|كعبة/.test(d)?"الطواف في الزحام والأدوار":/مسعى|صفا|مروه|مروة/.test(d)?"كيف أسعى بين الصفا والمروة":null},trip_plan:"تصريح العمرة"};
+function awareFor(name,args){const m=AWARE[name];const t=typeof m==="function"?m(args):m;if(!t)return;const e=KB.find(x=>x.t===t);if(!e||!kbSiteOk(e,kbNorm(""))&&e.m)return;
+  state.awareShown=state.awareShown||{};if(state.awareShown[e.t])return;state.awareShown[e.t]=1;const src=KSRC[e.s[0]];
+  log("rite","توعية مع الخدمة من المصدر الرسمي: "+e.t,src.n+" ("+src.o+")");
+  card(head("💡","توعية: "+e.t,"من "+src.o)+`<div class="kb"><p>${esc(e.a[0])}</p>${e.a[1]?`<p>${esc(e.a[1])}</p>`:""}</div><div class="kbsrc">المصدر: <a href="${src.u}" target="_blank" rel="noopener">${esc(src.n)}</a></div>${e.a.length>2?`<div class="acts"><button data-say="${esc(e.t)}">المزيد</button></div>`:""}`,"aware")}
+Object.keys(AWARE).forEach(k=>{const t=TOOLS[k];if(!t||!t.run)return;const r0=t.run;t.run=function(...a){const out=r0.apply(this,a);const go=()=>{try{awareFor(k,a[0]||{})}catch(_){}};if(out&&typeof out.then==="function")out.then(go,go);else setTimeout(go,30);return out}});
 
 /* ---------- proactive layer ---------- */
 function prayerPlan(){const s=site();const halls=s.halls.slice().sort((a,b)=>a[1]-b[1]);const best=halls[0];
@@ -1770,7 +1794,7 @@ const ROUTES=[
  [/مكتب.*(تائه|مفقود)/i,"find_nearest",()=>({category:"lost"})],
  [/مكيف|ظل|بارد/i,"find_nearest",()=>({category:"lift"})],
  [/مكتبة|معرض|كسوة|زيارة|متحف/i,"book_visit",m=>({place:/كسوة/.test(m)?"kiswa":/معرض|متحف/.test(m)?"exhibition":"library"})],
- [/درس|دروس|صلاة|الصلاة|أذان|اذان|موعد|متى/i,"get_lessons_and_prayers",()=>({})],
+ [/درس|دروس|صلاة|الصلاة|أذان|اذان|موعد (الصلاة|الأذان|الاذان|الدرس)|متى (الفجر|الظهر|العصر|المغرب|العشاء|الأذان|الاذان|الصلاة|الدرس)/i,"get_lessons_and_prayers",()=>({})],
  [/باب|بوابة|مخرج|gate|exit/i,"find_nearest",()=>({category:"gate"})],
  [/مصلى مخصص|كبار السن/i,"find_nearest",()=>({category:"pray"})],
 ];
@@ -1790,7 +1814,7 @@ async function viaGateway(text){if(!LLM.ok())return null;typing(true);const fz=a
 function detectLang(text){return /[a-z]{3,}/i.test(text)&&!/[\u0600-\u06FF]/.test(text)?(()=>{if(/[éèêàçùôâîûœ]/.test(text))return "fr";const fr=(text.match(/\b(je|où|ou|est|les|mon|ma|mes|vous|pour|comment|famille|hôtel|retour|prière|chariot|aide|bonjour|merci|moi|vers|le|la|guidez|chemin|aller|emmène|emmenez|suis|avec|une|des|du)\b/gi)||[]).length;const en=(text.match(/\b(the|where|is|are|my|to|how|can|i|need|want|please|me|you|a|an|of|in|what|when|which|take|get|near|nearest|help|family|hotel|back|guide)\b/gi)||[]).length;return fr>en?"fr":"en"})():/[\u0679\u067E\u0686\u0688\u0691\u06BA\u06BE\u06C1\u06CC\u06D2]/.test(text)?"ur":/[\u0600-\u06FF]/.test(text)?"ar":null}
 /* لا خدمة ولا جواب من المصادر: داخل نطاق الحج والعمرة يحال إلى 1966، وخارجه: خارج نطاق معرفتي، والتحية تعرض ما يقدمه كنف */
 function noMatch(text){if(/^\s*(السلام عليكم|سلام عليكم|سلام|مرحبا|مرحباً|اهلا|أهلا|هلا|هلا والله|صباح الخير|مساء الخير|hi|hello|salam|bonjour|salut)(\s|$|[!.،,؟?])/i.test(text)){log("sup","تحية بلا طلب","يعرض ما يقدمه");return pick({ar:GENERIC.ar,fr:GENERIC.fr,en:GENERIC.en})}
-  if(inDomain(text)){TOOLS.refer_call_center.run({topic:text.slice(0,80)});return pick({ar:follow("refer_call_center"),en:FOLLOW_EN.refer_call_center,fr:"Je ne trouve pas cela dans mes sources et je ne devine pas ; appelez le numéro unifié 1966."})}
+  if(inDomain(text)){TOOLS.refer_call_center.run({topic:text.slice(0,80)});return kbTake()}
   TOOLS.out_of_scope.run();return kbTake()}
 async function scripted(text){
   log("sup","قرأ الطلب والسياق","يصنف النية ويختار الوكيل");
@@ -1798,10 +1822,11 @@ async function scripted(text){
   /* with the gateway available, free-form sentences go to Claude first; short commands and quick chips stay local for speed */
   /* الطلبات الصريحة عن الوصول والفتوى تحسم محليا قبل البوابة حتى لا تذهب إلى الخريطة */
   /* مراجع المعرفة أولا: سؤال معرفي جوابه في الأدلة الرسمية يجاب منها مباشرة بلا تخمين */
-  {const nq=kbNorm(text);const kb=state.fromChip?null:kbMatch(text);
+  {const nq=kbNorm(text);const kx=KB.find(x=>x.t===text.trim());const kb=kx?{e:kx,s:9}:(state.fromChip?null:kbMatch(text));
    const qcue=/[؟?]/.test(text)||/ (ما|ماهي|ماهو|ايش|وش|شو|كيف|متى|هل|كم|لماذا|ليش|ماذا|اشرح|عرفني|علمني|اعرف) /.test(nq);
    const bare=nq.trim().split(" ").length<=4;const loc=/ (وين|فين|اين|دلني|دليني|وديني|خذني|اقرب) /.test(nq);
-   if(kb&&(qcue||bare)&&!(loc&&ROUTES.some(([re,,,guard])=>re.test(text)&&(!guard||guard(text))))){log("sup","سؤال معرفي جوابه في الأدلة الرسمية","يجيب من المصدر: "+kb.e.t);await wait(250);TOOLS.knowledge_answer.run({topic:kb.e.t});const kr=kbTake();if(kr)return kr}}
+   const price=/ (سعر|اسعار|بكم|كم سعر|كم يكلف|تكلفه|رسوم|كم الرسوم) /.test(nq)&&!/ريال/.test(kb?kb.e.a.join(" "):"");
+   if(kb&&!price&&(kx||qcue||bare)&&!(loc&&ROUTES.some(([re,,,guard])=>re.test(text)&&(!guard||guard(text))))){log("sup","سؤال معرفي جوابه في الأدلة الرسمية","يجيب من المصدر: "+kb.e.t);await wait(250);TOOLS.knowledge_answer.run({topic:kb.e.t});const kr=kbTake();if(kr)return kr}}
   const LOCAL_FIRST=["transport_options","fatwa_refer","share_location","family_locate","set_meeting_point","invite_member","set_campaign","plan_mail"];const lf=ROUTES.find(([re,name,,guard])=>LOCAL_FIRST.includes(name)&&re.test(text)&&(!guard||guard(text)));
   if(LLM.ok()&&!state.fromChip&&!lf){const g=await viaGateway(text);if(g)return g}
   if(/^\s*(دلني|أرشدني|ارشدني|وجهني|دليني)\s*[.؟!]?\s*$/i.test(text)&&!state.lastDest){
@@ -1822,7 +1847,10 @@ async function scripted(text){
     const t=TOOLS[name];log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name+" · الرد بالفرنسية");await wait(400);t.run(args);return pick({ar:follow(name),fr:FOLLOW_FR[name]||"C'est fait.",en:FOLLOW_FR[name]||"Done."})}
   const r=ROUTES.find(([re,,,guard])=>re.test(text)&&(!guard||guard(text)));
   if(!r){let fz=null;if(LLM.ok()){typing(true);fz=await LLM.classify(text);if(fz)log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fz[0],"اختار الأداة من وصفها، والمفتاح على الخادم")}
-    if(!fz)fz=fuzzyIntent(text);
+    if(!fz){const nq=kbNorm(text);const feel=/(تعب|دايخ|ضايع|ضعت|تهت|خايف|قلق|عطش|جوع|زعلان|ضيق|مرهق|حر|ضاع)/.test(nq);
+      const qcue=/[؟?]/.test(text)||/ (ما|ماهي|ماهو|ايش|وش|شو|كيف|متى|هل|كم|لماذا|ليش|ماذا|من) /.test(nq);
+      if(!inDomain(text)&&!feel)return noMatch(text);
+      fz=fuzzyIntent(text);if(fz&&qcue&&(fz.score||0)<4&&!feel)fz=null}
     if(fz){const [fname,fargs]=fz;const ft=TOOLS[fname];const viaLLM=/عبر Claude/.test(trace.lastChild&&trace.lastChild.innerText||"");if(!viaLLM)log("sup","فهم النية تقريبيا: "+fname,"مطابقة بالكلمات المفتاحية");await wait(400);ft.run(fargs);
       if(viaLLM&&LLM.reply){const rp=LLM.reply;LLM.reply="";const rl=detectLang(rp)||state.lang||"ar";return {text:rp,say:rp,sayLang:rl}}
       {const kr=kbTake();if(kr){LLM.reply="";return kr}}
@@ -1872,12 +1900,12 @@ const INTENTS=[
  ["hydration_rest",["تعبان","تعبانه","متعب","منهك","حر","حراره","مرهق"],[],{need:"both"}],
 ];
 function fuzzyIntent(text){const n=normAr(text);if(!n)return null;let best=null,bs=0;
-  for(const [name,keys,boost,args] of INTENTS){let sc=0;for(const k of keys){if(n.includes(normAr(k)))sc+=k.length>3?2:1}
+  const nw=" "+n+" ";for(const [name,keys,boost,args] of INTENTS){let sc=0;for(const k of keys){const kk=normAr(k);if(kk.length<=2?nw.includes(" "+kk+" "):n.includes(kk))sc+=k.length>3?2:1}
     if(sc){for(const b of boost){if(n.includes(normAr(b)))sc+=1}}
     if(sc>bs){bs=sc;best=[name.split(":")[0],args]}}
   if(!best)return null;
-  if(best[0]==="start_guidance"&&!/مطاف|كعبه|طواف|حرم/.test(n)){return ["show_map",{}]}
-  return best}
+  if(best[0]==="start_guidance"&&!/مطاف|كعبه|طواف|حرم/.test(n)){const r=["show_map",{}];r.score=bs;return r}
+  best.score=bs;return best}
 function follow(name){if(state.followOnce)return state.followOnce;const f=FOLLOW[name];return typeof f==="function"?f(state):(f||"تم.")}
 const GENERIC={ar:"أستطيع مساعدتك في: الإرشاد لأقرب خدمة، الكثافة والمصليات، طلب عربة، عائلتك، التائهين والمفقودات، ضيافة الأطفال، ترجمة الخطبة، الدروس والمواقيت، العودة للسكن، والطوارئ. ماذا تحتاج؟",fr:"Je peux vous aider : trouver le service le plus proche, l'affluence et les salles de prière, un chariot, votre famille, les objets perdus, la garderie, la traduction du sermon, les cours et horaires, le retour à l'hôtel, et les urgences. Que souhaitez-vous ?",en:"I can help with: the nearest service, crowd levels and prayer halls, a cart, your family, lost and found, the children's centre, sermon translation, lessons and prayer times, the way back to your hotel, and emergencies. What do you need?"};
 /* text in the guest's reading language (or the language he wrote in), speech in his listening language */
@@ -1894,7 +1922,7 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 async function ask(text,img){
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
   /* أثناء التعريف: إن كتب الضيف طلبا أو ضغط زرا، نخدمه فورا ولا نعامل طلبه كاسم */
-  if(state.onb){const answerStep=/^(home|relother|otp|campaign|planmail|gender)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
+  if(state.onb){const answerStep=/^(home|relother|otp|campaign|campphone|planmail|gender)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
     if(cmd){const was=state.onb;state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";log("sup","أجل التعريف لأن الضيف طلب خدمة",was)}
     else{msg("user",text);box.value="";if(await onbStep(text)){scrollBottom();return}}}
   if(state.pendingSign){const ps=state.pendingSign;
@@ -2047,11 +2075,11 @@ const SITE_EN={makkah:{name:"Masjid al-Haram",city:"Makkah"},madinah:{name:"The 
 const ACCT={id(email){let h=5381;const e=String(email||"").trim().toLowerCase();for(let i=0;i<e.length;i++)h=((h<<5)+h+e.charCodeAt(i))|0;return "u"+(h>>>0).toString(36)},
   async create(name,key){const id=this.id(key);profile.name=name;if(/@/.test(key))profile.email=key;else profile.phone=key;profile.accountId=id;profile.selfNamed=true;profile.familyAsked=1;profile.nameAsked=1;try{localStorage.setItem("knf_peer",id)}catch(_){}saveProfile(true);renderKnown();renderQuick();if(state.pushPresence)state.pushPresence();const h=feed.querySelector(".hero b");if(h)h.textContent=isEN()?UI_EN.heroNamed(name):"أهلا "+name+"، أنا كنف";
     log("svc","حساب الضيف بالجوال","المعرف "+id+" · يبحث أولا عن ملف محفوظ لهذا الرقم قبل إنشاء ملف جديد");const back=await this.pull(true);if(!back){log("svc","أنشأ حساب الضيف","لا ملف سابق لهذا الرقم · الملف يتزامن بين أجهزته");this.sync(true)}return back},
-  payload(){const P=profile;profile.syncT=Date.now();return JSON.stringify({name:P.name,family:P.family||[],readLang:P.readLang,speakLang:P.speakLang,email:P.email||"",genderStated:P.genderStated||0,prefsStated:P.prefsStated||0,quiet:P.quiet,lessons:P.lessons,rest:P.rest,tawafFloor:P.tawafFloor,langChosen:P.langChosen,voiceChosen:P.voiceChosen||0,campaign:P.campaign||"",campaignAsked:P.campaignAsked||0,mobility:P.mobility,age:P.age,kids:P.kids,gender:P.gender,hearing:P.hearing,homes:P.homes,phoneVerified:P.phoneVerified,t:profile.syncT})},
+  payload(){const P=profile;profile.syncT=Date.now();return JSON.stringify({name:P.name,family:P.family||[],readLang:P.readLang,speakLang:P.speakLang,email:P.email||"",genderStated:P.genderStated||0,prefsStated:P.prefsStated||0,quiet:P.quiet,lessons:P.lessons,rest:P.rest,tawafFloor:P.tawafFloor,langChosen:P.langChosen,voiceChosen:P.voiceChosen||0,campaign:P.campaign||"",campaignPhone:P.campaignPhone||"",campaignAsked:P.campaignAsked||0,mobility:P.mobility,age:P.age,kids:P.kids,gender:P.gender,hearing:P.hearing,homes:P.homes,phoneVerified:P.phoneVerified,t:profile.syncT})},
   /* يسحب الملف المحفوظ لهذا الحساب من القناة؛ يطبقه فقط إن كان أحدث مما على الجهاز، ويعيد true إن استعاد شيئا */
   async pull(quiet){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return false;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return false;const tp="kanaf/demo/acct/"+profile.accountId;
     return await new Promise(res=>{const t=setTimeout(()=>{try{EVT.client.unsubscribe(tp);EVT.client.removeListener("message",h)}catch(_){}res(false)},3500);const h=(topic,m)=>{if(topic!==tp)return;clearTimeout(t);EVT.client.removeListener("message",h);EVT.client.unsubscribe(tp);let got=false;try{const d=JSON.parse(m.toString());
-        if(d&&d.name&&(!profile.syncT||+d.t>profile.syncT||!(profile.family||[]).length)){const fam=Array.isArray(d.family)?d.family:[];Object.assign(profile,{name:d.name||profile.name,family:fam.length?fam:(profile.family||[]),readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,email:d.email||profile.email,genderStated:d.genderStated||profile.genderStated||0,prefsStated:d.prefsStated||profile.prefsStated||0,quiet:d.quiet??profile.quiet,lessons:d.lessons??profile.lessons,rest:d.rest??profile.rest,tawafFloor:d.tawafFloor??profile.tawafFloor,langChosen:d.langChosen||profile.langChosen,voiceChosen:d.voiceChosen||profile.voiceChosen||0,campaign:d.campaign||profile.campaign||"",campaignAsked:d.campaignAsked||profile.campaignAsked||0,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes,phoneVerified:d.phoneVerified||profile.phoneVerified,syncT:+d.t||Date.now()});try{normFamily()}catch(_){}saveProfile(true);renderKnown();renderQuick();const h2=feed.querySelector(".hero b");if(h2)h2.textContent=isEN()?UI_EN.heroNamed(profile.name):"أهلا "+profile.name+"، أنا كنف";log("svc","استعاد ملف الحساب المحفوظ",d.name+" · "+fam.length+" أفراد");got=true}}catch(_){}res(got)};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){return false}},
+        if(d&&d.name&&(!profile.syncT||+d.t>profile.syncT||!(profile.family||[]).length)){const fam=Array.isArray(d.family)?d.family:[];Object.assign(profile,{name:d.name||profile.name,family:fam.length?fam:(profile.family||[]),readLang:d.readLang||profile.readLang,speakLang:d.speakLang||profile.speakLang,email:d.email||profile.email,genderStated:d.genderStated||profile.genderStated||0,prefsStated:d.prefsStated||profile.prefsStated||0,quiet:d.quiet??profile.quiet,lessons:d.lessons??profile.lessons,rest:d.rest??profile.rest,tawafFloor:d.tawafFloor??profile.tawafFloor,langChosen:d.langChosen||profile.langChosen,voiceChosen:d.voiceChosen||profile.voiceChosen||0,campaign:d.campaign||profile.campaign||"",campaignPhone:d.campaignPhone||profile.campaignPhone||"",campaignAsked:d.campaignAsked||profile.campaignAsked||0,mobility:d.mobility||profile.mobility,age:d.age||profile.age,kids:d.kids??profile.kids,gender:d.gender||profile.gender,hearing:d.hearing||profile.hearing,homes:d.homes||profile.homes,phoneVerified:d.phoneVerified||profile.phoneVerified,syncT:+d.t||Date.now()});try{normFamily()}catch(_){}saveProfile(true);renderKnown();renderQuick();const h2=feed.querySelector(".hero b");if(h2)h2.textContent=isEN()?UI_EN.heroNamed(profile.name):"أهلا "+profile.name+"، أنا كنف";log("svc","استعاد ملف الحساب المحفوظ",d.name+" · "+fam.length+" أفراد");got=true}}catch(_){}res(got)};EVT.client.on("message",h);EVT.client.subscribe(tp)})}catch(_){return false}},
   async sync(push){if(!profile.accountId||LIVE.sandboxed()||state.offline||location.protocol==="file:")return;try{if(!EVT.client){await EVT.pub()}if(!EVT.client||!EVT.client.connected)return;const tp="kanaf/demo/acct/"+profile.accountId;
     if(push){EVT.client.publish(tp,this.payload(),{retain:true});return}
     await this.pull(false)}catch(_){}}};
@@ -2091,6 +2119,10 @@ function joinGroupDone(){profile.familyAsked=1;if(!profile.campaign){const c=(st
 /* تأكيد الجوال برمز عبر البوابة: يرسل ويتحقق، وبلا مزود مضبوط يعيد sent:false فيستمر إنشاء الحساب بلا تأكيد */
 const OTP={async send(phone){if(!LLM.ok()||!phone)return{sent:false,reason:"offline"};try{const r=await fetch(LLM.url.replace(/\/$/,"")+"/otp/send",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({phone})});return await r.json()}catch(e){return{sent:false,reason:String(e.message||e)}}},
   async verify(phone,code){try{const r=await fetch(LLM.url.replace(/\/$/,"")+"/otp/verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({phone,code})});return await r.json()}catch(e){return{verified:false,reason:String(e.message||e)}}}};
+function campDone(after,names,none,pre){
+    const ack=pre||(none?(isEN()?"Alright.":"تمام."):(isEN()?"Noted: campaign "+profile.campaign+".":"حفظت: حملة "+profile.campaign+"."));
+    if(after==="invite"&&names.length){const r=ack+" "+(isEN()?"Send "+names[0].split(" ")[0]+" the link so their location appears with you.":"أرسل الرابط لمن معك ليظهر موقعهم عندك وتسأل: وين "+names[0].split(" ")[0]+"؟");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});TOOLS.invite_member.run({forName:names[0]});return true}
+    const r=ack+" "+(isEN()?UI_EN.alone:"أنا معك. اسألني عن أي شيء، أو ابدأ بزر «أبغى أعتمر».");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});ACCT.sync(true);return true}
 async function onbStep(text){
   const t=text.trim();
   if(state.onb==="name"){const n=t.replace(/^(أنا|انا|اسمي|إسمي|اسمي هو|my name is|i am|je suis)\s+/i,"").replace(/[.!؟]+$/,"").trim();if(!n||n.split(/\s+/).length>4){msg("bot",isEN()?UI_EN.askNameOnly:"ما اسمك؟ اكتبه فقط.");return true}
@@ -2115,12 +2147,14 @@ async function onbStep(text){
     if(v&&v.verified){profile.phoneVerified=1;log("svc","تم تأكيد جوال الضيف","رمز صحيح");typing(true);const back=await ACCT.create(state.onbName,ph);typing(false);profile.phoneVerified=1;saveProfile();if(back)return welcomeBack();if(state.groupCode&&state.joinedViaLink){const r0=isEN()?"Your phone is confirmed and your account is ready, "+profile.name+".":"تم تأكيد جوالك وأنشأت حسابك يا "+profile.name+".";msg("bot",r0);joinGroupDone();return true}state.onb="family";const r=isEN()?UI_EN.otpOk(profile.name):"تم تأكيد جوالك وأنشأت حسابك يا "+profile.name+". من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?UI_EN.phFam:"أسماء من معك، أو وحدي…";try{localStorage.removeItem("knf_group");localStorage.removeItem("knf_rel");localStorage.removeItem("knf_by")}catch(_){}state.joinRel="";state.joinBy="";return true}
     state.onbTries=(state.onbTries||0)+1;const r=state.onbTries>=3?(isEN()?"Still not matching. Type skip to continue without confirmation.":"ما زال غير مطابق. اكتب تخطي للمتابعة بلا تأكيد."):(isEN()?UI_EN.otpBad:"الرمز غير صحيح. حاول مرة أخرى، أو اكتب أعد الإرسال، أو تخطي.");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});return true}
   if(state.onb==="mailonly"){const em=t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);if(!em){msg("bot","أحتاج بريدا صحيحا مثل name@example.com");return true}profile.email=em[0];saveProfile();state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";ACCT.sync(true);pushPlan(null,true).then(j=>{if(!(j&&j.sent))sharePlan("mail")});return true}
-  if(state.onb==="campaign"){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";profile.campaignAsked=1;const none=/^\s*(بلا|بدون|لا|ما في|مافي|ماعندي|ما عندي|لا حملة|بلا حملة|بدون حملة|مافي حملة|ما في حملة|none|no|nothing)\b/i.test(t)||/^\s*(لا|بلا)\s*[.!؟]?\s*$/.test(t);
+  if(state.onb==="campaign"){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";profile.campaignAsked=1;const none=/^\s*(بلا|بدون|لا|ما في|مافي|ماعندي|ما عندي|لا حملة|بلا حملة|بدون حملة|مافي حملة|ما في حملة|none|no|nothing)(\s|$|[.!؟,،])/i.test(t)||/^\s*(لا|بلا)\s*[.!؟]?\s*$/.test(t);
     profile.campaign=none?"":campName(t);saveProfile();renderKnown();log("svc",none?"الضيف بلا حملة":"حفظ حملة الضيف",profile.campaign||"");
     const after=state.onbAfter||"";state.onbAfter="";const names=state.onbNames||[];state.onbNames=null;
-    const ack=none?(isEN()?"Alright.":"تمام."):(isEN()?"Noted: campaign "+profile.campaign+".":"حفظت: حملة "+profile.campaign+".");
-    if(after==="invite"&&names.length){const r=ack+" "+(isEN()?"Send "+names[0].split(" ")[0]+" the link so their location appears with you.":"أرسل الرابط لمن معك ليظهر موقعهم عندك وتسأل: وين "+names[0].split(" ")[0]+"؟");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});TOOLS.invite_member.run({forName:names[0]});return true}
-    const r=ack+" "+(isEN()?UI_EN.alone:"أنا معك. اسألني عن أي شيء، أو ابدأ بزر «أبغى أعتمر».");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});ACCT.sync(true);return true}
+    if(!none&&!profile.campaignPhone){state.onb="campphone";state.campAfter={after,names};const r=isEN()?"Noted: campaign "+profile.campaign+". What is the campaign's phone or WhatsApp number? I use it when I do not have an answer. Or say later.":"حفظت: حملة "+profile.campaign+". ما رقم الحملة أو واتسابها؟ أتصل بهم عندما لا أجد جواب سؤالك. أو قل لاحقا.";msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});box.placeholder=isEN()?"Campaign number, or later…":"رقم الحملة، أو لاحقا…";return true}
+    return campDone(after,names,none)}
+  if(state.onb==="campphone"){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";const ph=normPhone(t);
+    if(ph){profile.campaignPhone=ph;saveProfile();renderKnown();log("svc","حفظ رقم الحملة","للاتصال أو واتساب عند غياب الجواب")}else log("svc","الضيف أجل رقم الحملة","يحيل إلى 1966 حتى يضيفه");
+    const ca=state.campAfter||{};state.campAfter=null;return campDone(ca.after||"",ca.names||[],false,ph?(isEN()?"Saved the campaign number.":"حفظت رقم الحملة."):(isEN()?"Alright, you can add it later in your profile.":"تمام، تضيفه متى شئت من صفحة معلوماتك."))}
   if(state.onb==="planmail"){const em=t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);if(/^\s*(لا|لاحقا|ما أبغى|ما ابغى|no|later|skip|تخطي)\s*[.!؟]?\s*$/i.test(t)||!em){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";if(!em){const r="تمام، الخطة محفوظة على جهازك. ومتى أردت قل: أرسل خطتي للبريد.";msg("bot",r);speak(r,{lang:"ar"});return true}}
     state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";profile.email=em[0];saveProfile();renderKnown();ACCT.sync(true);log("svc","حفظ بريد الضيف لإرسال الخطة",em[0]);const r="حفظت بريدك "+em[0]+"، أرسل لك الخطة عليه الآن وكل صباح.";msg("bot",r);speak(r,{lang:"ar"});pushPlan(null,true).then(j=>{if(!(j&&j.sent))sharePlan("mail")});return true}
   if(state.onb==="home"){state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";const v=t.trim().slice(0,60);if(!v)return true;const hp=hotelOf(v);profile.homes[state.site]=Object.assign(profile.homes[state.site]||{},{home:v,confirmed:1,auto:0,la:hp?hp[1]:undefined,lo:hp?hp[2]:undefined});saveProfile();renderKnown();log("svc","حفظ سكن الضيف من المحادثة",v+(hp?" · موقع معروف ("+hp[0]+")":" · بلا إحداثيات، الطريق بخرائط قوقل"));const after=state.onbAfter||"meet";state.onbAfter="";if(after==="go_home")TOOLS.go_home.run({});else TOOLS.set_meeting_point.run({place:"home"});return true}
@@ -2471,6 +2505,7 @@ $("#homeAuto").addEventListener("click",()=>{const r=state.real;if(!r||typeof r.
 $("#pHome").addEventListener("change",e=>{const v=e.target.value.trim();const H=HOME();if(!v){H.home="";H.confirmed=0;delete H.la;delete H.lo}else{const hp=hotelOf(v);Object.assign(H,{home:v,confirmed:1,auto:0,la:hp?hp[1]:H.la,lo:hp?hp[2]:H.lo})}SRC.home="أدخله بنفسه";saveProfile();renderKnown()});
 $("#pPhone")&&$("#pPhone").addEventListener("change",e=>{const ph=normPhone(e.target.value);if(!ph){$("#pPhoneSt").textContent="رقم غير مكتمل";return}if(ph!==profile.phone){profile.phone=ph;profile.phoneVerified=0;$("#pPhoneSt").textContent="غير مؤكد";saveProfile();renderKnown()}});
 $("#pCamp")&&$("#pCamp").addEventListener("change",e=>{profile.campaign=campName(e.target.value);profile.campaignAsked=1;saveProfile();renderKnown()});
+$("#pCampPh")&&$("#pCampPh").addEventListener("change",e=>{const ph=normPhone(e.target.value);profile.campaignPhone=ph||"";e.target.value=profile.campaignPhone;saveProfile();renderKnown();log("svc",ph?"حفظ رقم الحملة من صفحة المعلومات":"حذف رقم الحملة","")});
 $("#pEmail")&&$("#pEmail").addEventListener("change",e=>{const em=(e.target.value.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)||[])[0]||"";profile.email=em;saveProfile();renderKnown();if(em)pushPlan()});
 $("#pName").addEventListener("change",e=>{profile.selfNamed=true});
 $("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
