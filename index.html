@@ -1539,7 +1539,7 @@ const TOOLS={
     run({question}={}){const cc=campContact();const btn='style="text-decoration:none;background:var(--kiswa);color:#fff;border-color:var(--kiswa)"';
       if(!cc){log("svc","طلب الاتصال بالحملة ولا حملة معروفة للضيف","يسأله عن حملته");card(head("☎️","لا أعرف حملتك بعد","")+`<div>قل لي: أنا مع حملة فلان، فأعرفها وأتصل بها متى طلبت. وللاستفسارات العامة الرقم الموحد <b dir="ltr">1966</b>.</div><div class="acts"><a class="chip" href="tel:1966" ${btn}>اتصال بـ 1966</a></div>`);
         state.kbReply=pick({ar:"لا أعرف حملتك بعد؛ قل: أنا مع حملة فلان.",en:"I do not know your campaign yet; say: I am with campaign X.",fr:"Je ne connais pas encore votre groupe ; dites : je suis avec le groupe X."});return{called:false}}
-      const dial=!question||/(اتصل|كلم|دق|رن|call)/i.test(question);log("svc",dial?"اتصال مباشر بالحملة":"سؤال يخص الحملة: يحيله إليها",cc.name+" · "+cc.phone+(question?" · "+question:""));
+      const dial=!question||/(اتصل|كلم|دق|رن|تواصل|التواصل|يتصل|call|contact)/i.test(question);log("svc",dial?"اتصال مباشر بالحملة":"سؤال يخص الحملة: يحيله إليها",cc.name+" · "+cc.phone+(question?" · "+question:""));
       card(head("📞","اتصال بـ"+cc.name,cc.phone)+`<div>${dial?"أفتح لك الاتصال الآن؛ وإن لم يفتح فاضغط الزر.":"هذا يخص حملتك، وهي أقرب من يجيبك؛ اضغط الزر للاتصال بهم."}</div><div class="acts"><a class="chip" href="tel:${esc(cc.phone)}" ${btn}>اتصال بـ${esc(cc.phone)}</a></div>`);
       if(dial){try{setTimeout(()=>{location.href="tel:"+cc.phone},350)}catch(_){}}
       state.kbReply=dial?pick({ar:"أتصل لك الآن بـ"+cc.name+" على "+cc.phone+".",en:"Calling "+cc.name+" now on "+cc.phone+".",fr:"J'appelle "+cc.name+" au "+cc.phone+"."}):pick({ar:"هذا يخص حملتك؛ اتصل بـ"+cc.name+" على "+cc.phone+" من الزر.",en:"This is for your campaign; call "+cc.name+" on "+cc.phone+" from the button.",fr:"Cela concerne votre groupe ; appelez "+cc.name+" au "+cc.phone+"."});
@@ -1553,7 +1553,7 @@ const TOOLS={
       const en=isEN();const say=e.a.join(" ").slice(0,880);
       state.kbReply=en?{text:"This answer is from the official "+(ss[0].o==="وزارة الحج والعمرة"?"Ministry of Hajj and Umrah":"General Authority for the Care of the Two Holy Mosques")+" guide; it is shown in Arabic, and the guide is available in 20 languages at the source link.",say:"This answer is from the official guide; it is shown in Arabic, and the guide is available in your language at the source link.",sayLang:"en"}:{text:"من "+ss[0].n+" ("+ss[0].o+"):",say,sayLang:"ar"};
       return{topic:e.t,sources:ss.map(x=>x.n+" ("+x.o+")")}}},
-  out_of_scope:{agent:"sup",desc:"لأي سؤال أو طلب خارج نطاق كنف: كل ما لا يتعلق بالحج أو العمرة أو زيارة المسجد النبوي أو المسجد الحرام والمسجد النبوي وخدماتهما أو رحلة الضيف في مكة والمدينة (سكنه وتنقله وعائلته وحملته وصحته وسلامته هناك). أمثلة: الأخبار والسياسة والرياضة والطبخ والبرمجة والواجبات والمعلومات العامة. يرد بأن السؤال خارج نطاق معرفته.",schema:{type:"object",properties:{}},
+  out_of_scope:{agent:"sup",desc:"لأي سؤال أو طلب خارج نطاق كنف: كل ما لا يتعلق بالحج أو العمرة أو زيارة المسجد النبوي أو المسجد الحرام والمسجد النبوي وخدماتهما أو رحلة الضيف في مكة والمدينة (سكنه وتنقله وعائلته وحملته وصحته وسلامته هناك). أمثلة: الأخبار والسياسة والرياضة والطبخ والبرمجة والواجبات والمعلومات العامة. يرد بأن السؤال خارج نطاق معرفته. لا تستخدمها لأي سؤال عن الحج أو العمرة أو التأشيرة أو التصاريح أو نسك أو الحرمين ولو لم يكن جوابه عندك؛ ذلك لأداة refer_call_center.",schema:{type:"object",properties:{}},
     run(){log("sup","السؤال خارج نطاق الحج والعمرة والزيارة","يعتذر ولا يجيب من خارج مصادره");
       state.kbReply=pick({ar:"لا أعرف هذا، فهو خارج نطاقي. أنا مختص بالعمرة والحج وزيارة المسجد النبوي وخدمات الحرمين ورحلتك فيهما.",en:"I do not know this; it is outside my scope. I cover Umrah, Hajj, visiting the Prophet's Mosque, the services of the Two Holy Mosques and your trip there.",fr:"Cela dépasse mon domaine. Je couvre la Omra, le Hajj, la visite de la Mosquée du Prophète, les services des deux Saintes Mosquées et votre séjour."});
       return{out_of_scope:true}}},
@@ -1828,7 +1828,7 @@ function tone(text){const t=String(text);
   if(/j'en peux plus|ras le bol|n'en peux plus|personne ne|c'est pas possible|au secours|aidez-moi|énervé|enerve|stressé|stresse|inquiet|fatigué/i.test(t))marks.push("كلمات ضيق بالفرنسية");
   const lat=t.replace(/[^A-Za-z]/g,"");if(lat.length>8&&lat.replace(/[^A-Z]/g,"").length/lat.length>0.6)marks.push("كتابة بحروف كبيرة");
   return marks}
-async function viaGateway(text){if(!LLM.ok())return null;typing(true);const fz=await LLM.classify(text);if(!fz)return null;const [fname,fargs]=fz;const ft=TOOLS[fname];log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fname,"اختار الأداة من وصفها، والمفتاح على الخادم");await wait(300);ft.run(fargs);
+async function viaGateway(text){if(!LLM.ok())return null;typing(true);const fz=await LLM.classify(text);if(!fz)return null;let [fname,fargs]=fz;if(fname==="out_of_scope"&&inDomain(text)){fname="refer_call_center";fargs={topic:text.slice(0,80)};LLM.reply=""}const ft=TOOLS[fname];log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fname,"اختار الأداة من وصفها، والمفتاح على الخادم");await wait(300);ft.run(fargs);
   {const kr=kbTake();if(kr){LLM.reply="";return kr}}
   const rp=LLM.reply||"";LLM.reply="";if(rp){const rl=detectLang(rp)||state.lang||"ar";return {text:rp,say:rp,sayLang:rl}}
   return pick({ar:follow(fname),fr:FOLLOW_FR[fname]||follow(fname),en:(typeof FOLLOW_EN[fname]==="function"?FOLLOW_EN[fname](state):FOLLOW_EN[fname])||follow(fname)})}
@@ -1869,7 +1869,7 @@ async function scripted(text){
     const spec=fr[1];const name=Array.isArray(spec)?spec[0]:spec;const args=Array.isArray(spec)?spec[1]:(name==="report_lost"?{type:"person",description:text}:name==="share_location"?{member:(text.match(/(?:to|with|call)\s+(?:my\s+)?(\S+?)\??$/i)||[])[1]||""}:name==="book_children_center"?{children:2}:name==="request_cart"?{kind:"wheelchair"}:{});
     const t=TOOLS[name];log("sup","وجه إلى "+AGENTS.find(a=>a[0]===t.agent)[1],"أداة: "+name+" · الرد بالفرنسية");await wait(400);t.run(args);return pick({ar:follow(name),fr:FOLLOW_FR[name]||"C'est fait.",en:FOLLOW_FR[name]||"Done."})}
   const r=ROUTES.find(([re,,,guard])=>re.test(text)&&(!guard||guard(text)));
-  if(!r){let fz=null;if(LLM.ok()){typing(true);fz=await LLM.classify(text);if(fz)log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fz[0],"اختار الأداة من وصفها، والمفتاح على الخادم")}
+  if(!r){let fz=null;if(LLM.ok()){typing(true);fz=await LLM.classify(text);if(fz&&fz[0]==="out_of_scope"&&inDomain(text)){fz=["refer_call_center",{topic:text.slice(0,80)}];LLM.reply=""}if(fz)log("sup","فهم الصيغة عبر Claude (بوابة كنف): "+fz[0],"اختار الأداة من وصفها، والمفتاح على الخادم")}
     if(!fz){const nq=kbNorm(text);const feel=/(تعب|دايخ|ضايع|ضعت|تهت|خايف|قلق|عطش|جوع|زعلان|ضيق|مرهق|حر|ضاع)/.test(nq);
       const qcue=/[؟?]/.test(text)||/ (ما|ماهي|ماهو|ايش|وش|شو|كيف|متى|هل|كم|لماذا|ليش|ماذا|من) /.test(nq);
       if(!inDomain(text)&&!feel)return noMatch(text);
