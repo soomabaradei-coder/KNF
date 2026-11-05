@@ -671,8 +671,20 @@ const THR={list:[],cur:null,
     el.innerHTML=this.list.length?this.list.map(t=>`<div class="row ${t.id===this.cur?"cur":""}" data-open="${t.id}"><div><b>${esc(t.title)}</b><small>${t.site==="makkah"?"المسجد الحرام":"المسجد النبوي"} · ${when(t.at)} · ${t.n} ${t.n===1?"رسالة":"رسائل"}</small></div>${t.plan?'<span class="pl">فيها خطة</span>':""}<button class="del" data-del="${t.id}" title="حذف">حذف</button></div>`).join(""):'<div class="hint">لا توجد محادثات محفوظة بعد. كل محادثة تبدئينها تحفظ هنا تلقائيا بعنوان موضوعها.</div>'}
 };
 function autoDir(m){const t=(m.textContent||"").replace(/[\d\s°%·.,:()\-+]/g,"");const ar=(t.match(/[\u0600-\u06FF]/g)||[]).length,lat=(t.match(/[A-Za-z\u00C0-\u024F]/g)||[]).length;m.setAttribute("dir",lat>ar?"ltr":"rtl");m.style.textAlign=lat>ar?"left":"right";return m}
-function msg(kind,text){const m=push(el(`<div class="msg ${kind}"></div>`));m.textContent=text;autoDir(m);if(kind==="user")THR.touch(text);return m}
-function card(html,cls=""){if(metrics.task&&!metrics.task.served&&!/📊|📈/.test(html.slice(0,40)))taskServed(cls);return autoDir(push(el(`<div class="card ${cls}">${html}</div>`)))}
+function msg(kind,text){const m=push(el(`<div class="msg ${kind}"></div>`));m.textContent=text;autoDir(m);if(kind==="user")THR.touch(text);else TRX.el(m);return m}
+function card(html,cls=""){if(metrics.task&&!metrics.task.served&&!/📊|📈/.test(html.slice(0,40)))taskServed(cls);const c=autoDir(push(el(`<div class="card ${cls}">${html}</div>`)));TRX.el(c);return c}
+/* لغة واحدة على الشاشة: إذا كانت لغة الضيف غير العربية تترجم بطاقات كنف ورسائله العربية (ومنها نصوص الأدلة الرسمية) إلى لغته عبر بوابة كنف، بأمانة ودون إضافة، وتحفظ الترجمة */
+const TRX={cache:new Map(),need(){try{return uiLang()!=="ar"&&LLM.ok()}catch(_){return false}},
+  el(root){if(!root||!this.need())return;const to=uiLang();const AR=/[\u0600-\u06FF]/;
+    /* وحدات الترجمة: الجملة كاملة (فقرة أو خانة أو زر) حتى تبقى الترجمة سليمة، والنصوص المتبقية عقدة عقدة */
+    const units=[];root.querySelectorAll("p,dd,dt,div,li,button,small,b,label,a").forEach(e=>{if(e.closest(".notr,script,style"))return;if(units.some(u=>u.contains(e)))return;const kids=[...e.children];if(AR.test(e.textContent)&&kids.every(k=>/^(B|I|EM|STRONG|BR)$/.test(k.tagName))&&e.textContent.trim().length<=1500)units.push(e)});
+    const nodes=[];const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>AR.test(n.nodeValue)&&!(n.parentElement&&n.parentElement.closest("script,style,textarea,input,.notr"))&&!units.some(u=>u.contains(n))?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});let n;while((n=w.nextNode()))nodes.push(n);if(!nodes.length&&!units.length)return;
+    const key=t=>to+"|"+t;const all=[...units.map(u=>u.textContent.trim()),...nodes.map(x=>x.nodeValue.trim())];const todo=[...new Set(all.filter(t=>t&&!this.cache.has(key(t))))];
+    const apply=()=>{for(const u of units){const v=this.cache.get(key(u.textContent.trim()));if(v)u.textContent=v}for(const x of nodes){const t=x.nodeValue.trim();const v=this.cache.get(key(t));if(v){const lead=x.nodeValue.match(/^\s*/)[0],tail=x.nodeValue.match(/\s*$/)[0];x.nodeValue=lead+v+tail}}autoDir(root);root.querySelectorAll("dd,dt,p,div,small,b,button,a").forEach(e=>{if(!AR.test(e.textContent))e.setAttribute("dir","ltr")});root.style.opacity=""};
+    if(!todo.length){apply();return}root.style.opacity=".45";root.style.transition="opacity .2s";
+    const base=LLM.url.replace(/\/$/,"");const chunks=[];for(let i=0;i<todo.length;i+=40)chunks.push(todo.slice(i,i+40));
+    Promise.all(chunks.map(ch=>fetch(base+"/translate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({to,texts:ch})}).then(r=>r.ok?r.json():null).then(j=>{if(j&&Array.isArray(j.out))ch.forEach((t,i)=>{if(j.out[i])this.cache.set(key(t),j.out[i])})}).catch(()=>{}))).then(apply,apply);
+    setTimeout(()=>{root.style.opacity=""},8000)}};
 function head(ic,title,sub){return `<div class="h"><span class="ic">${ic}</span><b>${esc(title)}</b>${sub?`<small>${esc(sub)}</small>`:""}</div>`}
 const ICON={map:"🗺️",crowd:"👥",cart:"♿",lost:"🔎",kids:"🧒",tr:"🎧",pray:"🕌",med:"🩺",sun:"☀️",book:"📚",cal:"🗓️",tick:"🎫"};
 let t0=Date.now();
@@ -1778,7 +1790,7 @@ const TOOLS={
       const en=isEN();const say=e.a.join(" ").slice(0,880);
       {const f=KB_SCHED[e.t];const cs=f?campSchedule():null;const rs=cs&&cs.items?cs.items.filter(f):[];const r0=schedPick(rs,state.kbQ);
         if(r0&&!isEN()&&/ (نتحرك|التحرك|نطلع|نروح|نمشي|التجمع|نتجمع|موعد|مواعيد|الحمله) /.test(kbNorm(state.kbQ||""))){state.kbReply={text:"من جدول "+cs.c.n+((cs.c.schedMeta||{}).sample?" (نموذج مقترح)":"")+": "+schedSay(r0)+" وما يقوله الدليل في البطاقة.",say:schedSay(r0),sayLang:"ar"};return{topic:e.t,campaign_rows:rs.length}}}
-      state.kbReply=en?{text:"This answer is from the official "+(ss[0].o==="وزارة الحج والعمرة"?"Ministry of Hajj and Umrah":"General Authority for the Care of the Two Holy Mosques")+" guide; it is shown in Arabic, and the guide is available in 20 languages at the source link.",say:"This answer is from the official guide; it is shown in Arabic, and the guide is available in your language at the source link.",sayLang:"en"}:{text:"من "+ss[0].n+" ("+ss[0].o+"):",say,sayLang:"ar"};
+      state.kbReply=en?{text:"This answer is from the official "+(ss[0].o==="وزارة الحج والعمرة"?"Ministry of Hajj and Umrah":"General Authority for the Care of the Two Holy Mosques")+" guide, translated faithfully; the source link is on the card.",say:"This answer is from the official guide, translated faithfully. The source link is on the card.",sayLang:"en"}:{text:"من "+ss[0].n+" ("+ss[0].o+"):",say,sayLang:"ar"};
       return{topic:e.t,sources:ss.map(x=>x.n+" ("+x.o+")")}}},
   out_of_scope:{agent:"sup",desc:"لأي سؤال أو طلب خارج نطاق كنف: كل ما لا يتعلق بالحج أو العمرة أو زيارة المسجد النبوي أو المسجد الحرام والمسجد النبوي وخدماتهما أو رحلة الضيف في مكة والمدينة (سكنه وتنقله وعائلته وحملته وصحته وسلامته هناك). أمثلة: الأخبار والسياسة والرياضة والطبخ والبرمجة والواجبات والمعلومات العامة. يرد بأن السؤال خارج نطاق معرفته. لا تستخدمها لأي سؤال عن الحج أو العمرة أو التأشيرة أو التصاريح أو نسك أو الحرمين ولو لم يكن جوابه عندك؛ ذلك لأداة refer_call_center.",schema:{type:"object",properties:{}},
     run(){log("sup","السؤال خارج نطاق الحج والعمرة والزيارة","يعتذر ولا يجيب من خارج مصادره");
@@ -2183,7 +2195,7 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 
 /* لغة واحدة في الرد: إذا كتب الضيف بالعربية يرد كنف بالعربية في هذا الطلب (النص والبطاقة والصوت) ولو كانت لغة واجهته غير العربية */
 async function ask(text,img){const dl=detectLang(String(text||""));const base=profile.readLang||state.lang||"ar";let prev=null;
-  if(dl==="ar"&&base!=="ar"&&!state.turnLang){prev=state.lang;state.turnLang="ar";state.lang="ar"}
+  if(dl==="ar"&&base!=="ar"&&!state.turnLang&&!state.fromChip){prev=state.lang;state.turnLang="ar";state.lang="ar"}
   try{return await askInner(text,img)}finally{if(prev!==null){state.turnLang=null;state.lang=prev}}}
 async function askInner(text,img){
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
