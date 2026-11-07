@@ -572,7 +572,7 @@ function refreshHero(){try{document.querySelectorAll(".hero b").forEach(b=>{b.te
 function renderKnown(){refreshHero();
   const ms=$("#mSign");if(ms){ms.hidden=!profile.hearing&&!state.signMode}
   $("#known").innerHTML=profileText().map(([k,v,key])=>`<dt>${k}</dt><dd>${esc(v)}<span class="src">${SRC[key]||""}</span></dd>`).join("");
-  $("#profBtn").textContent="👤 "+profile.name;
+  $("#profBtn").textContent="👤 "+(profile.name==="ضيف الرحمن"&&uiLang()!=="ar"?(uiLang()==="fr"?"Invité":"Guest"):profile.name);
   $("#pName").value=profile.name;$("#pAge").value=profile.age||"";if($("#pGender"))$("#pGender").value=profile.gender||"m";$("#pHome").value=(HOME()&&HOME().confirmed)?HOME().home:"";
   if($("#pPhone")){$("#pPhone").value=profile.phone||"";$("#pPhoneSt").textContent=profile.phone?(profile.phoneVerified?"مؤكد":"غير مؤكد"):"";$("#pCamp").value=profile.campaign||"";if($("#pCampPh"))$("#pCampPh").value=profile.campaignPhone||"";$("#pEmail").value=profile.email||""}
   $("#famList").innerHTML=profile.family.map((f,i)=>`<div class="fm"><div><b>${esc(f.name)}</b> <span style="color:var(--muted)">${esc(relYou(f.rel))}</span><small>${esc(f.phone)}</small></div><button class="sw" type="button" data-i="${i}" aria-pressed="${f.sharing?"true":"false"}">${f.sharing?(f.g==="f"||/^(والدتي|ابنتي|زوجتي|أختي|جدتي|عمتي|خالتي|حفيدتي|المرشدة|مشرفة الحملة)$/.test(f.rel||"")?"تشارك موقعها":"يشارك موقعه"):(f.g==="f"||/^(والدتي|ابنتي|زوجتي|أختي|جدتي|عمتي|خالتي|حفيدتي|المرشدة|مشرفة الحملة)$/.test(f.rel||"")?"لا تشارك":"لا يشارك")}</button><button class="rm" type="button" data-rm="${i}" aria-label="حذف">✕</button></div>`).join("");
@@ -679,24 +679,37 @@ const THR={list:[],cur:null,
     el.innerHTML=this.list.length?this.list.map(t=>`<div class="row ${t.id===this.cur?"cur":""}" data-open="${t.id}"><div><b>${esc(t.title)}</b><small>${t.site==="makkah"?"المسجد الحرام":"المسجد النبوي"} · ${when(t.at)} · ${t.n} ${t.n===1?"رسالة":"رسائل"}</small></div>${t.plan?'<span class="pl">فيها خطة</span>':""}<button class="del" data-del="${t.id}" title="حذف">حذف</button></div>`).join(""):'<div class="hint">لا توجد محادثات محفوظة بعد. كل محادثة تبدئينها تحفظ هنا تلقائيا بعنوان موضوعها.</div>'}
 };
 function autoDir(m){const t=(m.textContent||"").replace(/[\d\s°%·.,:()\-+]/g,"");const ar=(t.match(/[\u0600-\u06FF]/g)||[]).length,lat=(t.match(/[A-Za-z\u00C0-\u024F]/g)||[]).length;m.setAttribute("dir",lat>ar?"ltr":"rtl");m.style.textAlign=lat>ar?"left":"right";return m}
-function msg(kind,text){const m=push(el(`<div class="msg ${kind}"></div>`));m.textContent=text;autoDir(m);if(kind==="user")THR.touch(text);else TRX.el(m);
+function msg(kind,text){if(kind==="user"&&state.chipLabel){text=state.chipLabel;state.chipLabel=""}const m=push(el(`<div class="msg ${kind}"></div>`));m.textContent=text;autoDir(m);if(kind==="user")THR.touch(text);else TRX.el(m);
   if(kind==="bot"){let en=false;try{en=isEN()}catch(_){}m.dataset.who=en?"KNF":"كنف";
     /* أسئلة التعارف التي تنتظر جوابا تظهر بارزة وتنبه خانة الكتابة */
     if(state.onb&&/[؟?]/.test(String(text||""))){m.classList.add("ask");m.dataset.who=en?"KNF asks you":"كنف يسألك";try{const b=document.getElementById("box");b.classList.remove("await");void b.offsetWidth;b.classList.add("await")}catch(_){}}}
   return m}
 function card(html,cls=""){if(metrics.task&&!metrics.task.served&&!/📊|📈/.test(html.slice(0,40)))taskServed(cls);const c=autoDir(push(el(`<div class="card ${cls}">${html}</div>`)));TRX.el(c);return c}
 /* لغة واحدة على الشاشة: إذا كانت لغة الضيف غير العربية تترجم بطاقات كنف ورسائله العربية (ومنها نصوص الأدلة الرسمية) إلى لغته عبر بوابة كنف، بأمانة ودون إضافة، وتحفظ الترجمة */
-const TRX={cache:new Map(),need(){try{return uiLang()!=="ar"&&LLM.ok()}catch(_){return false}},
-  el(root){if(!root||!this.need())return;const to=uiLang();const AR=/[\u0600-\u06FF]/;
+/* الترجمة إلى لغة الضيف (الإصدار 206): كل نص عربي يظهر في المحادثة يمر هنا، حتى ما يضاف إلى البطاقة بعد ظهورها.
+   ذاكرة على الجهاز حتى لا تتكرر الترجمة، وإن فشلت دفعة قسمتها نصفين ثم نصا نصا، والبطاقة شبه مخفية حتى تترجم فلا يقرأ الضيف لغتين */
+const TRX={cache:new Map(),wait:new Map(),outs:new Set(),loaded:"",need(){try{return uiLang()!=="ar"&&LLM.ok()}catch(_){return false}},
+  load(to){if(this.loaded===to)return;this.loaded=to;try{const o=JSON.parse(localStorage.getItem("knf_trx_"+to)||"{}");for(const k in o){this.cache.set(to+"|"+k,o[k]);this.outs.add(String(o[k]).trim())}}catch(_){}},
+  save(to){clearTimeout(this._sv);this._sv=setTimeout(()=>{try{const o={};let n=0;const pre=to+"|";const ks=[...this.cache.keys()].filter(k=>k.startsWith(pre));for(const k of ks.slice(-800)){o[k.slice(pre.length)]=this.cache.get(k);n++}localStorage.setItem("knf_trx_"+to,JSON.stringify(o))}catch(_){}},800)},
+  fetchChunk(base,to,ch){return fetch(base+"/translate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({to,texts:ch})}).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{
+    if(j&&Array.isArray(j.out)&&j.out.length===ch.length){ch.forEach((t,i)=>{if(j.out[i]){this.cache.set(to+"|"+t,j.out[i]);this.outs.add(String(j.out[i]).trim())}});this.save(to);return}
+    if(ch.length>1){const h=Math.ceil(ch.length/2);return Promise.all([this.fetchChunk(base,to,ch.slice(0,h)),this.fetchChunk(base,to,ch.slice(h))])}})},
+  el(root){if(!root||!this.need())return;const to=uiLang();this.load(to);const AR=/[؀-ۿ]/;
     /* وحدات الترجمة: الجملة كاملة (فقرة أو خانة أو زر) حتى تبقى الترجمة سليمة، والنصوص المتبقية عقدة عقدة */
-    const units=[];root.querySelectorAll("p,dd,dt,div,li,button,small,b,label,a").forEach(e=>{if(e.closest(".notr,script,style"))return;if(units.some(u=>u.contains(e)))return;const kids=[...e.children];if(AR.test(e.textContent)&&kids.every(k=>/^(B|I|EM|STRONG|BR)$/.test(k.tagName))&&e.textContent.trim().length<=1500)units.push(e)});
-    const nodes=[];const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>AR.test(n.nodeValue)&&!(n.parentElement&&n.parentElement.closest("script,style,textarea,input,.notr"))&&!units.some(u=>u.contains(n))?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});let n;while((n=w.nextNode()))nodes.push(n);if(!nodes.length&&!units.length)return;
-    const key=t=>to+"|"+t;const all=[...units.map(u=>u.textContent.trim()),...nodes.map(x=>x.nodeValue.trim())];const todo=[...new Set(all.filter(t=>t&&!this.cache.has(key(t))))];
-    const apply=()=>{for(const u of units){const v=this.cache.get(key(u.textContent.trim()));if(v)u.textContent=v}for(const x of nodes){const t=x.nodeValue.trim();const v=this.cache.get(key(t));if(v){const lead=x.nodeValue.match(/^\s*/)[0],tail=x.nodeValue.match(/\s*$/)[0];x.nodeValue=lead+v+tail}}autoDir(root);root.querySelectorAll("dd,dt,p,div,small,b,button,a").forEach(e=>{if(!AR.test(e.textContent))e.setAttribute("dir","ltr")});root.style.opacity=""};
-    if(!todo.length){apply();return}root.style.opacity=".45";root.style.transition="opacity .2s";
+    const units=[];root.querySelectorAll("p,dd,dt,div,li,button,small,b,label,a,span").forEach(e=>{if(e.closest(".notr,script,style,.msg.user"))return;if(units.some(u=>u.contains(e)))return;const kids=[...e.children];if(AR.test(e.textContent)&&kids.every(k=>/^(B|I|EM|STRONG|BR)$/.test(k.tagName))&&e.textContent.trim().length<=1500)units.push(e)});
+    const nodes=[];const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>AR.test(n.nodeValue)&&!(n.parentElement&&n.parentElement.closest("script,style,textarea,input,.notr,.msg.user"))&&!units.some(u=>u.contains(n))?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});let n;while((n=w.nextNode()))nodes.push(n);if(!nodes.length&&!units.length)return;
+    const key=t=>to+"|"+t;const all=[...units.map(u=>u.textContent.trim()),...nodes.map(x=>x.nodeValue.trim())];
+    const apply=()=>{for(const u of units){const v=this.cache.get(key(u.textContent.trim()));if(v)u.textContent=v}for(const x of nodes){const t=x.nodeValue.trim();const v=this.cache.get(key(t));if(v){const lead=x.nodeValue.match(/^\s*/)[0],tail=x.nodeValue.match(/\s*$/)[0];x.nodeValue=lead+v+tail}}autoDir(root);root.querySelectorAll("dd,dt,p,div,small,b,button,a,span").forEach(e=>{if(!AR.test(e.textContent))e.setAttribute("dir","ltr")});root.style.opacity=""};
+    const waits=[];const todo=[];for(const t of new Set(all)){if(!t||this.cache.has(key(t))||this.outs.has(t))continue;const pw=this.wait.get(key(t));if(pw)waits.push(pw);else todo.push(t)}
+    if(!todo.length&&!waits.length){apply();return}root.style.transition="opacity .2s";root.style.opacity=".08";
     const base=LLM.url.replace(/\/$/,"");const chunks=[];for(let i=0;i<todo.length;i+=40)chunks.push(todo.slice(i,i+40));
-    Promise.all(chunks.map(ch=>fetch(base+"/translate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({to,texts:ch})}).then(r=>r.ok?r.json():null).then(j=>{if(j&&Array.isArray(j.out))ch.forEach((t,i)=>{if(j.out[i])this.cache.set(key(t),j.out[i])})}).catch(()=>{}))).then(apply,apply);
-    setTimeout(()=>{root.style.opacity=""},8000)}};
+    const mine=Promise.all(chunks.map(ch=>this.fetchChunk(base,to,ch)));todo.forEach(t=>this.wait.set(key(t),mine));
+    mine.then(()=>todo.forEach(t=>this.wait.delete(key(t))));
+    Promise.all([mine,...waits]).then(apply,apply);
+    setTimeout(()=>{root.style.opacity=""},9000)}};
+/* ما يضاف إلى المحادثة بعد ظهور البطاقة (رابط حي، سطر حالة) يترجم أيضا */
+{const pend=new Set();let tm=0;try{new MutationObserver(ms=>{if(!TRX.need())return;const AR=/[؀-ۿ]/;for(const m of ms){for(const nd of m.addedNodes){const t=nd.nodeType===3?nd.nodeValue:(nd.textContent||"");if(!AR.test(t))continue;const e=nd.nodeType===3?nd.parentElement:nd;if(!e||!e.closest)continue;if(e.closest(".msg.user,.notr,script,style"))continue;const r=e.closest(".card,.msg")||e;pend.add(r)}}
+  if(pend.size){clearTimeout(tm);tm=setTimeout(()=>{const a=[...pend];pend.clear();a.forEach(r=>{if(r.isConnected)TRX.el(r)})},60)}}).observe(document.getElementById("feed"),{childList:true,subtree:true})}catch(_){}}
 function head(ic,title,sub){return `<div class="h"><span class="ic">${ic}</span><b>${esc(title)}</b>${sub?`<small>${esc(sub)}</small>`:""}</div>`}
 const ICON={map:"🗺️",crowd:"👥",cart:"♿",lost:"🔎",kids:"🧒",tr:"🎧",pray:"🕌",med:"🩺",sun:"☀️",book:"📚",cal:"🗓️",tick:"🎫"};
 let t0=Date.now();
@@ -1095,7 +1108,7 @@ function hcSetup(){const en=isEN();const ios=/iPhone|iPad|iPod/.test(navigator.u
    `<div class="acts"><button type="button" data-hccopy="1">${en?"Copy the link":"انسخ الرابط"}</button>${!ios?`<button type="button" data-watch="1">${en?"Connect your watch":"اربط ساعتك"}</button>`:""}${st?`<button type="button" data-hcstop="1">${en?"Stop reading":"أوقف القراءة"}</button>`:""}</div>`+
    `<div class="muted">${esc(and)}</div><div class="muted">${en?"Readings stay on your phone and are not sent to the campaign or any party. Without them, heart and breathing stay unknown.":"القراءات تبقى في جوالك ولا ترسل إلى الحملة ولا إلى أي جهة. وبدونها يبقى القلب والنفس غير معروفين."}</div>`);
   log("care","شرح ربط تطبيق الصحة بإذن الضيف",ios?"آيفون: اختصار":"أندرويد: بلوتوث")}
-function nextDose(){const m=profile.meds[0];if(!m)return"لا يوجد";const now=$("#clock").textContent||"12:00";const t=m.times.find(x=>x>now)||m.times[0];return m.name+" "+t}
+function nextDose(){const m=profile.meds[0];if(!m)return"لا يوجد";const _d=new Date();const now=String(_d.getHours()).padStart(2,"0")+":"+String(_d.getMinutes()).padStart(2,"0");const t=m.times.find(x=>x>now)||m.times[0];return m.name+" "+t}
 function minsSinceDrink(){return Math.floor((Date.now()-wb.lastDrink)/60000)}
 function wbState(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();
   const stale=!wb.answered||(Date.now()-wb.answered)>60*60000;const why=[];
@@ -2607,8 +2620,8 @@ feed.addEventListener("click",e=>{if(e.target.closest("[data-watch]")){connectWa
   {const h=e.target.closest("[data-hc]");if(h){h.closest(".acts").querySelectorAll("button").forEach(x=>x.disabled=true);hcAnswer(h.dataset.hc==="1");return}}
   if(e.target.closest("[data-hcsetup]")){hcSetup();return}
   if(e.target.closest("[data-hcstop]")){hcStop();return}
-  {const c=e.target.closest("[data-hccopy]");if(c){const t=hcTemplate();const done=()=>{c.textContent=isEN()?"Copied":"نسخت الرابط"};try{navigator.clipboard.writeText(t).then(done,done)}catch(_){done()}return}}const b=e.target.closest("[data-say]");if(b){state.fromChip=true;Promise.resolve(ask(b.dataset.say)).finally(()=>{state.fromChip=false})}});
-$("#wb").addEventListener("click",()=>ask("كيف حالي الجسدية؟"));
+  {const c=e.target.closest("[data-hccopy]");if(c){const t=hcTemplate();const done=()=>{c.textContent=isEN()?"Copied":"نسخت الرابط"};try{navigator.clipboard.writeText(t).then(done,done)}catch(_){done()}return}}const b=e.target.closest("[data-say]");if(b){state.fromChip=true;state.chipLabel=uiLang()!=="ar"&&!/[\u0600-\u06FF]/.test(b.textContent)?b.textContent.trim():"";Promise.resolve(ask(b.dataset.say)).finally(()=>{state.fromChip=false;state.chipLabel=""})}});
+$("#wb").addEventListener("click",()=>{const l=uiLang();if(l!=="ar"){state.fromChip=true;state.chipLabel=l==="fr"?"Comment je vais ?":"How am I doing?"}Promise.resolve(ask("كيف حالي الجسدية؟")).finally(()=>{state.fromChip=false;state.chipLabel=""})});
 /* ---------- offline mode: essentials on the device, outbound requests queued ---------- */
 const OUTBOUND={request_cart:"طلب العربة",report_lost:"بلاغ التائه",book_children_center:"حجز مركز الأطفال",book_visit:"حجز الزيارة",share_location:"مشاركة الموقع",set_meeting_point:"نقطة اللقاء للعائلة",sign_interpreter:"طلب مترجم الإشارة"};
 const netq=[];let liveWas=null;
@@ -2866,7 +2879,7 @@ $("#pName").addEventListener("change",e=>{profile.selfNamed=true});
 $("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
 $("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||0;profile.basicsStated=1;saveProfile();renderKnown()});
 $("#pGender")&&$("#pGender").addEventListener("change",e=>{profile.gender=e.target.value;profile.genderStated=1;saveProfile();renderKnown()});
-function clock(){const d=new Date();$("#clock").textContent=d.toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})}
+function clock(){const d=new Date();let l="ar-SA";try{const u=uiLang();l=u==="ar"?"ar-SA":u==="fr"?"fr-FR":"en-GB"}catch(_){}$("#clock").textContent=d.toLocaleTimeString(l,{hour:"2-digit",minute:"2-digit"})}
 clock();setInterval(clock,30000);setInterval(wbRender,30000);
 
 /* ---------- admin: one-click tour of every interface ---------- */
