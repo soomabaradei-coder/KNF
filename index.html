@@ -562,7 +562,7 @@ function profileText(){
   const st={arrive:"وصل للتو",tawaf:"أتم الطواف وبقي السعي",saee:"أتم الطواف والسعي"}[profile.stage];
   return [["الاسم",profile.name,"name"],["الجوال",profile.phone?profile.phone+(profile.phoneVerified?" · مؤكد":" · غير مؤكد"):"لم يذكر","phone"],["الجنس",profile.gender==="f"?"أنثى":"ذكر","gender"],["العمر",profile.age||"لم يذكر","age"],["من",profile.from||"لم يذكر","from"],["اللغة","يقرأ بـ"+(LANGS[profile.readLang]||"العربية")+" ويسمع بـ"+(LANGS[profile.speakLang]||"English"),"langs"],["العائلة",profile.family.filter(f=>f.sharing).length+" من "+profile.family.length+" يشاركون موقعهم","family"],["الحملة",profile.campaign||"بلا حملة","campaign"],["السكن",(HOME()&&HOME().confirmed&&HOME().home)?HOME().home:"لم يحدد بعد","home"],["الحركة",m,"mobility"],["الرفقة",profile.kids>0?"معه "+profile.kids+" من الأطفال":"بلا أطفال","kids"],
    ["الطواف",profile.tawafFloor?"يفضل الدور الأول":"المطاف الأرضي","tawafFloor"],["المصلى",profile.quiet?"يفضل الهدوء":"لا تفضيل","quiet"],["الدروس",profile.lessons?"يحب حضورها":"لا يهتم","lessons"],
-   ["الراحة",profile.rest?"تذكير كل 20 دقيقة":"بلا تذكير","rest"],["السمع",profile.hearing?"ضعف سمع":"طبيعي","hearing"],["الدواء",profile.meds.length?profile.meds.map(m=>m.name+" "+m.times.join(" و")).join("، "):"لم يذكر دواء","meds"],["رحلته اليوم",st,"stage"]];
+   ["الراحة",profile.rest?"تذكير كل 20 دقيقة":"بلا تذكير","rest"],["السمع",profile.hearing?"ضعف سمع":"طبيعي","hearing"],["الدواء",profile.meds.length?profile.meds.map(m=>m.name+" "+m.times.join(" و")).join("، "):"لم يذكر دواء","meds"],["رحلته اليوم",st||"لم يحدد بعد","stage"]];
 }
 /* عنوان الشاشة الأساسية: بالاسم والحملة إن عرفت «أهلا بك يا سمية في كنف بشرى الضيافة» */
 function heroTitle(){const named=profile.name&&profile.name!=="ضيف الرحمن";const c=profile.campaign||"";
@@ -652,7 +652,7 @@ const SERVICES=[
  ["وضع بلا اتصال","عند انقطاع الإنترنت تعمل الأساسيات على الجهاز (الملف، الشريط، التنفس، الإرشاد إلى السكن بالخريطة المحملة، آخر موقع للعائلة)، وتحفظ الطلبات الخارجية وترسل تلقائيا عند عودة الاتصال، والطوارئ بالاتصال الهاتفي","sim"],
  ["وضع الإشارة (بث الكاميرا)","للضيف الأصم: الكاميرا الأمامية تلتقط مجموعة محدودة من الإشارات (ماء، مساعدة، دواء، ضعت، عائلتي، طبيب) وتحولها إلى طلب بعد تأكيده، والردود نصا واهتزازا؛ وما يتجاوزها يحول إلى مترجم إشارة من خدمة إرشاد الهيئة","sim"],
  ["تذكير الدواء","تذكير فقط بمواعيد الدواء الذي ذكره الضيف بنفسه في المحادثة، مع الماء وأقرب مكان جلوس، ويسجل أخذه؛ لا يقترح كنف دواء ولا جرعة، ولا يقرأ سجله الطبي، ولا يرسل شيئا للهيئة","sim"],
- ["شريط الحالة من تطبيق الصحة","يقرأ بإذن الضيف النبض والتنفس والأكسجين والخطوات من تطبيق الصحة في هاتفه (Apple Health أو Health Connect)، ويجمعها مع الطقس والماء وإجاباته؛ البيانات تبقى على الهاتف ويرسل للهيئة الطلب فقط","sim"],
+ ["شريط الحالة من تطبيق الصحة","يقرأ بإذن الضيف آخر نبض وتنفس وأكسجين من تطبيق الصحة في الآيفون عبر اختصار يفتح كنف بها، أو النبض من الساعة بالبلوتوث في أندرويد، ويجمعها مع الطقس والماء وإجاباته. بلا ساعة يبقى القلب والنفس غير معروفين، والبيانات تبقى على الهاتف ويرسل للهيئة الطلب فقط","live"],
  ["لوحة الجهات التشغيلية","تجمع الطلبات لتوقع الاحتياج وتوزيع الموارد","sim"]
 ];
 const AGENTS=[["api","واجهة خدمات الهيئة","استدعاء الخدمة كما هي في منصة الهيئة"],["sup","الوكيل المشرف","يفهم الطلب والسياق ويوزع"],["nav","وكيل الإرشاد","الخريطة والكثافة والمسارات"],["care","وكيل الصحة والسلامة","الحر، الطبي، الطوارئ"],["svc","وكيل الخدمات","العربات، الأطفال، المفقودات، الحجوزات"],["rite","وكيل المناسك والمعرفة","المناسك، الدروس، الترجمة، الصلاة"]];
@@ -1059,7 +1059,42 @@ function healthSignals(){const w=[];if(!healthFresh())return w;
   else if(health.hr>=110&&health.moving)w.push({k:"hr",t:"نبض "+health.hr+" مع المشي",sev:0});
   if(typeof health.rr==="number"&&health.rr>=24)w.push({k:"rr",t:"تنفس سريع "+health.rr+"/د",sev:1});
   return w}
-function healthLine(){if(!healthFresh())return "لا ساعة مربوطة، فالقلب والنفس غير معروفين";const a=["نبض "+health.hr];if(typeof health.rr==="number")a.push("تنفس "+health.rr);if(typeof health.spo2==="number")a.push("أكسجين "+health.spo2+"%");return a.join(" · ")+(health.src==="sim"?" (قراءة تجريبية للعرض)":"")}
+function healthLine(){if(!healthFresh())return "لا ساعة مربوطة، فالقلب والنفس غير معروفين";const a=["نبض "+health.hr];if(typeof health.rr==="number")a.push("تنفس "+health.rr);if(typeof health.spo2==="number")a.push("أكسجين "+health.spo2+"%");return a.join(" · ")+(health.src==="sim"?" (قراءة تجريبية للعرض)":health.src==="health"?" (من تطبيق الصحة)":"")}
+/* قراءة تطبيق الصحة بإذن الضيف: اختصار في الآيفون يقرأ آخر نبض وتنفس وأكسجين من تطبيق الصحة ويفتح كنف بها بعد علامة # في الرابط، وما بعد # لا يصل إلى أي خادم.
+   أول مرة يسأل كنف الضيف ويحفظ موافقته في الجهاز فقط، ويستطيع إيقافها متى شاء. الصيغة: #hc=نبض_تنفس_أكسجين مثل #hc=78_16_97 */
+function hcNum(t){t=String(t==null?"":t).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[٫,]/g,".").replace(/[^\d.]/g,"");if(!t)return null;const v=parseFloat(t);return isFinite(v)?v:null}
+function hcParse(h){const m=/^#hc=([^&]*)/.exec(h||"");if(!m)return null;let raw="";try{raw=decodeURIComponent(m[1])}catch(_){raw=m[1]}
+  const parts=/[_;|]/.test(raw)?raw.split(/[_;|]/):raw.split(",");let [hr,rr,o2]=parts.map(hcNum);
+  hr=(hr>=30&&hr<=220)?Math.round(hr):null;rr=(rr>=5&&rr<=60)?Math.round(rr):null;
+  if(o2!=null&&o2>0&&o2<=1)o2=o2*100;o2=(o2>=70&&o2<=100)?Math.round(o2):null;
+  return hr==null?{bad:1}:{hr,rr,spo2:o2}}
+function hcGet(){try{return localStorage.getItem("knf_hc_ok")}catch(_){return null}}
+function hcSet(v){try{localStorage.setItem("knf_hc_ok",v)}catch(_){}}
+function hcVals(r,en){const a=[];if(r.hr!=null)a.push(en?"pulse "+r.hr:"نبض "+r.hr);if(r.rr!=null)a.push(en?"breathing "+r.rr+"/min":"تنفس "+r.rr+" في الدقيقة");if(r.spo2!=null)a.push(en?"oxygen "+r.spo2+"%":"أكسجين "+r.spo2+"%");return a.join(" · ")}
+function hcApply(r){Object.assign(health,{permitted:true,watch:true,hr:r.hr,rr:r.rr,spo2:r.spo2,moving:false,src:"health",ts:Date.now()});healthAsked=false;log("care","قراءة من تطبيق الصحة بإذن الضيف","تبقى على الجهاز ولا ترسل");try{wbRender()}catch(_){}}
+function hcIncoming(){const r=hcParse(location.hash);if(!r)return;try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}
+  const en=isEN();if(r.bad){msg("sys",en?"The reading from the Health app was incomplete, so heart and breathing stay unknown.":"وصلت قراءة ناقصة من تطبيق الصحة، فيبقى القلب والنفس غير معروفين.");return}
+  if(hcGet()==="1"){hcApply(r);msg("sys",(en?"From the Health app: ":"من تطبيق الصحة: ")+hcVals(r,en));return}
+  state.hcPending=Object.assign(r,{at:Date.now()});
+  card(head("💚",en?"May KNF read your health data?":"هل تسمح لكنف بقراءة بياناتك الصحية؟",en?"Your permission":"بإذنك")+`<div class="notr"><b>${esc(hcVals(r,en))}</b></div><div>${en?"This is the latest reading from the Health app on your phone. I use it to alert you if your pulse rises or your oxygen drops in the heat and crowds.":"هذه آخر قراءة من تطبيق الصحة في جوالك. أستخدمها لأنبهك إن ارتفع نبضك أو قل الأكسجين مع الحر والزحام."}</div><div class="muted">${en?"It stays on your phone and is not sent to the campaign or any party. You can stop it any time.":"تبقى في جوالك فقط، ولا ترسل إلى الحملة ولا إلى أي جهة، وتستطيع إيقافها متى شئت."}</div><div class="acts"><button type="button" class="primary" data-hc="1">${en?"Allow":"أسمح"}</button><button type="button" data-hc="0">${en?"Don't allow":"لا أسمح"}</button></div>`)}
+function hcAnswer(v){const r=state.hcPending;state.hcPending=null;const en=isEN();
+  if(v){hcSet("1");if(r)hcApply(r);msg("sys",en?"Thank you. Your heart and breathing now come from the Health app. To stop, say: stop reading my health.":"شكرا لك. صار نبضك وتنفسك من تطبيق الصحة. لإيقافها قل: أوقف قراءة صحتي.")}
+  else{hcSet("0");msg("sys",en?"Understood. I will not use them, and heart and breathing stay unknown.":"حسنا، لن أستخدمها، ويبقى القلب والنفس غير معروفين.")}}
+function hcStop(){hcSet("0");state.hcPending=null;if(health.src==="health")Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,src:"",ts:0});try{wbRender()}catch(_){}log("care","أوقف الضيف قراءة تطبيق الصحة","");msg("sys",isEN()?"Stopped. I no longer read the Health app, and heart and breathing are unknown.":"أوقفتها. لم أعد أقرأ تطبيق الصحة، والقلب والنفس غير معروفين.")}
+function hcTemplate(){return location.origin+location.pathname+"#hc=78_16_97"}
+function hcSetup(){const en=isEN();const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  const iosSteps=en?["Open the Shortcuts app and tap + for a new shortcut.","Add Find Health Samples: Heart Rate, sorted latest first, limit 1.","Repeat it for Respiratory Rate, then for Blood Oxygen.","Add a Text action with the link below, replacing the three numbers with the three results in order.","Add Open URLs, then run the shortcut. The first time, iPhone asks your permission to read Health, then KNF asks once.","To refresh by itself, add it under Automation, for example every hour."]
+    :["افتح تطبيق الاختصارات واضغط + لاختصار جديد.","أضف «البحث عن عينات الصحة»، واختر نبض القلب، والأحدث أولا، والحد عينة واحدة.","كرر الخطوة لمعدل التنفس، ثم لنسبة الأكسجين في الدم.","أضف «نص» وضع فيه الرابط أدناه، واستبدل الأرقام الثلاثة بنتائج الخطوات الثلاث بالترتيب.","أضف «فتح الروابط» ثم شغل الاختصار. أول مرة يطلب الآيفون إذنك بقراءة الصحة، ثم يسألك كنف مرة واحدة.","ليتجدد وحده، أضفه في «الأتمتة» في التطبيق نفسه، مثلا كل ساعة."];
+  const and=en?"On Android: if your watch or chest strap broadcasts heart rate over Bluetooth, tap Connect your watch. Reading Health Connect needs the installed KNF app, which is in the next phase.":"في أندرويد: إن كانت ساعتك أو حزامك يبث النبض بالبلوتوث فاضغط «اربط ساعتك». قراءة «هيلث كونكت» تحتاج تطبيق كنف المثبت، وهو في المرحلة القادمة.";
+  const st=hcGet()==="1"&&health.src==="health";
+  card(head("⌚",en?"Read your heart and breathing, with your permission":"قراءة قلبك ونفسك من ساعتك بإذنك",en?"Health app":"تطبيق الصحة")+
+   (st?`<div class="notr"><b>${esc((en?"Now: ":"الآن: ")+hcVals(health,en))}</b></div>`:"")+
+   `<div>${en?"On iPhone with Apple Watch: one shortcut reads your latest pulse, breathing and oxygen from the Health app and opens KNF with them.":"في الآيفون مع ساعة أبل: اختصار واحد يقرأ آخر نبض وتنفس وأكسجين من تطبيق الصحة، ويفتح كنف بها."}</div>`+
+   `<ol style="margin:6px 0;padding-inline-start:20px">${iosSteps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`+
+   `<div class="notr" dir="ltr" style="font-family:monospace;font-size:12px;word-break:break-all;background:var(--bg,#f6f3ea);padding:6px 8px;border-radius:8px">${esc(hcTemplate())}</div>`+
+   `<div class="acts"><button type="button" data-hccopy="1">${en?"Copy the link":"انسخ الرابط"}</button>${!ios?`<button type="button" data-watch="1">${en?"Connect your watch":"اربط ساعتك"}</button>`:""}${st?`<button type="button" data-hcstop="1">${en?"Stop reading":"أوقف القراءة"}</button>`:""}</div>`+
+   `<div class="muted">${esc(and)}</div><div class="muted">${en?"Readings stay on your phone and are not sent to the campaign or any party. Without them, heart and breathing stay unknown.":"القراءات تبقى في جوالك ولا ترسل إلى الحملة ولا إلى أي جهة. وبدونها يبقى القلب والنفس غير معروفين."}</div>`);
+  log("care","شرح ربط تطبيق الصحة بإذن الضيف",ios?"آيفون: اختصار":"أندرويد: بلوتوث")}
 function nextDose(){const m=profile.meds[0];if(!m)return"لا يوجد";const now=$("#clock").textContent||"12:00";const t=m.times.find(x=>x>now)||m.times[0];return m.name+" "+t}
 function minsSinceDrink(){return Math.floor((Date.now()-wb.lastDrink)/60000)}
 function wbState(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();
@@ -1757,7 +1792,7 @@ const TOOLS={
   reset_body:{agent:"care",desc:"يسجل أن الضيف شرب واستراح ويعيد مؤشر الجسد إلى بخير.",run(){wb.body="ok";wb.lastDrink=Date.now();wb.reminded=false;wb.answered=Date.now();health.hr=82;health.rr=17;health.spo2=97;health.ts=Date.now();healthAsked=false;wbRender();log("care","شرب واستراح","بدأ عد الماء من جديد");return{ok:true}}},
   wellbeing_checkin:{agent:"care",desc:"يسأل الضيف كيف يشعر الآن (بخير، متعب، عطشان، متوتر، ألم) ويعرض أزرارا سريعة، ويحدث مؤشر العافية. استخدمه بعد وقت طويل من المشي أو الانتظار أو عندما يبدو الضيف منهكا.",
     run(){log("care","فحص عافية: كيف تشعر الآن؟","مؤشر الجسد والنفس");
-      card(head("💚","كيف تشعر الآن يا "+profile.name+"؟","فحص عافية")+`<div class="muted">${healthFresh()?"من ساعتك: ":""}${healthLine()} · الحر ${site().temp}°</div>${healthFresh()?"":`<div class="acts"><button type="button" data-watch="1">اربط ساعتك</button></div>`}<div>زر واحد يكفي، وأرتب الباقي.</div><div class="acts"><button class="primary" data-say="أنا بخير الحمد لله">بخير</button><button data-say="أنا تعبان">متعب</button><button data-say="أنا عطشان">عطشان</button><button data-say="أحس بتوتر">متوتر</button><button data-say="عندي ألم في صدري وضيق نفس">ألم</button></div>`);
+      card(head("💚","كيف تشعر الآن يا "+profile.name+"؟","فحص عافية")+`<div class="muted">${healthFresh()?(health.src==="health"?"من تطبيق الصحة: ":"من ساعتك: "):""}${healthLine()} · الحر ${site().temp}°</div>${healthFresh()?"":`<div class="acts"><button type="button" data-hcsetup="1">اقرأ نبضي من تطبيق الصحة</button><button type="button" data-watch="1">اربط ساعتك</button></div>`}<div>زر واحد يكفي، وأرتب الباقي.</div><div class="acts"><button class="primary" data-say="أنا بخير الحمد لله">بخير</button><button data-say="أنا تعبان">متعب</button><button data-say="أنا عطشان">عطشان</button><button data-say="أحس بتوتر">متوتر</button><button data-say="عندي ألم في صدري وضيق نفس">ألم</button></div>`);
       return{asked:true}}},
   hydration_rest:{agent:"care",desc:"خطة الجسد: يقترح الماء والظل والراحة الآن بحسب الحرارة والوقت منذ آخر شرب أو جلوس وملف الضيف، ويعيد ضبط مؤشر العافية. المدخل: need (water, rest, both).",
     schema:{type:"object",properties:{need:{type:"string",enum:["water","rest","both"]}}},
@@ -2215,6 +2250,11 @@ async function ask(text,img){const dl=detectLang(String(text||""));const base=pr
   try{return await askInner(text,img)}finally{if(prev!==null){state.turnLang=null;state.lang=prev}}}
 async function askInner(text,img){try{document.getElementById("box").classList.remove("await")}catch(_){}
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
+  /* قراءة الصحة: الموافقة بالكلام، والإيقاف، وشرح الربط */
+  if(state.hcPending&&Date.now()-state.hcPending.at<300000&&/^\s*(نعم|ايوه|أيوه|اسمح|أسمح|موافق|موافقة|yes|ok|allow)\s*[.!؟]?\s*$/i.test(text)){msg("user",text);box.value="";hcAnswer(true);return}
+  if(state.hcPending&&Date.now()-state.hcPending.at<300000&&/^\s*(لا|لأ|لا أسمح|لا اسمح|no|don'?t)\s*[.!؟]?\s*$/i.test(text)){msg("user",text);box.value="";hcAnswer(false);return}
+  if(/(أوقف|اوقف|وقف|ألغ|الغ)\S*\s+(قراءة|قراءه|قراية)?\s*(صحتي|الصحة|الصحه|نبضي|تطبيق الصحة)|stop reading my health/i.test(text)){msg("user",text);box.value="";hcStop();return}
+  if(/(اقرأ|اقرا|إقرأ|اربط|إربط|ربط)\s+(صحتي|نبضي|ساعتي|تطبيق الصحة|تطبيق الصحه|بيانات صحتي|بياناتي الصحية|الساعة|الساعه)|read my (health|pulse|heart)|connect (my )?(watch|health)/i.test(text)){msg("user",text);box.value="";hcSetup();return}
   /* أثناء التعريف: إن كتب الضيف طلبا أو ضغط زرا، نخدمه فورا ولا نعامل طلبه كاسم */
   if(state.onb){const answerStep=/^(home|relother|otp|campaign|campphone|planmail|gender)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
     if(cmd){const was=state.onb;if(/^(name|gender|email|otp|family|relother|campaign)$/.test(was||""))state.onbResume=was;state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";log("sup","أجل التعريف لأن الضيف طلب خدمة",was)}
@@ -2560,7 +2600,11 @@ document.addEventListener("click",e=>{const b=e.target.closest(".chip[data-k=\"s
 $("#quick").addEventListener("click",e=>{const b=e.target.closest(".q");if(b){state.fromChip=true;Promise.resolve(ask(b.textContent)).finally(()=>{state.fromChip=false})}});
 $("#svAsk").addEventListener("click",()=>{$("#feed").scrollIntoView({block:"end"});ask("التقييم")});
 $("#svRes").addEventListener("click",()=>{$("#feed").scrollIntoView({block:"end"});ask("نتائج التقييم")});
-feed.addEventListener("click",e=>{if(e.target.closest("[data-watch]")){connectWatch();return}const b=e.target.closest("[data-say]");if(b){state.fromChip=true;Promise.resolve(ask(b.dataset.say)).finally(()=>{state.fromChip=false})}});
+feed.addEventListener("click",e=>{if(e.target.closest("[data-watch]")){connectWatch();return}
+  {const h=e.target.closest("[data-hc]");if(h){h.closest(".acts").querySelectorAll("button").forEach(x=>x.disabled=true);hcAnswer(h.dataset.hc==="1");return}}
+  if(e.target.closest("[data-hcsetup]")){hcSetup();return}
+  if(e.target.closest("[data-hcstop]")){hcStop();return}
+  {const c=e.target.closest("[data-hccopy]");if(c){const t=hcTemplate();const done=()=>{c.textContent=isEN()?"Copied":"نسخت الرابط"};try{navigator.clipboard.writeText(t).then(done,done)}catch(_){done()}return}}const b=e.target.closest("[data-say]");if(b){state.fromChip=true;Promise.resolve(ask(b.dataset.say)).finally(()=>{state.fromChip=false})}});
 $("#wb").addEventListener("click",()=>ask("كيف حالي الجسدية؟"));
 /* ---------- offline mode: essentials on the device, outbound requests queued ---------- */
 const OUTBOUND={request_cart:"طلب العربة",report_lost:"بلاغ التائه",book_children_center:"حجز مركز الأطفال",book_visit:"حجز الزيارة",share_location:"مشاركة الموقع",set_meeting_point:"نقطة اللقاء للعائلة",sign_interpreter:"طلب مترجم الإشارة"};
@@ -2844,7 +2888,7 @@ const SCENES=[
  ["ملف الضيف (ما يعرفه كنف)",()=>{setSite("makkah");$("#profBtn").click()}],
 ];
 function cleanState(){stopSpeak();stopCam();state.busy=false;send.disabled=false;typing(false);if(state.forceOffline)setForceOffline(false);state.signMode=false;setInputMode("mText");
-  Object.assign(wb,{body:"ok",mind:"calm",lastDrink:Date.now(),reminded:false,answered:0,medDue:null});if(health.src!=="ble")Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,moving:false,ts:0,src:""});healthAsked=false;
+  Object.assign(wb,{body:"ok",mind:"calm",lastDrink:Date.now(),reminded:false,answered:0,medDue:null});if(health.src!=="ble"&&health.src!=="health")Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,moving:false,ts:0,src:""});healthAsked=false;
   const sh=$("#sheet");if(sh&&!sh.hidden)sh.hidden=true}
 function setSite(v){cleanState();if(state.site!==v){state.site=v;loadPrayerTimes();loadWeather();document.querySelectorAll('[data-k="site"]').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v))}start()}
 let adminTimer=0;
@@ -2878,6 +2922,8 @@ function demoPanel(){let w=document.getElementById("demoAdm");if(!w){w=document.
    <div style="margin-top:8px"><b>الحملة</b></div><div>${B("data-dc","1","مع بشرى الضيافة",camp)}${B("data-dc","0","بلا حملة",!camp)}</div>
    <div style="margin-top:8px">${B("data-dx","new","ضيف جديد (مسح الجهاز)",false)}</div>`}
 if(demoAdminOn()){setTimeout(()=>{try{demoPanel()}catch(_){}},1200)}
+if(/^#hc=/.test(location.hash))setTimeout(()=>{try{hcIncoming()}catch(_){}},1500);
+window.addEventListener("hashchange",()=>{if(/^#hc=/.test(location.hash))try{hcIncoming()}catch(_){}});
 
 start();voiceStatus();setTimeout(voiceStatus,1500);
 (async()=>{
