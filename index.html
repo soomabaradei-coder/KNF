@@ -372,7 +372,7 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
         <div class="menuPop" id="menuPop" hidden></div>
         <div class="loc" id="loc"><span class="dot"></span><span id="locText">جار تحديد موقعك…</span></div>
         <div class="net" id="net" hidden><span class="dot"></span><span id="netText"></span></div>
-        <button class="wb gray" id="wb" data-say="كيف حالي الجسدية؟"><span class="wbdot"></span><b id="wbTitle">بيانات غير كافية</b><span class="wbic" id="wbIc"></span><small id="wbWhy" hidden></small></button>
+        <button class="wb gray" id="wb" data-say="كيف حالي الجسدية؟"><span class="wbdot"></span><b id="wbTitle">الماء والحر</b><span class="wbic" id="wbIc"></span><small id="wbWhy" hidden></small></button>
         <div class="sheet thr" id="threads" hidden>
           <div class="sh"><b>محادثاتك مع كنف</b><span>محفوظة على جهازك وتفتح بلا إنترنت</span><button class="chip" id="thrClose">إغلاق</button></div>
           <button class="chip" id="thrNew" type="button">+ محادثة جديدة</button>
@@ -458,7 +458,7 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
       </div>
       <div class="panel">
         <h2>ما يعرفه كنف عن الضيف</h2>
-        <p class="lead" style="margin-bottom:6px">جودة الحياة التي يرعاها كنف لها ثلاثة أركان: <b>صحة جسدية</b> (القدرة على الحركة، والحالة الصحية، والحاجة إلى الراحة أو المساعدة)، <b>طمأنينة نفسية</b> (الإرشاد، والدعم، وطريقة التواصل التي يفضلها)، و<b>راحة الرحلة</b> (سهولة التنقل، والوصول إلى الخدمات، والعائلة، واللغة والتفضيلات الشخصية). والشريط الملون أعلى الهاتف يلخص حالته: أخضر عافية جيدة بحسب إجاباته، أصفر قد يحتاج استراحة أو دعما، أحمر يحتاج متابعة، رمادي بيانات غير كافية أو قديمة.</p>
+        <p class="lead" style="margin-bottom:6px">جودة الحياة التي يرعاها كنف لها ثلاثة أركان: <b>صحة جسدية</b> (القدرة على الحركة، والحالة الصحية، والحاجة إلى الراحة أو المساعدة)، <b>طمأنينة نفسية</b> (الإرشاد، والدعم، وطريقة التواصل التي يفضلها)، و<b>راحة الرحلة</b> (سهولة التنقل، والوصول إلى الخدمات، والعائلة، واللغة والتفضيلات الشخصية). والشريط الملون أعلى الهاتف يلخص حالته: أخضر عافية جيدة بحسب إجاباته، أصفر قد يحتاج استراحة أو دعما، أحمر يحتاج متابعة. وبلا ساعة يحكم الشريط على الماء والحر، وهما الأهم للحاج.</p>
         <p class="lead">كل تنبيه وكل اقتراح يبنى على هذا الملف. غيري شيئا فيه من زر الملف في الهاتف وستتغير التنبيهات الاستباقية.</p>
         <dl class="known" id="known"></dl>
       </div>
@@ -1106,12 +1106,15 @@ function wbState(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;con
   if(wb.mind==="stressed")why.push("تبدو متوترا");if(wb.body==="thirsty"||m0>=limit)why.push("مر "+m0+" د بلا ماء");if(wb.body==="tired")why.push("قلت إنك متعب");if(wb.medDue)why.push("موعد "+wb.medDue.name+(medMins()?" فات بـ"+medMins()+" د":" الآن"));
   if(severe||bodySig.length>=2||(bodySig.length&&wb.mind==="stressed"))return{c:"red",t:"تحتاج متابعة",w:why.join(" · ")+" · من تطبيق الصحة"};
   if(wb.mind==="stressed"&&why.length>=2)return{c:"red",t:"تحتاج متابعة",w:why.join(" · ")};
-  if(why.length)return{c:"yellow",t:"قد تحتاج استراحة أو دعما",w:why.join(" · ")+(bodySig.length?" · سأسألك قبل أن أحكم":"")};
-  if(!healthFresh()&&stale)return{c:"gray",t:"بيانات غير كافية أو قديمة",w:healthLine()+" · أخبرني كيف تشعر"};
-  if(!healthFresh())return{c:"green",t:"عافية جيدة بحسب إجاباتك",w:(m0?"شربت قبل "+m0+" د":"شربت الآن")+(hot?" · الحر "+s.temp+"°، الزم الظل":"")};
+  const onlyWater=why.length===1&&(wb.body==="thirsty"||m0>=limit);
+  if(why.length)return{c:"yellow",s:onlyWater?"اشرب ماء الآن":undefined,se:onlyWater?"Drink water now":undefined,t:"قد تحتاج استراحة أو دعما",w:why.join(" · ")+(bodySig.length?" · سأسألك قبل أن أحكم":"")};
+  /* بلا ساعة: الحكم على الماء والحر، وهما الأهم للحاج، ولا يكتب «بيانات غير كافية» (قرار سمية، الإصدار 205) */
+  if(!healthFresh()){const left=Math.max(0,limit-m0);const drank=m0?"شربت قبل "+m0+" د":"شربت الآن";
+    if(hot&&left<=10)return{c:"yellow",s:"اشرب ماء قريبا",se:"Drink water soon",t:"اشرب ماء خلال "+left+" د",w:drank+" · الحر "+s.temp+"°، الزم الظل"};
+    return{c:"green",s:hot?"الماء جيد، والحر شديد":"الماء والحر بخير",se:hot?"Water good, heat high":"Water and heat fine",t:"الماء والحر بخير",w:drank+" · الحر "+s.temp+"°"+(hot?"، اشرب كل "+limit+" د والزم الظل":"")}}
   return{c:"green",t:"عافية جيدة بحسب تطبيق الصحة وإجاباتك",w:healthLine()+(m0?" · شربت قبل "+m0+" د":"")+(hot?" · الحر "+s.temp+"°":"")}}
 let healthAsked=false;
-const WB_SHORT={green:"عافية جيدة",yellow:"قد تحتاج استراحة",red:"تحتاج متابعة",gray:"بيانات غير كافية"};const WB_SHORT_EN={green:"Good wellbeing",yellow:"May need a rest",red:"Needs attention",gray:"Not enough data"};
+const WB_SHORT={green:"عافية جيدة",yellow:"قد تحتاج استراحة",red:"تحتاج متابعة",gray:"الماء والحر"};const WB_SHORT_EN={green:"Good wellbeing",yellow:"May need a rest",red:"Needs attention",gray:"Water and heat"};
 const IC={heart:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>',
  breath:'<svg viewBox="0 0 24 24" class="lung"><path d="M12 2v7" fill="none"/><path d="M10.5 9C7 9 3 13 3 18.5 3 20.4 4.3 22 6 22h2.2c1.3 0 2.3-1.1 2.3-2.4V9z"/><path d="M13.5 9C17 9 21 13 21 18.5c0 1.9-1.3 3.5-3 3.5h-2.2c-1.3 0-2.3-1.1-2.3-2.4V9z"/></svg>',
  drop:'<svg viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>',
@@ -1128,7 +1131,7 @@ function wbIcons(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;con
   if(wb.mind==="stressed")ic("mind","","bad");
   if(it.length>4)it.splice(3,1);
   return it.join("")}
-function wbRender(){const el=$("#wb");if(!el)return;const st=wbState();el.className="wb "+st.c;$("#wbTitle").textContent=isEN()?WB_SHORT_EN[st.c]:WB_SHORT[st.c];$("#wbWhy").textContent=st.w;$("#wbIc").innerHTML=wbIcons();el.title=st.w;
+function wbRender(){const el=$("#wb");if(!el)return;const st=wbState();el.className="wb "+st.c;$("#wbTitle").textContent=isEN()?(st.se||WB_SHORT_EN[st.c]):(st.s||WB_SHORT[st.c]);$("#wbWhy").textContent=st.w;$("#wbIc").innerHTML=wbIcons();el.title=st.w;
   const hs=healthSignals();const sig=hs.filter(x=>x.sev>=1);
   if(sig.length&&!healthAsked){healthAsked=true;const severe=hs.some(x=>x.sev===2);
     log("care","إشارة من تطبيق الصحة: "+sig.map(x=>x.t).join("، "),"البيانات على هاتفك ولا ترسل للهيئة؛ أسألك قبل أن أحكم");
