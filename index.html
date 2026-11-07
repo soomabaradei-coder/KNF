@@ -2213,7 +2213,7 @@ async function askInner(text,img){try{document.getElementById("box").classList.r
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
   /* أثناء التعريف: إن كتب الضيف طلبا أو ضغط زرا، نخدمه فورا ولا نعامل طلبه كاسم */
   if(state.onb){const answerStep=/^(home|relother|otp|campaign|campphone|planmail|gender)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
-    if(cmd){const was=state.onb;state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";log("sup","أجل التعريف لأن الضيف طلب خدمة",was)}
+    if(cmd){const was=state.onb;if(/^(name|gender|email|otp|family|relother|campaign)$/.test(was||""))state.onbResume=was;state.onb=null;box.placeholder=isEN()?UI_EN.phDefault:"اكتب أو تحدث… مثل: وين أقرب عربة؟";log("sup","أجل التعريف لأن الضيف طلب خدمة",was)}
     else{msg("user",text);box.value="";if(await onbStep(text)){scrollBottom();return}}}
   if(state.pendingSign){const ps=state.pendingSign;
     if(/^\s*(نعم|ايوه|أيوه|اي|إي|أي|اعتمد|اعتمده|تمام|yes|oui)\s*[.!؟]?\s*$/i.test(text)){state.pendingSign=null;confirmSign(ps);return}
@@ -2248,7 +2248,17 @@ async function askInner(text,img){try{document.getElementById("box").classList.r
   typing(false);if(reply){const R=typeof reply==="string"?{text:reply,say:reply,sayLang:detectLang(reply)||profile.speakLang}:reply;if(R.text){if(state.signMode)R.text=R.text.replace(/بالصوت/g,"نصا على الشاشة").replace(/وأدلك بالصوت/g,"وأدلك نصا");msg("bot",R.text);if(!/الإرشاد|guid/i.test(R.text))speak(R.say,{lang:R.sayLang})}}
   if(state.stressed&&!/تنفس|respir/i.test(text)){card(head("🫧","هل أهدئ معك دقيقة؟","بعد ما رتبنا الأمر")+`<div>تمرين تنفس قصير بالدائرة، أو مكان جلوس هادئ وماء.</div><div class="acts"><button class="primary" data-say="تنفس معي">تنفس معي</button><button data-say="أبغى أرتاح شوي">مكان أجلس فيه</button></div>`);state.stressed=false}
   state.busy=false;send.disabled=false;box.focus();
+  /* أسئلة التعارف ضرورية لتخصيص الخدمة: إن طلب الضيف خدمة قبل أن يجيب، يخدمه ثم يعود إلى السؤال نفسه */
+  if(state.onbResume&&!state.onb)setTimeout(resumeOnb,1600);
 }
+function resumeOnb(){const st=state.onbResume;state.onbResume=null;if(!st||state.onb||state.busy)return;const en=isEN();const pre=en?"To tailor the service to you, I still need this: ":"لأخصص لك الخدمة أحتاج هذا قبل أن نكمل: ";const say=r=>{msg("bot",r);speak(r,{lang:en?"en":"ar"})};
+  log("sup","يعود إلى سؤال التعارف بعد الخدمة",st);
+  if(st==="name"){state.onb="name";say(pre+(en?"What is your name?":"ما اسمك؟"));box.placeholder=en?UI_EN.phName:"اكتب اسمك…";return}
+  if(st==="gender"){state.onb="gender";say(pre+(en?"Are you male or female?":"أنت ذكر أم أنثى؟"));box.placeholder=en?"Male or female…":"ذكر أو أنثى…";
+    const c=card(`<div class="opts" data-gsel><button type="button" class="chip" data-g="m">${en?"Male":"ذكر"}</button><button type="button" class="chip" data-g="f">${en?"Female":"أنثى"}</button></div>`);c.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{c.remove();msg("user",b.textContent);setGender(b.dataset.g)}));return}
+  if(st==="email"||st==="otp"){state.onb="email";say(pre+(en?"What is your phone number?":"ما رقم جوالك؟"));box.placeholder=en?UI_EN.phPhone:"رقم جوالك، مثل 05xxxxxxxx…";return}
+  if(st==="family"){state.onb="family";say(pre+(en?"Who is with you on this trip? Type their names, or say alone.":"من معك في رحلتك؟ اكتب أسماءهم، أو قل وحدي."));box.placeholder=en?UI_EN.phFam:"أسماء من معك، أو وحدي…";return}
+  if(st==="campaign"||st==="relother"){if(st==="relother"&&profile.campaignAsked)return;state.onb="campaign";state.onbAfter=state.onbAfter||"";say(pre+(en?"Are you with a Hajj or Umrah campaign? Type its name, or say none.":"هل أنت مع حملة حج أو عمرة؟ اكتب اسمها، أو قل بلا حملة."));box.placeholder=en?"Campaign name, or none…":"اسم الحملة، أو بلا حملة…"}}
 
 /* ---------- wiring ---------- */
 function setMode(live){$("#modeTag").innerHTML=live?"الوضع: <b>وكيل مباشر (Claude يختار الأدوات)</b>":(LLM.ok()?"الوضع: <b>محاكاة + فهم الصيغ عبر Claude</b>":"الوضع: <b>محاكاة موجهة</b>")}
@@ -2417,6 +2427,7 @@ function campDone(after,names,none,pre){
     const r=ack+" "+(isEN()?UI_EN.alone:"أنا معك. اسألني عن أي شيء، أو ابدأ بزر «أبغى أعتمر».");msg("bot",r);speak(r,{lang:isEN()?"en":"ar"});ACCT.sync(true);return true}
 async function onbStep(text){
   const t=text.trim();
+  if(/^(name|email|family)$/.test(state.onb||"")&&/^\s*(تخطي|تخطى|لاحقا|بعدين|ما ابغى|ما أبغى|لا|skip|later|no)\s*[.!؟]?\s*$/i.test(t)){const en=isEN();const q=state.onb==="name"?(en?"What is your name?":"ما اسمك؟"):state.onb==="email"?(en?"What is your phone number?":"ما رقم جوالك؟"):(en?"Who is with you? Type their names, or say alone.":"من معك؟ اكتب أسماءهم، أو قل وحدي.");const r=(en?"I need this to tailor the service to you. ":"أحتاج هذا لأخصص لك الخدمة. ")+q;msg("bot",r);speak(r,{lang:en?"en":"ar"});return true}
   if(state.onb==="name"){const n=t.replace(/^(أنا|انا|اسمي|إسمي|اسمي هو|my name is|i am|je suis)\s+/i,"").replace(/[.!؟]+$/,"").trim();if(!n||n.split(/\s+/).length>4){msg("bot",isEN()?UI_EN.askNameOnly:"ما اسمك؟ اكتبه فقط.");return true}
     state.onbName=n;askGender(n);return true}
   if(state.onb==="gender"){const g=/^\s*(أنثى|انثى|امرأة|امراة|بنت|سيدة|female|woman|f)\s*[.!؟]?$/i.test(t)?"f":/^\s*(ذكر|رجل|male|man|m)\s*[.!؟]?$/i.test(t)?"m":"";if(!g){const r=isEN()?"Male or female? Choose above or type it.":"ذكر أم أنثى؟ اختر من الأزرار أو اكتبها.";msg("bot",r);return true}setGender(g);return true}
