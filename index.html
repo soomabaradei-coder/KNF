@@ -295,8 +295,16 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .calm > .wb{display:flex;width:auto;margin:0 14px 8px;padding:6px 12px;border-radius:999px;border:0;font-size:.8rem;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.calm > .wb b{font-weight:600}.calm > .wb .wbdot{width:9px;height:9px;box-shadow:0 0 0 3px rgba(255,255,255,.3)}.calm > .wb .wbic .ic{padding:2px 7px;font-size:.72rem}
 .calm .feed{padding:12px 14px 8px;gap:14px}
 .calm .msg{font-size:.95rem;line-height:1.65}
-.calm .msg.bot{background:transparent;border:0;padding:2px 2px;max-width:100%;border-radius:0;text-align:right}
-.calm .msg.user{background:var(--bg2);color:var(--fg);border-radius:18px;border-bottom-left-radius:6px}
+.calm .msg.bot{background:var(--card);border:1px solid var(--line);padding:9px 14px 11px;max-width:86%;border-radius:18px;border-bottom-right-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.calm .msg.user{background:var(--kiswa);color:#fff;border-radius:18px;border-bottom-left-radius:6px;padding:10px 14px;max-width:80%}
+/* فقاعة كنف عليها اسمه، وفقاعة الضيف بلون مختلف، حتى لا يختلط الكلام */
+.msg.bot[data-who]::before{content:attr(data-who);display:block;font-size:.7rem;font-weight:700;color:var(--kiswa);margin-bottom:3px;opacity:.85}
+.screen.ltr .calm .msg.bot,.calm.ltr .msg.bot{border-bottom-right-radius:18px;border-bottom-left-radius:6px}
+/* سؤال ينتظر جواب الضيف (الاسم وغيره): ظاهر بإطار ذهبي، وخانة الكتابة تنبض */
+.msg.bot.ask{border:2px solid var(--gold)!important;font-weight:600;font-size:1.02rem}
+.msg.bot.ask::before{color:var(--gold)}
+#box.await{outline:3px solid var(--gold);outline-offset:1px;animation:knfPulse 1.4s ease-in-out 4}
+@keyframes knfPulse{50%{outline-color:transparent}}
 .calm .card{border:0;background:var(--bg2);width:100%;box-shadow:none;border-radius:18px;padding:12px 14px}
 .calm .card.alert{border-inline-start:3px solid var(--warn)}.calm .card.alert.crit{border-inline-start-color:var(--crit)}
 .calm .sugg{align-self:stretch;padding:2px 2px}.calm .sugg small{display:block;color:var(--muted);font-size:.72rem;margin-bottom:6px}.calm .sugg .sl{display:flex;flex-wrap:wrap;gap:6px}.calm .sugg .q{font-size:.78rem;padding:6px 12px;background:var(--card);border-color:var(--line)}
@@ -671,7 +679,11 @@ const THR={list:[],cur:null,
     el.innerHTML=this.list.length?this.list.map(t=>`<div class="row ${t.id===this.cur?"cur":""}" data-open="${t.id}"><div><b>${esc(t.title)}</b><small>${t.site==="makkah"?"المسجد الحرام":"المسجد النبوي"} · ${when(t.at)} · ${t.n} ${t.n===1?"رسالة":"رسائل"}</small></div>${t.plan?'<span class="pl">فيها خطة</span>':""}<button class="del" data-del="${t.id}" title="حذف">حذف</button></div>`).join(""):'<div class="hint">لا توجد محادثات محفوظة بعد. كل محادثة تبدئينها تحفظ هنا تلقائيا بعنوان موضوعها.</div>'}
 };
 function autoDir(m){const t=(m.textContent||"").replace(/[\d\s°%·.,:()\-+]/g,"");const ar=(t.match(/[\u0600-\u06FF]/g)||[]).length,lat=(t.match(/[A-Za-z\u00C0-\u024F]/g)||[]).length;m.setAttribute("dir",lat>ar?"ltr":"rtl");m.style.textAlign=lat>ar?"left":"right";return m}
-function msg(kind,text){const m=push(el(`<div class="msg ${kind}"></div>`));m.textContent=text;autoDir(m);if(kind==="user")THR.touch(text);else TRX.el(m);return m}
+function msg(kind,text){const m=push(el(`<div class="msg ${kind}"></div>`));m.textContent=text;autoDir(m);if(kind==="user")THR.touch(text);else TRX.el(m);
+  if(kind==="bot"){let en=false;try{en=isEN()}catch(_){}m.dataset.who=en?"KNF":"كنف";
+    /* أسئلة التعارف التي تنتظر جوابا تظهر بارزة وتنبه خانة الكتابة */
+    if(state.onb&&/[؟?]/.test(String(text||""))){m.classList.add("ask");m.dataset.who=en?"KNF asks you":"كنف يسألك";try{const b=document.getElementById("box");b.classList.remove("await");void b.offsetWidth;b.classList.add("await")}catch(_){}}}
+  return m}
 function card(html,cls=""){if(metrics.task&&!metrics.task.served&&!/📊|📈/.test(html.slice(0,40)))taskServed(cls);const c=autoDir(push(el(`<div class="card ${cls}">${html}</div>`)));TRX.el(c);return c}
 /* لغة واحدة على الشاشة: إذا كانت لغة الضيف غير العربية تترجم بطاقات كنف ورسائله العربية (ومنها نصوص الأدلة الرسمية) إلى لغته عبر بوابة كنف، بأمانة ودون إضافة، وتحفظ الترجمة */
 const TRX={cache:new Map(),need(){try{return uiLang()!=="ar"&&LLM.ok()}catch(_){return false}},
@@ -2197,7 +2209,7 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 async function ask(text,img){const dl=detectLang(String(text||""));const base=profile.readLang||state.lang||"ar";let prev=null;
   if(dl==="ar"&&base!=="ar"&&!state.turnLang&&!state.fromChip){prev=state.lang;state.turnLang="ar";state.lang="ar"}
   try{return await askInner(text,img)}finally{if(prev!==null){state.turnLang=null;state.lang=prev}}}
-async function askInner(text,img){
+async function askInner(text,img){try{document.getElementById("box").classList.remove("await")}catch(_){}
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
   /* أثناء التعريف: إن كتب الضيف طلبا أو ضغط زرا، نخدمه فورا ولا نعامل طلبه كاسم */
   if(state.onb){const answerStep=/^(home|relother|otp|campaign|campphone|planmail|gender)$/.test(state.onb);const cmd=state.fromChip||/[؟?]/.test(text)||/^\s*(أبغى|ابغى|أبي|ابي|وين|فين|أين|كيف|متى|دلني|وديني|اطلب|أطلب|ضعت|أحتاج|احتاج|ساعدني|ساعدوني|افتح|كثافة|عربة|عربه|where|how|when|i want|i need|help)/i.test(text)||(!answerStep&&ROUTES.some(([re])=>re.test(text)));
