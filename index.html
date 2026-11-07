@@ -1047,15 +1047,19 @@ function guidance(dest,dist){
 const wb={body:"ok",mind:"calm",fam:2,lastDrink:Date.now(),reminded:false,answered:0,medDue:null};
 function medMins(){return wb.medDue?Math.floor((Date.now()-wb.medDue.at)/60000):0}
 // طبقة إشارات الجسم: من تطبيق الصحة في الهاتف (بإذن الضيف)، تبقى على الهاتف ولا ترسل للهيئة
-const health={permitted:true,watch:true,hr:78,rr:16,spo2:97,steps:4200,moving:false,ts:Date.now()};
-function healthFresh(){return health.permitted&&health.watch&&(Date.now()-health.ts)<60*60000}
+/* القلب والنفس: لا أرقام إلا من مصدر حقيقي (ساعة مربوطة بالبلوتوث) أو قراءة عرض معلنة من لوحة الأدمن؛ بدونهما تظهر «–» */
+const health={permitted:false,watch:false,hr:null,rr:null,spo2:null,steps:null,moving:false,ts:0,src:""};
+function healthFresh(){return health.permitted&&health.watch&&typeof health.hr==="number"&&(Date.now()-health.ts)<(health.src==="ble"?120000:60*60000)}
+/* ربط ساعة أو حزام نبض عبر البلوتوث (خدمة معدل النبض القياسية). يعمل في كروم على أندرويد والحاسب، ولا يدعمه سفاري في الآيفون */
+function connectWatch(){const en=isEN();if(!navigator.bluetooth){const r=en?"This browser cannot connect a watch. Heart and breathing stay unknown, and I rely on how you tell me you feel.":"هذا المتصفح لا يربط الساعة، فيبقى القلب والنفس غير معروفين، وأعتمد على ما تخبرني به عن حالك.";msg("bot",r);return}
+  navigator.bluetooth.requestDevice({filters:[{services:["heart_rate"]}]}).then(d=>d.gatt.connect()).then(g=>g.getPrimaryService("heart_rate")).then(sv=>sv.getCharacteristic("heart_rate_measurement")).then(ch=>{ch.addEventListener("characteristicvaluechanged",e=>{const v=e.target.value;const f=v.getUint8(0);const hr=(f&1)?v.getUint16(1,true):v.getUint8(1);Object.assign(health,{permitted:true,watch:true,hr,src:"ble",ts:Date.now()});wbRender()});return ch.startNotifications()}).then(()=>{log("care","ربط ساعة النبض عبر البلوتوث","قراءة حقيقية على الجهاز فقط");msg("sys",en?"Watch connected: your heart rate now comes from it.":"ربطت الساعة: نبضك الآن منها.")}).catch(e=>{msg("sys",(en?"The watch was not connected: ":"لم تربط الساعة: ")+String(e&&e.message||e))})}
 function healthSignals(){const w=[];if(!healthFresh())return w;
-  if(health.spo2<93)w.push({k:"spo2",t:"أكسجين "+health.spo2+"%",sev:2});
+  if(typeof health.spo2==="number"&&health.spo2<93)w.push({k:"spo2",t:"أكسجين "+health.spo2+"%",sev:2});
   if(health.hr>=110&&!health.moving)w.push({k:"hr",t:"نبض "+health.hr+" بلا حركة",sev:health.hr>=120?2:1});
   else if(health.hr>=110&&health.moving)w.push({k:"hr",t:"نبض "+health.hr+" مع المشي",sev:0});
-  if(health.rr>=24)w.push({k:"rr",t:"تنفس سريع "+health.rr+"/د",sev:1});
+  if(typeof health.rr==="number"&&health.rr>=24)w.push({k:"rr",t:"تنفس سريع "+health.rr+"/د",sev:1});
   return w}
-function healthLine(){return healthFresh()?"نبض "+health.hr+" · تنفس "+health.rr+" · أكسجين "+health.spo2+"%":(health.permitted?"لا ساعة متصلة":"لم تأذن لتطبيق الصحة")}
+function healthLine(){if(!healthFresh())return "لا ساعة مربوطة، فالقلب والنفس غير معروفين";const a=["نبض "+health.hr];if(typeof health.rr==="number")a.push("تنفس "+health.rr);if(typeof health.spo2==="number")a.push("أكسجين "+health.spo2+"%");return a.join(" · ")+(health.src==="sim"?" (قراءة تجريبية للعرض)":"")}
 function nextDose(){const m=profile.meds[0];if(!m)return"لا يوجد";const now=$("#clock").textContent||"12:00";const t=m.times.find(x=>x>now)||m.times[0];return m.name+" "+t}
 function minsSinceDrink(){return Math.floor((Date.now()-wb.lastDrink)/60000)}
 function wbState(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();
@@ -1082,7 +1086,7 @@ const IC={heart:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 
 function wbIcons(){const s=site();const hot=s.temp>=40;const limit=hot?30:45;const m0=minsSinceDrink();const f=healthFresh();const hs=healthSignals();const bad=k=>hs.some(x=>x.k===k&&x.sev>=1);
   const it=[];const ic=(k,v,cls)=>it.push(`<i class="${cls||""}">${IC[k]}${v}</i>`);
   ic("heart",f?health.hr:"–",f?(bad("hr")?"bad":""):"off");
-  ic("breath",f?(health.spo2<93?health.spo2+"%":health.rr):"–",f?((bad("rr")||bad("spo2"))?"bad":""):"off");
+  const fb=f&&(typeof health.rr==="number"||typeof health.spo2==="number");ic("breath",fb?(typeof health.spo2==="number"&&health.spo2<93?health.spo2+"%":(typeof health.rr==="number"?health.rr:health.spo2+"%")):"–",fb?((bad("rr")||bad("spo2"))?"bad":""):"off");
   ic("drop",m0+(isEN()?" min":" د"),(wb.body==="thirsty"||m0>=limit)?"bad":"");
   ic("sun",s.temp+"°","");
   if(wb.medDue)ic("pill","دواء","bad");
@@ -1753,7 +1757,7 @@ const TOOLS={
   reset_body:{agent:"care",desc:"يسجل أن الضيف شرب واستراح ويعيد مؤشر الجسد إلى بخير.",run(){wb.body="ok";wb.lastDrink=Date.now();wb.reminded=false;wb.answered=Date.now();health.hr=82;health.rr=17;health.spo2=97;health.ts=Date.now();healthAsked=false;wbRender();log("care","شرب واستراح","بدأ عد الماء من جديد");return{ok:true}}},
   wellbeing_checkin:{agent:"care",desc:"يسأل الضيف كيف يشعر الآن (بخير، متعب، عطشان، متوتر، ألم) ويعرض أزرارا سريعة، ويحدث مؤشر العافية. استخدمه بعد وقت طويل من المشي أو الانتظار أو عندما يبدو الضيف منهكا.",
     run(){log("care","فحص عافية: كيف تشعر الآن؟","مؤشر الجسد والنفس");
-      card(head("💚","كيف تشعر الآن يا "+profile.name+"؟","فحص عافية")+`<div class="muted">من تطبيق الصحة بإذنك: ${healthLine()} · الحر ${site().temp}°</div><div>زر واحد يكفي، وأرتب الباقي.</div><div class="acts"><button class="primary" data-say="أنا بخير الحمد لله">بخير</button><button data-say="أنا تعبان">متعب</button><button data-say="أنا عطشان">عطشان</button><button data-say="أحس بتوتر">متوتر</button><button data-say="عندي ألم في صدري وضيق نفس">ألم</button></div>`);
+      card(head("💚","كيف تشعر الآن يا "+profile.name+"؟","فحص عافية")+`<div class="muted">${healthFresh()?"من ساعتك: ":""}${healthLine()} · الحر ${site().temp}°</div>${healthFresh()?"":`<div class="acts"><button type="button" data-watch="1">اربط ساعتك</button></div>`}<div>زر واحد يكفي، وأرتب الباقي.</div><div class="acts"><button class="primary" data-say="أنا بخير الحمد لله">بخير</button><button data-say="أنا تعبان">متعب</button><button data-say="أنا عطشان">عطشان</button><button data-say="أحس بتوتر">متوتر</button><button data-say="عندي ألم في صدري وضيق نفس">ألم</button></div>`);
       return{asked:true}}},
   hydration_rest:{agent:"care",desc:"خطة الجسد: يقترح الماء والظل والراحة الآن بحسب الحرارة والوقت منذ آخر شرب أو جلوس وملف الضيف، ويعيد ضبط مؤشر العافية. المدخل: need (water, rest, both).",
     schema:{type:"object",properties:{need:{type:"string",enum:["water","rest","both"]}}},
@@ -2556,7 +2560,7 @@ document.addEventListener("click",e=>{const b=e.target.closest(".chip[data-k=\"s
 $("#quick").addEventListener("click",e=>{const b=e.target.closest(".q");if(b){state.fromChip=true;Promise.resolve(ask(b.textContent)).finally(()=>{state.fromChip=false})}});
 $("#svAsk").addEventListener("click",()=>{$("#feed").scrollIntoView({block:"end"});ask("التقييم")});
 $("#svRes").addEventListener("click",()=>{$("#feed").scrollIntoView({block:"end"});ask("نتائج التقييم")});
-feed.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b){state.fromChip=true;Promise.resolve(ask(b.dataset.say)).finally(()=>{state.fromChip=false})}});
+feed.addEventListener("click",e=>{if(e.target.closest("[data-watch]")){connectWatch();return}const b=e.target.closest("[data-say]");if(b){state.fromChip=true;Promise.resolve(ask(b.dataset.say)).finally(()=>{state.fromChip=false})}});
 $("#wb").addEventListener("click",()=>ask("كيف حالي الجسدية؟"));
 /* ---------- offline mode: essentials on the device, outbound requests queued ---------- */
 const OUTBOUND={request_cart:"طلب العربة",report_lost:"بلاغ التائه",book_children_center:"حجز مركز الأطفال",book_visit:"حجز الزيارة",share_location:"مشاركة الموقع",set_meeting_point:"نقطة اللقاء للعائلة",sign_interpreter:"طلب مترجم الإشارة"};
@@ -2752,8 +2756,8 @@ function advanceStage(){if(state.site!=="madinah"){msg("sys","انقلي الم�
   const F={fr:"C'est le moment de rejoindre votre groupe. Levez-vous tranquillement et suivez les organisateurs.",en:"It is time to move with your group. Get up slowly and follow the organisers.",ar:"حان تحرك فوجك. انهض على مهل واتبع المنظمين."};speak(F[profile.speakLang]||F.ar,{lang:profile.speakLang})}
 $("#simRawdah").addEventListener("click",advanceStage);
 $("#simThirst").addEventListener("click",()=>{wb.lastDrink=Date.now()-40*60000;wb.reminded=false;wbRender()});
-$("#simPulse").addEventListener("click",()=>{health.permitted=true;health.watch=true;health.hr=114;health.rr=19;health.spo2=96;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
-$("#simSpo2").addEventListener("click",()=>{health.permitted=true;health.watch=true;health.hr=104;health.rr=25;health.spo2=91;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
+$("#simPulse").addEventListener("click",()=>{health.src="sim";health.permitted=true;health.watch=true;health.hr=114;health.rr=19;health.spo2=96;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
+$("#simSpo2").addEventListener("click",()=>{health.src="sim";health.permitted=true;health.watch=true;health.hr=104;health.rr=25;health.spo2=91;health.moving=false;health.ts=Date.now();healthAsked=false;wbRender()});
 {const q=new URLSearchParams(location.search);const h=location.hash;state.judge=q.get("view")==="phone"||h==="#phone"||h==="#judge";
   if(state.judge){document.body.classList.add("judge");try{state.onboarded=localStorage.getItem("hafi.onboarded")==="1"}catch(_){state.onboarded=false}
     /* #judge يفتح المحادثة مباشرة بملف الضيف التجريبي؛ أسئلة التعريف تظهر فقط بـ ?onboard=1 أو ?fresh=1 */
@@ -2840,7 +2844,7 @@ const SCENES=[
  ["ملف الضيف (ما يعرفه كنف)",()=>{setSite("makkah");$("#profBtn").click()}],
 ];
 function cleanState(){stopSpeak();stopCam();state.busy=false;send.disabled=false;typing(false);if(state.forceOffline)setForceOffline(false);state.signMode=false;setInputMode("mText");
-  Object.assign(wb,{body:"ok",mind:"calm",lastDrink:Date.now(),reminded:false,answered:0,medDue:null});Object.assign(health,{permitted:true,watch:true,hr:78,rr:16,spo2:97,moving:false,ts:Date.now()});healthAsked=false;
+  Object.assign(wb,{body:"ok",mind:"calm",lastDrink:Date.now(),reminded:false,answered:0,medDue:null});if(health.src!=="ble")Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,moving:false,ts:0,src:""});healthAsked=false;
   const sh=$("#sheet");if(sh&&!sh.hidden)sh.hidden=true}
 function setSite(v){cleanState();if(state.site!==v){state.site=v;loadPrayerTimes();loadWeather();document.querySelectorAll('[data-k="site"]').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v))}start()}
 let adminTimer=0;
@@ -2864,12 +2868,13 @@ function demoSetDay(d){state.hajjDayTest=d||0;log("sup","أدمن: يوم الح
 function demoSetCamp(on){if(on){profile.campaign="بشرى الضيافة";profile.campaignAsked=1;saveProfile();showCampCard(campFind(profile.campaign))}else{profile.campaign="";saveProfile();msg("sys","أزيلت الحملة من ملف الضيف.")}try{renderQuick()}catch(_){}try{refreshHero()}catch(_){}demoPanel()}
 function demoPanel(){let w=document.getElementById("demoAdm");if(!w){w=document.createElement("div");w.id="demoAdm";w.innerHTML=`<button type="button" id="demoFab" aria-label="أدمن العرض" style="position:fixed;bottom:14px;left:14px;z-index:9999;width:46px;height:46px;border-radius:50%;border:2px solid var(--gold);background:var(--kiswa);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.25)">⚙</button><div id="demoBox" hidden style="position:fixed;bottom:70px;left:10px;right:10px;max-width:420px;max-height:70vh;overflow:auto;z-index:9999;background:var(--card);border:2px solid var(--gold);border-radius:16px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.3);direction:rtl;font-size:14px"></div>`;document.body.appendChild(w);
     w.querySelector("#demoFab").addEventListener("click",()=>{const b=document.getElementById("demoBox");b.hidden=!b.hidden});
-    w.querySelector("#demoBox").addEventListener("click",e=>{const b=e.target.closest("[data-dp],[data-dd],[data-dc],[data-dx]");if(!b)return;if(b.dataset.dp!==undefined)demoSetPlace(b.dataset.dp);else if(b.dataset.dd!==undefined)demoSetDay(+b.dataset.dd);else if(b.dataset.dc!==undefined)demoSetCamp(b.dataset.dc==="1");else if(b.dataset.dx==="new"){const u=new URL(location.href);u.searchParams.set("reset","1");u.searchParams.set("admin","1");location.href=u.toString()}else if(b.dataset.dx==="close")document.getElementById("demoBox").hidden=true})}
+    w.querySelector("#demoBox").addEventListener("click",e=>{const b=e.target.closest("[data-dp],[data-dd],[data-dc],[data-dx],[data-dw]");if(!b)return;if(b.dataset.dw!==undefined){if(b.dataset.dw==="1")Object.assign(health,{permitted:true,watch:true,hr:82,rr:16,spo2:97,moving:false,ts:Date.now(),src:"sim"});else Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,ts:0,src:""});healthAsked=false;wbRender();demoPanel();return}if(b.dataset.dp!==undefined)demoSetPlace(b.dataset.dp);else if(b.dataset.dd!==undefined)demoSetDay(+b.dataset.dd);else if(b.dataset.dc!==undefined)demoSetCamp(b.dataset.dc==="1");else if(b.dataset.dx==="new"){const u=new URL(location.href);u.searchParams.set("reset","1");u.searchParams.set("admin","1");location.href=u.toString()}else if(b.dataset.dx==="close")document.getElementById("demoBox").hidden=true})}
   const box=document.getElementById("demoBox");const cur=state.simLoc?state.simLoc.k:"";const hd=state.hajjDayTest||0;const camp=!!campFind(profile.campaign);
   const B=(attr,v,lab,on)=>`<button type="button" class="chip" ${attr}="${v}" aria-pressed="${on?"true":"false"}" style="margin:3px;${on?"background:var(--kiswa);color:#fff;border-color:var(--kiswa)":""}">${esc(lab)}</button>`;
   box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>أدمن العرض</b><button type="button" class="chip" data-dx="close">إغلاق</button></div><div class="note" style="margin:6px 0">للعرض فقط: يكتب كنف في بطاقاته «موقع تجريبي للعرض».</div>
    <div style="margin-top:6px"><b>موقع الضيف</b></div><div>${B("data-dp","","موقع الجوال الحقيقي",!cur)}${DEMO_PLACES.map(p=>B("data-dp",p[0],p[1],cur===p[0])).join("")}</div>
    <div style="margin-top:8px"><b>يوم الحج</b></div><div>${B("data-dd",0,"التاريخ الحقيقي",!hd)}${[8,9,10,11,12,13].map(d=>B("data-dd",d,d+" ذو الحجة",hd===d)).join("")}</div>
+   <div style="margin-top:8px"><b>الساعة (القلب والنفس)</b></div><div>${B("data-dw","0","بلا ساعة",health.src!=="sim")}${B("data-dw","1","ساعة تجريبية للعرض",health.src==="sim")}</div>
    <div style="margin-top:8px"><b>الحملة</b></div><div>${B("data-dc","1","مع بشرى الضيافة",camp)}${B("data-dc","0","بلا حملة",!camp)}</div>
    <div style="margin-top:8px">${B("data-dx","new","ضيف جديد (مسح الجهاز)",false)}</div>`}
 if(demoAdminOn()){setTimeout(()=>{try{demoPanel()}catch(_){}},1200)}
