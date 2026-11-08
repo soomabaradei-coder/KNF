@@ -1119,8 +1119,10 @@ function hcSet(v){try{localStorage.setItem("knf_hc_ok",v)}catch(_){}}
 function hcVals(r,en){const A=k=>r.age&&r.age[k]!=null?" ("+hcAgo(r.age[k],en)+")":"";const a=[];if(r.hr!=null)a.push((en?"pulse "+r.hr:"نبض "+r.hr)+A("hr"));if(r.rr!=null)a.push((en?"breathing "+r.rr+"/min":"تنفس "+r.rr+" في الدقيقة")+A("rr"));if(r.spo2!=null)a.push((en?"oxygen "+r.spo2+"%":"أكسجين "+r.spo2+"%")+A("spo2"));return a.join(" · ")}
 function hcApply(r){const now=Date.now();const ag=k=>(r.age&&r.age[k]!=null?r.age[k]:0);const exp={};for(const k of ["hr","rr","spo2"])if(r[k]!=null)exp[k]=now-ag(k)*60000+HC_MAX[k]*60000;
   Object.assign(health,{permitted:true,watch:true,hr:r.hr,rr:r.rr,spo2:r.spo2,moving:false,src:"health",ts:now-Math.min(...["hr","rr","spo2"].filter(k=>r[k]!=null).map(ag))*60000,exp});healthAsked=false;log("care","قراءة من تطبيق الصحة بإذن الضيف","تبقى على الجهاز ولا ترسل");try{wbRender()}catch(_){}}
-function hcIncoming(){const r=hcParse(location.hash);if(!r)return;try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}
-  const en=isEN();if(r.bad){msg("sys",en?"The reading from the Health app was incomplete, so heart and breathing stay unknown.":"وصلت قراءة ناقصة من تطبيق الصحة، فيبقى القلب والنفس غير معروفين.");return}
+function hcSrc(){if(/^#hc=/.test(location.hash))return location.hash;const q=new URLSearchParams(location.search);if(q.get("hc")!==null){const t=q.get("t");return "#hc="+encodeURIComponent(q.get("hc"))+(t!==null?"&t="+encodeURIComponent(t):"")}return ""}
+function hcIncoming(){const src=hcSrc();const r=hcParse(src);if(!r)return;try{const q=new URLSearchParams(location.search);q.delete("hc");q.delete("t");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q.toString():""))}catch(_){}
+  log("care","وصلت قراءة من اختصار الصحة",src.slice(0,80));
+  const en=isEN();if(r.bad){let raw=src;try{raw=decodeURIComponent(src)}catch(_){}msg("sys",(en?"The reading from the Health app was incomplete, so heart and breathing stay unknown. Received: ":"وصلت قراءة ناقصة من تطبيق الصحة، فيبقى القلب والنفس غير معروفين. ما وصلني: ")+raw.slice(0,120));return}
   if(r.old){msg("sys",(en?"The latest Health app readings are too old, so heart and breathing stay unknown. ":"آخر قراءات تطبيق الصحة قديمة، فيبقى القلب والنفس غير معروفين. ")+hcStaleLine(r,en));return}
   const sl=hcStaleLine(r,en);
   if(hcGet()==="1"){hcApply(r);msg("sys",(en?"From the Health app: ":"من تطبيق الصحة: ")+hcVals(r,en)+(sl?" "+sl:""));return}
@@ -1140,9 +1142,11 @@ function hcSetup(){const en=isEN();const ios=/iPhone|iPad|iPod/.test(navigator.u
   card(head("⌚",en?"Read your heart and breathing, with your permission":"قراءة قلبك ونفسك من ساعتك بإذنك",en?"Health app":"تطبيق الصحة")+
    (st?`<div class="notr"><b>${esc((en?"Now: ":"الآن: ")+hcVals(health,en))}</b></div>`:"")+
    `<div>${en?"On iPhone with Apple Watch: one shortcut reads your latest pulse, breathing and oxygen from the Health app and opens KNF with them.":"في الآيفون مع ساعة أبل: اختصار واحد يقرأ آخر نبض وتنفس وأكسجين من تطبيق الصحة، ويفتح كنف بها."}</div>`+
-   `<ol style="margin:6px 0;padding-inline-start:20px">${iosSteps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`+
+   `<div class="acts" style="flex-direction:column;align-items:stretch"><a class="btn primary" href="KNF-Health.shortcut" style="text-align:center;padding:9px 14px">${en?"Add the Health shortcut":"أضف اختصار الصحة"}</a><a class="btn" href="KNF-Heart.shortcut" style="text-align:center;padding:9px 14px">${en?"Pulse only":"النبض فقط"}</a></div>`+
+   `<div class="muted">${en?"After adding it, run it once and allow Health access. Then KNF asks you once.":"بعد إضافته شغله مرة، ووافق على قراءة الصحة، ثم يسألك كنف مرة واحدة."}</div>`+
+   `<details style="margin-top:6px"><summary>${en?"Or build it yourself":"أو ابنه بنفسك"}</summary><ol style="margin:6px 0;padding-inline-start:20px">${iosSteps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`+
    `<div class="notr" dir="ltr" style="font-family:monospace;font-size:12px;word-break:break-all;background:var(--bg,#f6f3ea);padding:6px 8px;border-radius:8px">${esc(hcTemplate())}</div>`+
-   `<div class="acts"><button type="button" data-hccopy="1">${en?"Copy the link":"انسخ الرابط"}</button>${!ios?`<button type="button" data-watch="1">${en?"Connect your watch":"اربط ساعتك"}</button>`:""}${st?`<button type="button" data-hcstop="1">${en?"Stop reading":"أوقف القراءة"}</button>`:""}</div>`+
+   `</details><div class="acts"><button type="button" data-hccopy="1">${en?"Copy the link":"انسخ الرابط"}</button>${!ios?`<button type="button" data-watch="1">${en?"Connect your watch":"اربط ساعتك"}</button>`:""}${st?`<button type="button" data-hcstop="1">${en?"Stop reading":"أوقف القراءة"}</button>`:""}</div>`+
    `<div class="muted">${esc(and)}</div><div class="muted">${en?"Readings stay on your phone and are not sent to the campaign or any party. Without them, heart and breathing stay unknown.":"القراءات تبقى في جوالك ولا ترسل إلى الحملة ولا إلى أي جهة. وبدونها يبقى القلب والنفس غير معروفين."}</div>`);
   log("care","شرح ربط تطبيق الصحة بإذن الضيف",ios?"آيفون: اختصار":"أندرويد: بلوتوث")}
 function nextDose(){const m=profile.meds[0];if(!m)return"لا يوجد";const _d=new Date();const now=String(_d.getHours()).padStart(2,"0")+":"+String(_d.getMinutes()).padStart(2,"0");const t=m.times.find(x=>x>now)||m.times[0];return m.name+" "+t}
@@ -3058,7 +3062,7 @@ if(demoAdminOn()){setTimeout(()=>{try{demoPanel()}catch(_){}},1200)}
 {const o=document.getElementById("demoOpen");if(o)o.addEventListener("click",()=>{try{localStorage.setItem("knf_admin","1")}catch(_){}demoPanel();const b=document.getElementById("demoBox");if(b)b.hidden=false});
  const a=document.getElementById("demoAbd");if(a)a.addEventListener("click",demoGuest)}
 function demoGuest(){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)&&k!=="knf_admin").forEach(k=>localStorage.removeItem(k));localStorage.setItem("knf_admin","1");localStorage.setItem("knf_demo_next","abdulrahman")}catch(_){}location.reload()}
-if(/^#hc=/.test(location.hash))setTimeout(()=>{try{hcIncoming()}catch(_){}},1500);
+if(/^#hc=/.test(location.hash)||new URLSearchParams(location.search).get("hc")!==null)setTimeout(()=>{try{hcIncoming();const c=[...document.querySelectorAll("#feed .card,#feed .msg")].pop();if(c)c.scrollIntoView({block:"center"})}catch(_){}},1500);
 window.addEventListener("hashchange",()=>{if(/^#hc=/.test(location.hash))try{hcIncoming()}catch(_){}});
 
 start();voiceStatus();setTimeout(voiceStatus,1500);
