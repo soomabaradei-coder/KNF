@@ -3127,7 +3127,8 @@ function expoRender(){const w=document.getElementById("expoScen");if(!w||w.datas
 /* تحكم العرض ظاهر دائما في شريط صفحة العرض (التابلت والحاسب)، فلا يحتاج رابطا خاصا */
 {const o=document.getElementById("demoOpen");if(o)o.addEventListener("click",()=>{try{localStorage.setItem("knf_admin","1")}catch(_){}demoPanel();const b=document.getElementById("demoBox");if(b)b.hidden=false});
  const a=document.getElementById("demoAbd");if(a)a.addEventListener("click",demoGuest)}
-function demoGuest(){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)&&k!=="knf_admin"&&k!=="knf_expo").forEach(k=>localStorage.removeItem(k));localStorage.setItem("knf_admin","1");localStorage.setItem("knf_demo_next","abdulrahman")}catch(_){}location.reload()}
+/* الإصدار 231: إعادة العرض لا تمسح إذن الصحة ولا آخر قراءة، حتى يبقى النبض الحقيقي في المعرض */
+function demoGuest(){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)&&!["knf_admin","knf_expo","knf_hc_ok","knf_hc_last"].includes(k)).forEach(k=>localStorage.removeItem(k));localStorage.setItem("knf_admin","1");localStorage.setItem("knf_demo_next","abdulrahman")}catch(_){}location.reload()}
 try{if(!(/^#hc=/.test(location.hash)||new URLSearchParams(location.search).get("hc")!==null))hcRestore()}catch(_){}
 if(/^#hc=/.test(location.hash)||new URLSearchParams(location.search).get("hc")!==null)setTimeout(()=>{try{hcIncoming();const c=[...document.querySelectorAll("#feed .card,#feed .msg")].pop();if(c)c.scrollIntoView({block:"center"})}catch(_){}},1500);
 window.addEventListener("hashchange",()=>{if(/^#hc=/.test(location.hash))try{hcIncoming()}catch(_){}});
