@@ -1865,7 +1865,7 @@ const TOOLS={
         state.kbReply=pick({ar:"لا أعرف حملتك بعد؛ قل: أنا مع حملة فلان.",en:"I do not know your campaign yet; say: I am with campaign X.",fr:"Je ne connais pas encore votre groupe ; dites : je suis avec le groupe X."});return{called:false}}
       const dial=!question||/(اتصل|كلم|دق|رن|تواصل|التواصل|يتصل|call|contact)/i.test(question);log("svc",dial?"اتصال مباشر بالحملة":"سؤال يخص الحملة: يحيله إليها",cc.name+" · "+cc.phone+(question?" · "+question:""));
       card(head("📞","اتصال ب"+cc.name,cc.phone)+`<div>${dial?"أفتح لك الاتصال الآن؛ وإن لم يفتح فاضغط الزر.":"هذا يخص حملتك، وهي أقرب من يجيبك؛ اضغط الزر للاتصال بهم."}</div><div class="acts"><a class="chip" href="tel:${esc(cc.phone)}" ${btn}>اتصال بـ${esc(cc.phone)}</a></div>`);
-      if(dial){try{setTimeout(()=>{location.href="tel:"+cc.phone},350)}catch(_){}}
+      if(dial&&!NO_TEL){try{setTimeout(()=>{location.href="tel:"+cc.phone},350)}catch(_){}}
       state.kbReply=dial?pick({ar:"أتصل لك الآن بـ"+cc.name+" على "+cc.phone+".",en:"Calling "+cc.name+" now on "+cc.phone+".",fr:"J'appelle "+cc.name+" au "+cc.phone+"."}):pick({ar:"هذا يخص حملتك؛ اتصل بـ"+cc.name+" على "+cc.phone+" من الزر.",en:"This is for your campaign; call "+cc.name+" on "+cc.phone+" from the button.",fr:"Cela concerne votre groupe ; appelez "+cc.name+" au "+cc.phone+"."});
       return{called:true,campaign:cc.name,phone:cc.phone}}},
   knowledge_answer:{agent:"rite",desc:"يجيب عن أسئلة الحج والعمرة وزيارة المسجد النبوي وآداب الحرمين ومعلوماتهما من المصادر الرسمية فقط (الأدلة التوعوية لوزارة الحج والعمرة وصفحات التوعية في موقع الهيئة). اختر الموضوع الأقرب لسؤال الضيف من القائمة. إن لم يكن جواب السؤال في أحد هذه الموضوعات فلا تستخدمها واستخدم refer_call_center. ولا تستخدمها لطلب خدمة الآن (عربة، إرشاد، كثافة، عائلة).",schema:{type:"object",properties:{topic:{type:"string",enum:KB.map(e=>e.t)}},required:["topic"]},
@@ -2647,6 +2647,7 @@ feed.addEventListener("click",e=>{if(e.target.closest("[data-watch]")){connectWa
   {const h=e.target.closest("[data-hc]");if(h){h.closest(".acts").querySelectorAll("button").forEach(x=>x.disabled=true);hcAnswer(h.dataset.hc==="1");return}}
   if(e.target.closest("[data-hcsetup]")){hcSetup();return}
   if(e.target.closest("[data-sosshare]")){sosShare();return}
+  {const c=e.target.closest("[data-telcopy]");if(c){const t=c.dataset.telcopy;const done=()=>{c.textContent="نسخت الرقم"};try{navigator.clipboard.writeText(t).then(done,done)}catch(_){done()}return}}
   if(e.target.closest("[data-rwwait]")){rwWaitCard();return}
   {const k=e.target.closest("[data-rwclip]");if(k){rwClipCard(+k.dataset.rwclip);return}}
   {const k=e.target.closest("[data-rwplay]");if(k){rwPlay(k);return}}
@@ -2726,6 +2727,14 @@ function rwWaitCard(){const f=profile.gender==="f";
   log("care","وقت الانتظار في الروضة: مقاطع توعوية وتنفس","يرسل مقطعا جديدا كل 8 دقائق ما دام في الانتظار")}
 function rwPlay(btn){const c=btn.closest(".card");const el=c&&c.querySelector(".clipt");if(!el)return;const t=el.textContent.trim();try{stopSpeak()}catch(_){}speak(t,{lang:/[\u0600-\u06FF]/.test(t)?"ar":uiLang()})}
 setInterval(()=>{try{const r=profile.rawdah;if(!r||r.stage!==2||!state.rwCard||!state.rwCard.isConnected||state.busy)return;if(Date.now()-(r.clipT||0)<8*60000)return;r.clipT=Date.now();rwClipCard(r.clip||0)}catch(_){}},60000);
+/* أجهزة بلا شريحة اتصال (تابلت أو حاسب) (الإصدار 217): زر الاتصال يعرض الرقم كبيرا، وواتساب للأرقام الجوالة، ونسخ الرقم.
+   أرقام الطوارئ القصيرة لا تعمل على واتساب، فيقول كنف اتصل من أي جوال قريب أو اطلب من أقرب منظم */
+const NO_TEL=(()=>{try{const u=navigator.userAgent;const ipad=/iPad/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1);const andTab=/Android/.test(u)&&!/Mobile/.test(u);const desk=!/Android|iPhone|iPad|iPod|Mobile/.test(u)&&!(navigator.maxTouchPoints>1);return ipad||andTab||desk}catch(_){return false}})();
+function waNum(p){let d=String(p||"").replace(/[٠-٩]/g,c=>"٠١٢٣٤٥٦٧٨٩".indexOf(c)).replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);else if(d.startsWith("00"))d=d.slice(2);else if(/^05\d{8}$/.test(d))d="966"+d.slice(1);else if(/^5\d{8}$/.test(d))d="966"+d;return /^\d{10,15}$/.test(d)&&!/^(800|920)/.test(d)?d:""}
+function telCard(num){const n=String(num||"").trim();const digits=n.replace(/\D/g,"");const wa=waNum(n);const short=digits.length<=5;const f=profile.gender==="f";
+  log("svc","اتصال من جهاز بلا شريحة",n+(wa?" · واتساب متاح":short?" · رقم طوارئ قصير":""));
+  card(head("📞",(f?"اتصلي":"اتصل")+" بـ"+n,"هذا الجهاز بلا شريحة اتصال")+`<div class="big notr" dir="ltr" style="font-family:var(--display);font-size:2.4rem;font-weight:800;text-align:center;letter-spacing:.06em;color:var(--kiswa)">${esc(n)}</div><div>${short?"رقم طوارئ: "+(f?"اتصلي":"اتصل")+" به من أي جوال قريب، أو "+(f?"اطلبي":"اطلب")+" من أقرب منظم.":wa?(f?"اتصلي":"اتصل")+" به من جوالك، أو عبر واتساب بالإنترنت.":(f?"اتصلي":"اتصل")+" به من جوالك."}</div><div class="acts">${wa?`<a class="btn primary" href="https://wa.me/${wa}" target="_blank" rel="noopener">واتساب</a>`:""}<button type="button" data-telcopy="${esc(n)}">انسخ الرقم</button><a class="btn" href="tel:${esc(digits||n)}">اتصل من هذا الجهاز</a></div>`,"telcard")}
+document.addEventListener("click",e=>{if(!NO_TEL)return;const a=e.target.closest('a[href^="tel:"]');if(!a||a.closest(".telcard"))return;e.preventDefault();e.stopPropagation();let n=a.getAttribute("href").slice(4);try{n=decodeURIComponent(n)}catch(_){}telCard(n)},true);
 /* الطوارئ بصدق (الإصدار 208): كنف لا يبلغ جهة رسمية تلقائيا بعد، فيضع الاتصال أولا، ويرسل موقع الضيف فعلا لعائلته المتصلة في كنف، ويهيئ رسالة بموقعه لمن يختار، ويدل على أقرب مركز. لا يكتب «الفريق في الطريق» */
 function sosAct(type,desc){const ty=EMG[type]||EMG.unknown;if(ty.body)wb.body="pain";try{wbRender()}catch(_){}
   const r=state.real&&typeof state.real.la==="number"?state.real:null;const fam=(state.room&&state.peers)?state.peers.length:0;
