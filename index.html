@@ -52,7 +52,8 @@ body.expo .screen{height:min(820px,calc(100vh - 150px));min-height:520px}body.ex
 #expoInfo .xp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}@media (max-width:760px){#expoInfo .xp{grid-template-columns:1fr}}
 #expoInfo .xp div{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:14px;padding:14px 16px;line-height:1.7}
 #expoInfo .xp b{display:block;font-family:var(--display);font-size:1.15rem;margin-bottom:4px;color:var(--fg)}
-#expoInfo .xs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}@media (max-width:980px){#expoInfo .xs{grid-template-columns:repeat(3,1fr)}}@media (max-width:640px){#expoInfo .xs{grid-template-columns:1fr 1fr}}
+#expoInfo .xs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media (max-width:760px){#expoInfo .xs{grid-template-columns:1fr 1fr}}@media (max-width:480px){#expoInfo .xs{grid-template-columns:1fr}}
+#expoInfo .xc button small{display:block;font-size:.78rem;font-weight:400;color:var(--muted);margin-top:2px}#expoInfo .xc button.on small,#expoInfo .xc button:active small{color:rgba(255,255,255,.8)}
 #expoInfo .xc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
 #expoInfo .xc h3{margin:0;font-family:var(--display);font-size:1.05rem;color:var(--fg)}
 #expoInfo .xc button{border:1px solid var(--kiswa);background:transparent;color:var(--fg);border-radius:999px;padding:8px 10px;font:600 .95rem var(--body);cursor:pointer;text-align:start}
@@ -519,7 +520,7 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
       <div><b>☀️ الحر</b>يتابع الحرارة ووقت آخر شرب، وينبه بالماء والظل، ويقرأ ساعة الضيف بإذنه.</div>
       <div><b>👥 الحشود</b>يقرأ كثافة المطاف والمسعى من الهيئة لحظيا ويقترح الوقت الأخف، وفي المشاعر يذكر بتفويج الحملة.</div>
     </div>
-    <h2 class="xh" style="font-size:1.25rem">جرب: اختر المكان والموقف</h2>
+    <h2 class="xh" style="font-size:1.25rem">جرب: اختر موقفا، وينتقل الضيف إلى مكانه ثم يسأل</h2>
     <div class="xs" id="expoScen"></div>
   </section>
   <p class="foot">كنف بشرى الضيافة: نموذج أولي. البيانات والأرقام والتذاكر محاكاة، وأرقام الهواتف وهمية، والخدمات الحقيقية على <a href="https://alharamain.gov.sa/public/?site=ar" target="_blank" rel="noopener">alharamain.gov.sa</a>.</p>
@@ -2130,6 +2131,8 @@ const ROUTES=[
  [/(افتح|افتحي|فتح|اعرض|وريني|ابي|ابغى)\s*(لي\s*)?(صفح[ةه]|موقع|منص[ةه]|بوابة)\s*(الهيئ[ةه]|الحالة|الكثاف[ةه]|مسار السلام)|صفح[ةه] (مسار السلام|الكثاف[ةه]|الهيئ[ةه])|موقع الهيئ[ةه]|الحال[ةه] الرسمي[ةه]/i,"open_portal",t=>({page:/مصل|إشغال|اشغال/.test(t)?"halls":/خريط/.test(t)?"map":/خدمات/.test(t)?"services":/آداب|اداب|الروضة/.test(t)?"rawdah":/كثاف|سلام|حالة/.test(t)?"density":undefined})],
  [/كيف حالي|فحص عافية|كيف أشعر|كيف اشعر/i,"wellbeing_checkin",()=>({})],
  [/أنا بخير|انا بخير|الحمد لله بخير/i,"set_mind_ok",()=>({})],
+ [/(ما|لم|لا|مو|مب|ماني)\s*(شربت|أشرب|اشرب|شارب|شربنا)|ما شربت|من الفجر ما/i,"hydration_rest",()=>({need:"water"})],
+ [/دوخة|دوخه|دايخ|دائخ|أدوخ|ادوخ|راسي يدور|dizzy/i,"hydration_rest",()=>({need:"both"})],
  [/شربت وارتحت|شربت|ارتحت|استرحت/i,"reset_body",()=>({})],
  [/عطشان|عطشانة|أبغى ماء|ابغى ماء|ماء بارد/i,"hydration_rest",()=>({need:"water"})],
  [/أنا أصم|انا اصم|أنا أصماء|انا اصماء|ضعيف سمع|ضعيفة سمع|ما أسمع|ما اسمع|لغة الإشارة/i,"update_preferences",()=>({hearing:1})],
@@ -3119,19 +3122,22 @@ function demoPanel(){let w=document.getElementById("demoAdm");if(!w){w=document.
    <div style="margin-top:8px">${B("data-dx","abd","عبدالرحمن (شخصية العرض)",profile.demoPersona==="abdulrahman")}${B("data-dx","new","ضيف جديد (مسح الجهاز)",false)}</div>`}
 if(demoAdminOn()){setTimeout(()=>{try{demoPanel()}catch(_){}},1200)}
 /* وضع المعرض: ?expo=1 أو زر «وضع المعرض»، ويبقى على الجهاز */
-const EXPO_SCEN=[["mataf","المطاف",{lost:"ضعت في الحرم وين مكتب التائهين؟",heat:"أحس بدوخة من الحر",crowd:"كثافة المطاف الآن؟"}],
- ["mina","منى",{lost:"تهت عن مخيمي",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد في منى"}],
- ["arafat","عرفات",{lost:"تهت عن مخيمي",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد في عرفات"}],
- ["jamarat","الجمرات",{lost:"تهت عن مخيمي",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد عند الجمرات"}],
- ["nabawi","المسجد النبوي",{lost:"ضعت وما أعرف أرجع",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد وين أروح؟"}]];
-const EXPO_K=[["lost","🧭 تيه"],["heat","☀️ حر"],["crowd","👥 حشود"]];
+/* الإصدار 233 (سمية: «نوع السيناريوهات وخليها واقعية»): ست فئات، وكل زر سؤال كما يكتبه الضيف، مع المكان الذي يحاكى قبل السؤال */
+const EXPO_SCEN=[
+ ["rawdah","🕌 الروضة",[["nabawi","تصريح الروضة"],["nabawi","وش خطوات دخول الروضة؟"],["nabawi","ذكرني قبل موعد الروضة بنصف ساعة"]]],
+ ["umrah","🕋 العمرة",[["mataf","ما خطوات العمرة؟"],["mataf","متى أفضل وقت للطواف؟"],["mataf","أبغى أرتاح شوي قبل السعي"]]],
+ ["lost","🧭 التيه",[["mina","تهت عن مخيمي"],["mataf","ضعت في الحرم وين مكتب التائهين؟"],["nabawi","ما أعرف أرجع للسكن"]]],
+ ["heat","☀️ الحر",[["arafat","أحس بدوخة من الحر"],["mataf","ما شربت ماء من الفجر"],["sahat","أبغى مكان بارد أرتاح فيه"]]],
+ ["crowd","👥 الزحام",[["mataf","كثافة المطاف الآن؟"],["jamarat","الزحام شديد عند الجمرات"],["nabawi","الزحام شديد وين أروح؟"]]],
+ ["plan","📋 خطة وتعليمات الحملة",[["mina","ما هي خطة بشرى الضيافة؟"],["mina","متى تفويج حملتنا للجمرات؟"],["arafat","وين مخيم الحملة في عرفات؟"]]]];
+const EXPO_PLACE={mataf:"المطاف",sahat:"الساحات",mina:"منى",arafat:"عرفات",jamarat:"الجمرات",muzdalifah:"مزدلفة",nabawi:"المسجد النبوي"};
 function expoSet(on){try{on?localStorage.setItem("knf_expo","1"):localStorage.removeItem("knf_expo")}catch(_){}document.body.classList.toggle("expo",!!on);const b=document.getElementById("expoBtn");if(b){b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"الصفحة كاملة":"وضع المعرض"}if(on)expoRender()}
-function expoRender(){const w=document.getElementById("expoScen");if(!w||w.dataset.done)return;w.dataset.done=1;w.innerHTML=EXPO_SCEN.map(([k,n,u])=>`<div class="xc"><h3>${esc(n)}</h3>${EXPO_K.map(([kk,lab])=>`<button type="button" data-xp="${k}" data-xk="${kk}" title="${esc(u[kk])}">${lab}</button>`).join("")}</div>`).join("");
-  w.addEventListener("click",e=>{const b=e.target.closest("[data-xp]");if(!b)return;w.querySelectorAll("button.on").forEach(x=>x.classList.remove("on"));b.classList.add("on");const sc=EXPO_SCEN.find(x=>x[0]===b.dataset.xp);if(!sc)return;
+function expoRender(){const w=document.getElementById("expoScen");if(!w||w.dataset.done)return;w.dataset.done=1;w.innerHTML=EXPO_SCEN.map(([k,n,qs])=>`<div class="xc"><h3>${esc(n)}</h3>${qs.map(([pl,q])=>`<button type="button" data-xp="${pl}" data-q="${esc(q)}">${esc(q)}<small>${esc(EXPO_PLACE[pl]||"")}</small></button>`).join("")}</div>`).join("");
+  w.addEventListener("click",e=>{const b=e.target.closest("[data-xp]");if(!b)return;w.querySelectorAll("button.on").forEach(x=>x.classList.remove("on"));b.classList.add("on");const sc=[b.dataset.xp,"",b.dataset.q];
     try{window.scrollTo({top:0,behavior:"smooth"})}catch(_){window.scrollTo(0,0)}
     if(!profile.campaign){profile.campaign="بشرى الضيافة";profile.campaignAsked=1;saveProfile()}
     const tg=(DEMO_PLACES.find(x=>x[0]===sc[0])||[])[4];const dl=tg&&tg!==state.site?1700:900;demoSetPlace(sc[0]);const box2=document.getElementById("demoBox");if(box2)box2.hidden=true;
-    setTimeout(()=>{if(state.busy){setTimeout(()=>ask(sc[2][b.dataset.xk]),1200)}else ask(sc[2][b.dataset.xk])},dl)})}
+    setTimeout(()=>{if(state.busy){setTimeout(()=>ask(sc[2]),1200)}else ask(sc[2])},dl)})}
 {let on=false;try{const q=new URLSearchParams(location.search);if(q.get("expo")==="1")localStorage.setItem("knf_expo","1");if(q.get("expo")==="0")localStorage.removeItem("knf_expo");on=localStorage.getItem("knf_expo")==="1"}catch(_){}
  if(on&&!state.judge)expoSet(true);const xb=document.getElementById("expoBtn");if(xb)xb.addEventListener("click",()=>expoSet(!document.body.classList.contains("expo")))}
 /* تحكم العرض ظاهر دائما في شريط صفحة العرض (التابلت والحاسب)، فلا يحتاج رابطا خاصا */
