@@ -1107,10 +1107,13 @@ function hcParse(h){const m=/^#hc=([^&]*)/.exec(h||"");if(!m)return null;let raw
   hr=(hr>=30&&hr<=220)?Math.round(hr):null;rr=(rr>=5&&rr<=60)?Math.round(rr):null;
   if(o2!=null&&o2>0&&o2<=1)o2=o2*100;o2=(o2>=70&&o2<=100)?Math.round(o2):null;
   let ages=[null,null,null];const tm=/[#&]t=([^&]*)/.exec(h);if(tm){let tr="";try{tr=decodeURIComponent(tm[1])}catch(_){tr=tm[1]}ages=(/[_;|]/.test(tr)?tr.split(/[_;|]/):tr.split(",")).map(hcNum).map(x=>x==null||x<0?null:Math.round(x));while(ages.length<3)ages.push(null)}
+  /* الإصدار 220: &d= تاريخ بدء كل عينة (ISO 8601 من الاختصار)، ويحسب كنف عمرها بنفسه */
+  const dm=/[#&]d=([^&]*)/.exec(h);if(dm){let dr="";try{dr=decodeURIComponent(dm[1])}catch(_){dr=dm[1]}dr.split("_").forEach((x,i)=>{if(i>2||ages[i]!=null)return;const t=hcDate(x);if(t)ages[i]=Math.max(0,Math.round((Date.now()-t)/60000))})}
   const r={hr,rr,spo2:o2,age:{hr:ages[0],rr:ages[1],spo2:ages[2]},stale:[]};
   for(const k of ["hr","rr","spo2"])if(r[k]!=null&&r.age[k]!=null&&r.age[k]>HC_MAX[k]){r.stale.push({k,v:r[k],age:r.age[k]});r[k]=null}
   if(r.hr==null&&r.rr==null&&r.spo2==null)return r.stale.length?Object.assign(r,{old:1}):{bad:1};
   return r}
+function hcDate(x){x=String(x||"").trim().replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/ /g," ");if(!x)return null;let t=Date.parse(x);if(isNaN(t))t=Date.parse(x.replace(/\s+at\s+/i," ").replace(/\s+في\s+/," "));if(isNaN(t))t=Date.parse(x.replace(" ","T"));return isNaN(t)||t>Date.now()+5*60000?null:t}
 function hcAgo(m,en){if(m==null)return "";if(m<1)return en?"just now":"الآن";if(m<60)return en?m+" min ago":"قبل "+m+" د";const h=Math.round(m/60);if(h<48)return en?h+" h ago":"قبل "+(h===1?"ساعة":h===2?"ساعتين":h<=10?h+" ساعات":h+" ساعة");return en?Math.round(h/24)+" days ago":"قبل "+Math.round(h/24)+" يوم"}
 function hcStaleLine(r,en){if(!r.stale||!r.stale.length)return "";const N={hr:en?"pulse":"النبض",rr:en?"breathing":"التنفس",spo2:en?"oxygen":"الأكسجين"};
   return r.stale.map(x=>(en?"Last "+N[x.k]+" was measured "+hcAgo(x.age,true)+(x.k==="rr"?" (the watch measures breathing during sleep)":"")+", so I do not show it.":"آخر "+N[x.k]+" قيس "+hcAgo(x.age,false)+(x.k==="rr"?" (الساعة تقيس التنفس أثناء النوم)":"")+"، فلا أعرضه.")).join(" ")}
