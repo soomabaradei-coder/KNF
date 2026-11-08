@@ -1090,18 +1090,21 @@ function healthFresh(){if(!health.permitted||!health.watch)return false;const an
 function connectWatch(){const en=isEN();if(!navigator.bluetooth){const r=en?"This browser cannot connect a watch. Heart and breathing stay unknown, and I rely on how you tell me you feel.":"هذا المتصفح لا يربط الساعة، فيبقى القلب والنفس غير معروفين، وأعتمد على ما تخبرني به عن حالك.";msg("bot",r);return}
   navigator.bluetooth.requestDevice({filters:[{services:["heart_rate"]}]}).then(d=>d.gatt.connect()).then(g=>g.getPrimaryService("heart_rate")).then(sv=>sv.getCharacteristic("heart_rate_measurement")).then(ch=>{ch.addEventListener("characteristicvaluechanged",e=>{const v=e.target.value;const f=v.getUint8(0);const hr=(f&1)?v.getUint16(1,true):v.getUint8(1);Object.assign(health,{permitted:true,watch:true,hr,src:"ble",ts:Date.now()});wbRender()});return ch.startNotifications()}).then(()=>{log("care","ربط ساعة النبض عبر البلوتوث","قراءة حقيقية على الجهاز فقط");msg("sys",en?"Watch connected: your heart rate now comes from it.":"ربطت الساعة: نبضك الآن منها.")}).catch(e=>{msg("sys",(en?"The watch was not connected: ":"لم تربط الساعة: ")+String(e&&e.message||e))})}
 function healthSignals(){const w=[];if(!healthFresh())return w;
-  if(typeof health.spo2==="number"&&health.spo2<93)w.push({k:"spo2",t:"أكسجين "+health.spo2+"%",sev:2});
-  if(health.hr>=110&&!health.moving)w.push({k:"hr",t:"نبض "+health.hr+" بلا حركة",sev:health.hr>=120?2:1});
+  if(typeof health.spo2==="number"&&health.spo2<93&&hcRecent("spo2"))w.push({k:"spo2",t:"أكسجين "+health.spo2+"%",sev:2});
+  if(health.hr>=110&&!health.moving&&hcRecent("hr"))w.push({k:"hr",t:"نبض "+health.hr+" بلا حركة",sev:health.hr>=120?2:1});
   else if(health.hr>=110&&health.moving)w.push({k:"hr",t:"نبض "+health.hr+" مع المشي",sev:0});
-  if(typeof health.rr==="number"&&health.rr>=24)w.push({k:"rr",t:"تنفس سريع "+health.rr+"/د",sev:1});
+  if(typeof health.rr==="number"&&health.rr>=24&&hcRecent("rr"))w.push({k:"rr",t:"تنفس سريع "+health.rr+"/د",sev:1});
   return w}
-function healthLine(){if(!healthFresh())return "لا ساعة مربوطة، فالقلب والنفس غير معروفين";const a=[];if(typeof health.hr==="number")a.push("نبض "+health.hr);if(typeof health.rr==="number")a.push("تنفس "+health.rr);if(typeof health.spo2==="number")a.push("أكسجين "+health.spo2+"%");return a.join(" · ")+(health.src==="sim"?" (قراءة تجريبية للعرض)":health.src==="health"?" (من تطبيق الصحة)":"")}
+function healthLine(){if(!healthFresh())return "لا ساعة مربوطة، فالقلب والنفس غير معروفين";const a=[];const AG=k=>{const m=hcAgeOf(k);return m==null?"":" ("+hcAgo(m,false)+")"};if(typeof health.hr==="number")a.push("نبض "+health.hr+AG("hr"));if(typeof health.rr==="number")a.push("تنفس "+health.rr+AG("rr"));if(typeof health.spo2==="number")a.push("أكسجين "+health.spo2+"%"+AG("spo2"));return a.join(" · ")+(health.src==="sim"?" (قراءة تجريبية للعرض)":health.src==="health"?" (من تطبيق الصحة)":"")}
 /* قراءة تطبيق الصحة بإذن الضيف: اختصار في الآيفون يقرأ آخر نبض وتنفس وأكسجين من تطبيق الصحة ويفتح كنف بها بعد علامة # في الرابط، وما بعد # لا يصل إلى أي خادم.
    أول مرة يسأل كنف الضيف ويحفظ موافقته في الجهاز فقط، ويستطيع إيقافها متى شاء. الصيغة: #hc=نبض_تنفس_أكسجين مثل #hc=78_16_97 */
 function hcNum(t){t=String(t==null?"":t).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[٫,]/g,".").replace(/[^\d.]/g,"");if(!t)return null;const v=parseFloat(t);return isFinite(v)?v:null}
 /* الإصدار 218: &t= عمر كل عينة بالدقائق (من «الوقت بين التواريخ» في الاختصار). النبض يصلح 30 دقيقة من قياسه، والتنفس والأكسجين 60 دقيقة؛
    الأقدم لا يعرض، ويقول كنف متى قيس (تنفس الساعة يقاس أثناء النوم فيكون غالبا من الليلة الماضية) */
-const HC_MAX={hr:30,rr:60,spo2:60};
+/* الإصدار 224: يعرض النبض حتى ساعتين من قياسه، والتنفس والأكسجين حتى 12 ساعة (الساعة تقيس التنفس أثناء النوم)، مع عمر كل قراءة. أما التنبيه فلا يبنى إلا على قراءة عمرها 30 دقيقة أو أقل */
+const HC_MAX={hr:120,rr:720,spo2:720};const HC_ALERT=30;
+function hcRecent(k){return health.src!=="health"||!health.at||health.at[k]==null||(Date.now()-health.at[k])<=HC_ALERT*60000}
+function hcAgeOf(k){return health.src==="health"&&health.at&&health.at[k]!=null?Math.max(0,Math.round((Date.now()-health.at[k])/60000)):null}
 function hcParse(h){h=String(h||"");if(/^#hc=/.test(h)&&/%26|%3D/i.test(h)){try{h="#hc="+decodeURIComponent(h.slice(4))}catch(_){}}const m=/^#hc=([^&]*)/.exec(h);if(!m)return null;let raw="";try{raw=decodeURIComponent(m[1])}catch(_){raw=m[1]}
   const parts=/[_;|]/.test(raw)?raw.split(/[_;|]/):raw.split(",");let [hr,rr,o2]=parts.map(hcNum);
   hr=(hr>=30&&hr<=220)?Math.round(hr):null;rr=(rr>=5&&rr<=60)?Math.round(rr):null;
@@ -1121,7 +1124,8 @@ function hcGet(){try{return localStorage.getItem("knf_hc_ok")}catch(_){return nu
 function hcSet(v){try{localStorage.setItem("knf_hc_ok",v)}catch(_){}}
 function hcVals(r,en){const A=k=>r.age&&r.age[k]!=null?" ("+hcAgo(r.age[k],en)+")":"";const a=[];if(r.hr!=null)a.push((en?"pulse "+r.hr:"نبض "+r.hr)+A("hr"));if(r.rr!=null)a.push((en?"breathing "+r.rr+"/min":"تنفس "+r.rr+" في الدقيقة")+A("rr"));if(r.spo2!=null)a.push((en?"oxygen "+r.spo2+"%":"أكسجين "+r.spo2+"%")+A("spo2"));return a.join(" · ")}
 function hcApply(r){const now=Date.now();const ag=k=>(r.age&&r.age[k]!=null?r.age[k]:0);const exp={};for(const k of ["hr","rr","spo2"])if(r[k]!=null)exp[k]=now-ag(k)*60000+HC_MAX[k]*60000;
-  Object.assign(health,{permitted:true,watch:true,hr:r.hr,rr:r.rr,spo2:r.spo2,moving:false,src:"health",ts:now-Math.min(...["hr","rr","spo2"].filter(k=>r[k]!=null).map(ag))*60000,exp});healthAsked=false;log("care","قراءة من تطبيق الصحة بإذن الضيف","تبقى على الجهاز ولا ترسل");try{wbRender()}catch(_){}}
+  const at={};for(const k of ["hr","rr","spo2"])if(r[k]!=null)at[k]=now-ag(k)*60000;
+  Object.assign(health,{permitted:true,watch:true,hr:r.hr,rr:r.rr,spo2:r.spo2,moving:false,src:"health",ts:now-Math.min(...["hr","rr","spo2"].filter(k=>r[k]!=null).map(ag))*60000,exp,at});healthAsked=false;log("care","قراءة من تطبيق الصحة بإذن الضيف","تبقى على الجهاز ولا ترسل");try{wbRender()}catch(_){}}
 function hcSrc(){if(/^#hc=/.test(location.hash))return location.hash;const q=new URLSearchParams(location.search);if(q.get("hc")!==null){const t=q.get("t");return "#hc="+encodeURIComponent(q.get("hc"))+(t!==null?"&t="+encodeURIComponent(t):"")}return ""}
 function hcIncoming(){const src=hcSrc();const r=hcParse(src);if(!r)return;try{const q=new URLSearchParams(location.search);q.delete("hc");q.delete("t");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q.toString():""))}catch(_){}
   log("care","وصلت قراءة من اختصار الصحة",src.slice(0,80));
