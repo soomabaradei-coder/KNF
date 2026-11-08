@@ -254,10 +254,15 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .sg.now{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--fg);font-weight:600}.sg.now i{background:var(--ok);color:#fff}
 .sg small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
 .sg time{font-variant-numeric:tabular-nums;font-size:.76rem;color:var(--muted)}
-/* شريط تقدم تفويج الروضة */
-.rwbar{position:relative;height:8px;border-radius:99px;background:var(--line);margin:10px 4px 6px;overflow:hidden}.rwbar i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:var(--kiswa);transition:width .5s}
-.rwsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:.72rem;color:var(--muted)}.rwsteps span{display:flex;flex-direction:column;align-items:center;gap:3px}.rwsteps b{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);background:var(--card);font-size:.7rem;color:var(--muted)}
-.rwsteps .done b{background:var(--kiswa);border-color:var(--kiswa);color:#fff}.rwsteps .now b{border-color:var(--gold);color:var(--fg);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 30%,transparent)}.rwsteps .now{color:var(--fg);font-weight:700}
+/* شريط تقدم تفويج الروضة: نجوم ثمانية من الزخرفة الإسلامية يصلها خيط يمتلئ (الإصدار 210) */
+.rwtrack{position:relative;margin:12px 0 4px}
+.rwbar{position:absolute;top:16px;inset-inline:12.5%;height:3px;border-radius:99px;background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 10px)}.rwbar i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:var(--gold);transition:width .5s}
+.rwsteps{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:.72rem;color:var(--muted)}.rwsteps span{display:flex;flex-direction:column;align-items:center;gap:4px}
+.rwsteps b{position:relative;width:34px;height:34px;display:grid;place-items:center;font-size:.74rem;color:var(--muted);font-weight:800}.rwsteps b svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.rwsteps b em{position:relative;font-style:normal}
+.rwsteps svg .o{fill:var(--card);stroke:var(--line);stroke-width:1.6}.rwsteps svg .n{fill:none;stroke:var(--line);stroke-width:.8;opacity:.9}
+.rwsteps .done svg .o{fill:var(--kiswa);stroke:var(--gold)}.rwsteps .done svg .n{stroke:var(--gold);opacity:.55}.rwsteps .done b{color:#fff}
+.rwsteps .now svg .o{fill:var(--card);stroke:var(--gold);stroke-width:2.2}.rwsteps .now svg .n{stroke:var(--gold)}.rwsteps .now b{color:var(--fg)}.rwsteps .now{color:var(--fg);font-weight:700}.rwsteps .now svg{filter:drop-shadow(0 0 4px color-mix(in srgb,var(--gold) 55%,transparent))}
+.rwflow.rwend .rwsteps span:last-child svg .o{fill:var(--gold);stroke:var(--kiswa)}.rwflow.rwend .rwsteps span:last-child b{color:var(--kiswa)}
 .wait .big{font-family:var(--display);font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
 .steps{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .step{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;padding:5px 6px;border-radius:8px;color:var(--muted)}
@@ -2679,9 +2684,10 @@ function rawdahFlow(act){const r=rwState();const f=profile.gender==="f";
     "تقبل الله منك. "+(f?"اخرجي":"اخرج")+" من الجهة التي يوجهك إليها المنظمون."][st];
   const nextLab=["تحققوا من موعدي","مسحوا الرمز","",(f?"دخلت الروضة":"دخلت الروضة")][st];
   const pct=Math.round(st/4*100);
-  const steps=RW_STEPS.map((x,i)=>`<span class="${i<st?"done":i===st?"now":""}"><b>${i<st?"✓":i+1}</b>${esc(x[1])}</span>`).join("");
-  const html=head("🕌",st>=4?"وصلت الروضة الشريفة":RW_STEPS[st][0],st>=4?"اكتمل التفويج":"خطوة "+(st+1)+" من 4")+`<div class="rwbar" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${st}"><i style="width:${pct}%"></i></div><div class="rwsteps">${steps}</div><div style="margin-top:8px">${esc(tip)}</div><div class="acts">${st===2?`<button type="button" class="primary" data-rw="station">انتقلت لمحطة</button><button type="button" data-rw="3">نادوا فوجي</button>`:st<4?`<button type="button" class="primary" data-rw="next">${esc(nextLab)}</button>`:`<button type="button" class="primary" data-say="أذكار وآداب الروضة">آداب الروضة</button>`}</div>`;
-  let c=state.rwCard;if(c&&c.isConnected){c.innerHTML=html;feed.appendChild(c);try{TRX.el(c)}catch(_){}scrollBottom()}else{c=card(html,"rwflow");state.rwCard=c}
+  const star=`<svg viewBox="0 0 24 24" aria-hidden="true"><polygon class="o" points="12,0.5 15.37,3.87 20.13,3.87 20.13,8.63 23.5,12 20.13,15.37 20.13,20.13 15.37,20.13 12,23.5 8.63,20.13 3.87,20.13 3.87,15.37 0.5,12 3.87,8.63 3.87,3.87 8.63,3.87"/><polygon class="n" points="12,5 16.95,7.05 19,12 16.95,16.95 12,19 7.05,16.95 5,12 7.05,7.05"/></svg>`;
+  const steps=RW_STEPS.map((x,i)=>`<span class="${i<st?"done":i===st?"now":""}"><b>${star}<em>${i<st?"✓":i+1}</em></b>${esc(x[1])}</span>`).join("");
+  const html=head("🕌",st>=4?"وصلت الروضة الشريفة":RW_STEPS[st][0],st>=4?"اكتمل التفويج":"خطوة "+(st+1)+" من 4")+`<div class="rwtrack"><div class="rwbar" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${st}"><i style="width:${Math.round(Math.min(st,3)/3*100)}%"></i></div><div class="rwsteps">${steps}</div></div><div style="margin-top:8px">${esc(tip)}</div><div class="acts">${st===2?`<button type="button" class="primary" data-rw="station">انتقلت لمحطة</button><button type="button" data-rw="3">نادوا فوجي</button>`:st<4?`<button type="button" class="primary" data-rw="next">${esc(nextLab)}</button>`:`<button type="button" class="primary" data-say="أذكار وآداب الروضة">آداب الروضة</button>`}</div>`;
+  let c=state.rwCard;if(c&&c.isConnected){c.classList.toggle("rwend",st>=4);c.innerHTML=html;feed.appendChild(c);try{TRX.el(c)}catch(_){}scrollBottom()}else{c=card(html,"rwflow"+(st>=4?" rwend":""));state.rwCard=c}
   log("care","تفويج الروضة: "+(st>=4?"وصل الروضة":RW_STEPS[st][0]),"بضغطة الضيف أو قوله · لا بيانات تفويج من الهيئة بعد");
   if(st>=4&&act!==undefined)try{speak("تقبل الله منك.",{lang:"ar"})}catch(_){}
   return{stage:st}}
