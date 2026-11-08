@@ -776,6 +776,10 @@ const LIVE={base:"https://eservices.alharamain.gov.sa/haram-api/api/pry/",ep:{ma
   async refresh(){if(state.offline)return;await Promise.all(Object.keys(this.ep).map(k=>this.fetch(k)));renderSvc()},
   fresh(k){return this.at[k]&&(Date.now()-this.at[k])<15*60000},
   when(k){const t=this.at[k];if(!t)return "";const d=new Date(t);return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0")},
+  /* إن ظهرت البطاقة قبل وصول القراءة الحية: تقرأ الآن وتكمل السطر في مكانه، أو تقول بصدق إنها تعذرت */
+  async fill(){if(!document.querySelector("[data-livefill]"))return;if(!this.mataf())await this.fetch("mataf");const m=this.mataf();
+    document.querySelectorAll("[data-livefill]").forEach(el=>{const k=el.dataset.livefill;el.removeAttribute("data-livefill");if(!m){el.textContent=this.sandboxed()?"القراءة الحية من الهيئة لا تعمل داخل هذه الصفحة؛ افتح كنف من رابطه":"تعذرت قراءة الهيئة الحية الآن (الشبكة)، فلا أعرض كثافة مفترضة";return}
+      const b=k==="t"?m["المطاف"][0]:m["المسعى"][0];el.textContent=b[0]+" بكثافة "+lvlText(b[1])+(b[3]?"، نحو "+b[3]+" دقيقة":"")+(k==="t"&&b[2]?"، من "+b[2]:"")})},
   mataf(){const j=this.data.mataf;if(!j||!this.at.mataf)return null;const out={"المطاف":[],"المسعى":[]};
     j.forEach(x=>{const l=this.st[x.status]||0;if(!l)return;const t=+x.time_expect||0;const key=x.location_type==="2"?"المسعى":"المطاف";out[key].push([String(x.location_name).trim().replace(/الارضي/,"الأرضي").replace(/الاول/,"الأول"),l,x.door_no?String(x.door_no).replace(/\s+/g,""):"",t?(t-5)+" - "+(t+5):"",x.icon?1:0])});
     out["المطاف"].sort((a,b)=>a[1]-b[1]);out["المسعى"].sort((a,b)=>a[1]-b[1]);
@@ -1887,8 +1891,8 @@ const TOOLS={
       const lvT=bestT?bestT[1]:null;const g=s0.places.gate[0];
       log("sup","أبغى أعتمر: جمع الاحتياج كاملا من الملف والقراءة الحية",(slow?"عربة":"")+(hot?" · ماء وظل":"")+(m?" · كثافة حية":" · بلا قراءة حية"));
       const rows=[];
-      rows.push(["الطواف الآن",m?esc(bestT[0])+" بكثافة "+lvlText(lvT)+(bestT[3]?"، نحو "+esc(bestT[3])+" دقيقة":"")+(bestT[2]?"، من "+esc(bestT[2]):""):"لم تصل قراءة الهيئة الحية بعد"]);
-      rows.push(["السعي",m?esc(bestS[0])+" بكثافة "+lvlText(bestS[1])+(bestS[3]?"، نحو "+esc(bestS[3])+" دقيقة":""):"لم تصل قراءة الهيئة الحية بعد"]);
+      rows.push(["الطواف الآن",m?esc(bestT[0])+" بكثافة "+lvlText(lvT)+(bestT[3]?"، نحو "+esc(bestT[3])+" دقيقة":"")+(bestT[2]?"، من "+esc(bestT[2]):""):`<span data-livefill="t">جار قراءة الكثافة من الهيئة…</span>`]);
+      rows.push(["السعي",m?esc(bestS[0])+" بكثافة "+lvlText(bestS[1])+(bestS[3]?"، نحو "+esc(bestS[3])+" دقيقة":""):`<span data-livefill="s">جار قراءة الكثافة من الهيئة…</span>`]);
       const dep=famDependent();
       if(slow)rows.push(["عربة",(profile.mobility==="cart"?"تحتاج عربة":"تتعب من المشي الطويل")+"؛ أقرب نقطة "+esc(s0.places.cart[0][0])+" ("+s0.places.cart[0][1]+" م)، والطواف بالعربة من الدور الأول"]);
       else if(dep)rows.push(["عربة","إن أحببت أحجز "+esc(famYour(dep,"ل"))+" عربة من أقرب "+esc(s0.places.cart[0][0])+" ("+s0.places.cart[0][1]+" م)، والطواف بالعربة من الدور الأول"]);
@@ -1896,6 +1900,7 @@ const TOOLS={
       rows.push(["العائلة","نقطة اللقاء بعد السعي عند "+esc(g[0])+(profile.family.length?"، وأبلغ "+esc(famYour(profile.family[0],"")):"")]);
       rows.push(["الترتيب","طواف سبعة أشواط، ركعتان خلف المقام أو في أي موضع، زمزم، سعي، ثم الحلق أو التقصير عند باب المروة"]);
       const tip=lvT?advise(lvT,"tawaf"):"";
+      if(!m)setTimeout(()=>{try{LIVE.fill()}catch(_){}},50);
       card(head("🕋","عمرتك الآن: كل ما تحتاجه","من ملفك وقراءة الهيئة الحية")+farNote()+`<dl class="kv">${rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>${tip}<div class="acts"><button class="primary" data-say="دلني على المطاف">ابدأ الإرشاد إلى المطاف</button><button data-say="افتح المطوف">المطوف الرقمي</button>${hot?'<button data-say="الوقاية من الحر">الوقاية من الحر</button>':""}${slow?'<button data-say="اطلب لي عربة">اطلب عربة</button>':dep?'<button data-say="اطلب عربة '+esc(famYour(dep,"ل").replace(/ /g," "))+'">اطلب عربة '+esc(famYour(dep,"ل"))+'</button>':""}<button data-say="حدد نقطة لقاء لنا كلنا">نقطة لقاء</button><button data-say="جهز رحلتي">الخطة كاملة</button></div>`,"nav");
       return{best_tawaf:bestT?bestT[0]:null,best_saee:bestS?bestS[0]:null,cart:slow,cart_for:dep?dep.name:null,heat:hot}}},
   transport_options:{agent:"nav",desc:"كيف يصل الضيف إلى المسجد الحرام من مكانه الحالي أو يغادره: أقرب محطة حافلات مكة ومسافتها مشيا، وأقرب موقف سيارات من مواقف الحرم، وطلب سيارة أجرة عبر أوبر أو كريم، مع روابط الاتجاهات. استخدمه عندما يسأل عن الحافلات أو الباص أو المحطة أو المواقف أو موقف السيارة أو أوبر أو كريم أو التاكسي أو كيف يروح للحرم أو يرجع منه أو إلى فندقه.",schema:{type:"object",properties:{mode:{type:"string",enum:["bus","car","ride","all"]}}},
