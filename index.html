@@ -522,6 +522,9 @@ try{Object.assign(profile,JSON.parse(localStorage.getItem("hafi.profile")||"{}")
 if(!profile.accountId&&!profile.selfNamed&&profile.name==="عبدالرحمن"){profile.name="ضيف الرحمن";profile.nameAsked=0}
 /* العائلة في الإصدارات السابقة كانت عينة عرض؛ بلا حساب وبلا سؤال سابق لا نفترض أحدا */
 if(!profile.accountId&&!profile.familyAsked){profile.family=[]}
+/* شخصية العرض للمعرض (الإصدار 212): ?demo=abdulrahman يحمل ملف عبدالرحمن من حملة بشرى الضيافة ويتخطى أسئلة التعارف، ثم يمسح المعلمة من الرابط */
+{const q=new URLSearchParams(location.search);if(q.get("demo")==="abdulrahman"){Object.assign(profile,JSON.parse(JSON.stringify(DEFAULT_PROFILE)),{name:"عبدالرحمن",selfNamed:true,nameAsked:1,gender:"m",genderStated:1,age:62,mobility:"slow",tawafFloor:1,rest:1,quiet:1,campaign:"بشرى الضيافة",campaignAsked:1,familyAsked:1,family:[],langSet:1,basicsStated:1,pv2:164,langChosen:1,readLang:"ar",speakLang:"ar",meds:[{name:"دواء الضغط",times:["08:00","20:00"]}],demoPersona:"abdulrahman"});
+  try{localStorage.setItem("hafi.profile",JSON.stringify(profile));localStorage.setItem("hafi.onboarded","1")}catch(_){}q.delete("demo");try{history.replaceState(null,"",location.pathname+(q.toString()?"?"+q.toString():"")+location.hash)}catch(_){}}}
 if(!profile.accountId&&!profile.langSet){profile.readLang=DEV_LANG;profile.speakLang=DEV_LANG}
 /* قيم العرض القديمة (68 سنة، فاس، يتعب من المشي، طفلان) لا تفترض على ضيف حقيقي؛ تمسح مرة واحدة ما لم يصرح بها الضيف */
 if(profile.pv3!==181){if(!profile.prefsStated){profile.tawafFloor=0;profile.quiet=0;profile.lessons=0;profile.rest=0;profile.hearing=0;profile.stage="";profile.meds=[]}for(const k of ["makkah","madinah"]){const H=profile.homes&&profile.homes[k];if(H&&!H.confirmed){H.home="";H.dist=0;H.auto=0}}profile.pv3=181;try{localStorage.setItem("hafi.profile",JSON.stringify(profile))}catch(_){}}
@@ -2632,6 +2635,10 @@ feed.addEventListener("click",e=>{if(e.target.closest("[data-watch]")){connectWa
   {const h=e.target.closest("[data-hc]");if(h){h.closest(".acts").querySelectorAll("button").forEach(x=>x.disabled=true);hcAnswer(h.dataset.hc==="1");return}}
   if(e.target.closest("[data-hcsetup]")){hcSetup();return}
   if(e.target.closest("[data-sosshare]")){sosShare();return}
+  if(e.target.closest("[data-rwwait]")){rwWaitCard();return}
+  {const k=e.target.closest("[data-rwclip]");if(k){rwClipCard(+k.dataset.rwclip);return}}
+  {const k=e.target.closest("[data-rwplay]");if(k){rwPlay(k);return}}
+  if(e.target.closest("[data-rwbreath]")){TOOLS.start_breathing.run({});return}
   {const w=e.target.closest("[data-rw]");if(w){const v=w.dataset.rw;rawdahFlow(/^\d$/.test(v)?+v:v);return}}
   {const k=e.target.closest("[data-sosok]");if(k){k.disabled=true;sosOk();return}}
   if(e.target.closest("[data-hcstop]")){hcStop();return}
@@ -2673,9 +2680,9 @@ const EMG={
 /* تفويج الروضة خطوة خطوة (الإصدار 209، طلب سمية): شريط تقدم من التحقق من الموعد إلى دخول الروضة.
    لا تصل كنف بيانات التفويج من الهيئة بعد، فيتقدم الشريط بضغطة الضيف أو بقوله (تحققوا من موعدي، مسحوا الرمز، دخلت الروضة) */
 const RW_STEPS=[["التحقق من الموعد","الموعد"],["مسح رمز التصريح","الرمز"],["محطات الانتظار","الانتظار"],["دخول الروضة","الروضة"]];
-function rwState(){const r=profile.rawdah||(profile.rawdah={});if(!r.flowT||Date.now()-r.flowT>6*3600000){r.stage=0;r.stations=0;r.flowT=Date.now()}return r}
+function rwState(){const r=profile.rawdah||(profile.rawdah={});if(!r.flowT||Date.now()-r.flowT>6*3600000){r.stage=0;r.stations=0;r.waitShown=0;r.clip=0;r.flowT=Date.now()}return r}
 function rawdahFlow(act){const r=rwState();const f=profile.gender==="f";
-  if(act==="next")r.stage=Math.min(4,(r.stage||0)+1);else if(act==="station"){r.stage=Math.max(r.stage||0,2);r.stations=(r.stations||0)+1}else if(typeof act==="number")r.stage=Math.max(r.stage||0,act);else if(act==="reset"){r.stage=0;r.stations=0}
+  if(act==="next")r.stage=Math.min(4,(r.stage||0)+1);else if(act==="station"){r.stage=Math.max(r.stage||0,2);r.stations=(r.stations||0)+1}else if(typeof act==="number")r.stage=Math.max(r.stage||0,act);else if(act==="reset"){r.stage=0;r.stations=0;r.waitShown=0;r.clip=0}
   r.flowT=Date.now();saveProfile();const st=r.stage||0;const slot=r.slot||"";
   const tip=[(f?"احضري":"احضر")+" قبل موعدك بنصف ساعة إلى الساحات أمام باب مكة (37)، وهناك يتحقق المنظمون من موعدك"+(slot?" ("+slot+")":"")+".",
     (f?"جهزي":"جهز")+" تصريحك في نسك على الجوال، وارفع سطوع الشاشة ليمسح الرمز.",
@@ -2686,11 +2693,27 @@ function rawdahFlow(act){const r=rwState();const f=profile.gender==="f";
   const pct=Math.round(st/4*100);
   const star=`<svg viewBox="0 0 24 24" aria-hidden="true"><polygon class="o" points="12,0.5 15.37,3.87 20.13,3.87 20.13,8.63 23.5,12 20.13,15.37 20.13,20.13 15.37,20.13 12,23.5 8.63,20.13 3.87,20.13 3.87,15.37 0.5,12 3.87,8.63 3.87,3.87 8.63,3.87"/><polygon class="n" points="12,5 16.95,7.05 19,12 16.95,16.95 12,19 7.05,16.95 5,12 7.05,7.05"/></svg>`;
   const steps=RW_STEPS.map((x,i)=>`<span class="${i<st?"done":i===st?"now":""}"><b>${star}<em>${i<st?"✓":i+1}</em></b>${esc(x[1])}</span>`).join("");
-  const html=head("🕌",st>=4?"وصلت الروضة الشريفة":RW_STEPS[st][0],st>=4?"اكتمل التفويج":"خطوة "+(st+1)+" من 4")+`<div class="rwtrack"><div class="rwbar" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${st}"><i style="width:${Math.round(Math.min(st,3)/3*100)}%"></i></div><div class="rwsteps">${steps}</div></div><div style="margin-top:8px">${esc(tip)}</div><div class="acts">${st===2?`<button type="button" class="primary" data-rw="station">انتقلت لمحطة</button><button type="button" data-rw="3">نادوا فوجي</button>`:st<4?`<button type="button" class="primary" data-rw="next">${esc(nextLab)}</button>`:`<button type="button" class="primary" data-say="أذكار وآداب الروضة">آداب الروضة</button>`}</div>`;
+  const html=head("🕌",st>=4?"وصلت الروضة الشريفة":RW_STEPS[st][0],st>=4?"اكتمل التفويج":"خطوة "+(st+1)+" من 4")+`<div class="rwtrack"><div class="rwbar" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${st}"><i style="width:${Math.round(Math.min(st,3)/3*100)}%"></i></div><div class="rwsteps">${steps}</div></div><div style="margin-top:8px">${esc(tip)}</div><div class="acts">${st===2?`<button type="button" class="primary" data-rw="station">انتقلت لمحطة</button><button type="button" data-rw="3">نادوا فوجي</button><button type="button" data-rwwait="1">🎧 وأنت تنتظر</button>`:st<4?`<button type="button" class="primary" data-rw="next">${esc(nextLab)}</button>`:`<button type="button" class="primary" data-say="أذكار وآداب الروضة">آداب الروضة</button>`}</div>`;
   let c=state.rwCard;if(c&&c.isConnected){c.classList.toggle("rwend",st>=4);c.innerHTML=html;feed.appendChild(c);try{TRX.el(c)}catch(_){}scrollBottom()}else{c=card(html,"rwflow"+(st>=4?" rwend":""));state.rwCard=c}
   log("care","تفويج الروضة: "+(st>=4?"وصل الروضة":RW_STEPS[st][0]),"بضغطة الضيف أو قوله · لا بيانات تفويج من الهيئة بعد");
   if(st>=4&&act!==undefined)try{speak("تقبل الله منك.",{lang:"ar"})}catch(_){}
+  if(st===2&&!r.waitShown){r.waitShown=1;r.clipT=Date.now();saveProfile();setTimeout(()=>{try{rwWaitCard()}catch(_){}},400)}
   return{stage:st}}
+/* وقت الانتظار في محطات الروضة (الإصدار 211، طلب سمية): مقاطع توعوية قصيرة من مصادر الهيئة والوزارة تسمع بصوت كنف، ونشاط التنفس.
+   أول ما يصل الضيف محطات الانتظار تصله بطاقة «وأنت تنتظر»، ثم مقطع جديد كل 8 دقائق ما دام في الانتظار. لا يشغل الصوت إلا بضغطة الضيف */
+const RW_CLIPS=[
+ {t:"آداب الروضة",src:"as",x:"في الروضة صل ركعتين إن وجدت مكانا، وادع بدعاء قصير، ثم أفسح لمن بعدك. وتجنب مزاحمة المصلين ورفع الصوت، والتزم توجيهات العاملين."},
+ {t:"السلام على النبي",src:"as",x:"تقف تجاه القبر بأدب وخفض صوت وتقول: السلام عليك يا نبي الله ورحمة الله وبركاته. ثم تتحرك عن يمينك قليلا وتسلم على أبي بكر الصديق، ثم على عمر بن الخطاب رضي الله عنهما."},
+ {t:"آداب المسجد النبوي",src:"an",x:"تجنب مزاحمة المصلين، والجلوس أو الصلاة في الممرات، والتمسح بالأبواب والجدران. واستقبل القبلة عند الدعاء."},
+ {t:"الماء والراحة",src:"uv",x:"خذ قسطا من الراحة عند التعب، وأكثر من شرب السوائل، ولا تنتظر العطش في الحر."}];
+function rwClipCard(i){const c0=RW_CLIPS[i%RW_CLIPS.length];const src=KSRC[c0.src]||{};const r=rwState();r.clip=(i%RW_CLIPS.length)+1;saveProfile();
+  card(head("🎧",c0.t,"مقطع توعوي · "+(src.n||""))+`<div class="clipt">${esc(c0.x)}</div><div class="acts"><button type="button" class="primary" data-rwplay="1">▶ استمع</button><button type="button" data-rwclip="${(i+1)%RW_CLIPS.length}">التالي</button><button type="button" data-rwbreath="1">🫧 تنفس معي</button></div>${src.u?`<div class="muted" style="font-size:.72rem">المصدر: <a href="${esc(src.u)}" target="_blank" rel="noopener">${esc(src.o||src.n)}</a></div>`:""}`,"rwclip");
+  log("rite","مقطع توعوي أثناء انتظار الروضة",c0.t+" · "+(src.n||""))}
+function rwWaitCard(){const f=profile.gender==="f";
+  card(head("⏳","وأنت تنتظر","محطات الانتظار")+`<div>${f?"اختاري":"اختر"} ما يريحك حتى يحين دورك:</div><div class="acts" style="flex-direction:column;align-items:stretch">${RW_CLIPS.map((c0,i)=>`<button type="button" data-rwclip="${i}">🎧 ${esc(c0.t)}</button>`).join("")}<button type="button" class="primary" data-rwbreath="1">🫧 تنفس معي دقيقة</button></div>`,"rwwait");
+  log("care","وقت الانتظار في الروضة: مقاطع توعوية وتنفس","يرسل مقطعا جديدا كل 8 دقائق ما دام في الانتظار")}
+function rwPlay(btn){const c=btn.closest(".card");const el=c&&c.querySelector(".clipt");if(!el)return;const t=el.textContent.trim();try{stopSpeak()}catch(_){}speak(t,{lang:/[\u0600-\u06FF]/.test(t)?"ar":uiLang()})}
+setInterval(()=>{try{const r=profile.rawdah;if(!r||r.stage!==2||!state.rwCard||!state.rwCard.isConnected||state.busy)return;if(Date.now()-(r.clipT||0)<8*60000)return;r.clipT=Date.now();rwClipCard(r.clip||0)}catch(_){}},60000);
 /* الطوارئ بصدق (الإصدار 208): كنف لا يبلغ جهة رسمية تلقائيا بعد، فيضع الاتصال أولا، ويرسل موقع الضيف فعلا لعائلته المتصلة في كنف، ويهيئ رسالة بموقعه لمن يختار، ويدل على أقرب مركز. لا يكتب «الفريق في الطريق» */
 function sosAct(type,desc){const ty=EMG[type]||EMG.unknown;if(ty.body)wb.body="pain";try{wbRender()}catch(_){}
   const r=state.real&&typeof state.real.la==="number"?state.real:null;const fam=(state.room&&state.peers)?state.peers.length:0;
@@ -2980,13 +3003,13 @@ const DEMO_PLACES=[
 function demoAdminOn(){const q=new URLSearchParams(location.search);let on=false;try{if(q.get("admin")==="0")localStorage.removeItem("knf_admin");else if(q.get("admin")==="1"||location.hash==="#admin")localStorage.setItem("knf_admin","1");on=localStorage.getItem("knf_admin")==="1"}catch(_){on=q.get("admin")==="1"||location.hash==="#admin"}return on}
 function demoSetPlace(key){const p=DEMO_PLACES.find(x=>x[0]===key);if(!p){state.simLoc=null;state.mashaer=null;log("sup","أدمن: إيقاف الموقع التجريبي","يعود كنف إلى GPS الجوال");msg("sys","عاد كنف إلى موقع الجوال الحقيقي.");demoPanel();renderQuick();return}
   state.simLoc={k:p[0],n:p[1],la:p[2],lo:p[3]};state.mashaer=null;state.mashaerShown={};
-  const go=()=>{log("sup","أدمن: موقع تجريبي للعرض: "+p[1],p[2]+", "+p[3]);msg("sys","موقع تجريبي للعرض: "+p[1]+".");const z=mashaerAt(p[2],p[3]);state.mashaerShown={};if(z){state.mashaerShown[z.k]=1;TOOLS.mashaer_guide.run({place:z.k})}else TOOLS.my_location.run({});try{renderQuick()}catch(_){}demoPanel();const bx=document.getElementById("demoBox");if(bx)bx.hidden=true};
+  const go=()=>{try{$("#locText").innerHTML="موقعك الآن: <b>"+esc(p[1])+"</b> <span style=\"color:var(--muted)\">(موقع تجريبي للعرض)</span>"}catch(_){}log("sup","أدمن: موقع تجريبي للعرض: "+p[1],p[2]+", "+p[3]);msg("sys","موقع تجريبي للعرض: "+p[1]+".");const z=mashaerAt(p[2],p[3]);state.mashaerShown={};if(z){state.mashaerShown[z.k]=1;TOOLS.mashaer_guide.run({place:z.k})}else TOOLS.my_location.run({});try{renderQuick()}catch(_){}demoPanel();const bx=document.getElementById("demoBox");if(bx)bx.hidden=true};
   if(state.site!==p[4]){setSite(p[4]);setTimeout(go,500)}else go()}
 function demoSetDay(d){state.hajjDayTest=d||0;log("sup","أدمن: يوم الحج للعرض",d?d+" ذو الحجة":"بلا (التاريخ الحقيقي)");msg("sys",d?"يوم الحج للعرض: "+d+" ذو الحجة.":"عاد كنف إلى التاريخ الحقيقي.");try{renderQuick()}catch(_){}demoPanel()}
 function demoSetCamp(on){if(on){profile.campaign="بشرى الضيافة";profile.campaignAsked=1;saveProfile();showCampCard(campFind(profile.campaign))}else{profile.campaign="";saveProfile();msg("sys","أزيلت الحملة من ملف الضيف.")}try{renderQuick()}catch(_){}try{refreshHero()}catch(_){}demoPanel()}
 function demoPanel(){let w=document.getElementById("demoAdm");if(!w){w=document.createElement("div");w.id="demoAdm";w.innerHTML=`<button type="button" id="demoFab" aria-label="أدمن العرض" style="position:fixed;bottom:14px;left:14px;z-index:9999;width:46px;height:46px;border-radius:50%;border:2px solid var(--gold);background:var(--kiswa);color:#fff;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.25)">⚙</button><div id="demoBox" hidden style="position:fixed;bottom:70px;left:10px;right:10px;max-width:420px;max-height:70vh;overflow:auto;z-index:9999;background:var(--card);border:2px solid var(--gold);border-radius:16px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.3);direction:rtl;font-size:14px"></div>`;document.body.appendChild(w);
     w.querySelector("#demoFab").addEventListener("click",()=>{const b=document.getElementById("demoBox");b.hidden=!b.hidden});
-    w.querySelector("#demoBox").addEventListener("click",e=>{const b=e.target.closest("[data-dp],[data-dd],[data-dc],[data-dx],[data-dw]");if(!b)return;if(b.dataset.dw!==undefined){if(b.dataset.dw==="1")Object.assign(health,{permitted:true,watch:true,hr:82,rr:16,spo2:97,moving:false,ts:Date.now(),src:"sim"});else Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,ts:0,src:""});healthAsked=false;wbRender();demoPanel();return}if(b.dataset.dp!==undefined)demoSetPlace(b.dataset.dp);else if(b.dataset.dd!==undefined)demoSetDay(+b.dataset.dd);else if(b.dataset.dc!==undefined)demoSetCamp(b.dataset.dc==="1");else if(b.dataset.dx==="new"){const u=new URL(location.href);u.searchParams.set("reset","1");u.searchParams.set("admin","1");location.href=u.toString()}else if(b.dataset.dx==="close")document.getElementById("demoBox").hidden=true})}
+    w.querySelector("#demoBox").addEventListener("click",e=>{const b=e.target.closest("[data-dp],[data-dd],[data-dc],[data-dx],[data-dw]");if(!b)return;if(b.dataset.dw!==undefined){if(b.dataset.dw==="1")Object.assign(health,{permitted:true,watch:true,hr:82,rr:16,spo2:97,moving:false,ts:Date.now(),src:"sim"});else Object.assign(health,{permitted:false,watch:false,hr:null,rr:null,spo2:null,ts:0,src:""});healthAsked=false;wbRender();demoPanel();return}if(b.dataset.dp!==undefined)demoSetPlace(b.dataset.dp);else if(b.dataset.dd!==undefined)demoSetDay(+b.dataset.dd);else if(b.dataset.dc!==undefined)demoSetCamp(b.dataset.dc==="1");else if(b.dataset.dx==="new"||b.dataset.dx==="abd"){const u=new URL(location.href);u.searchParams.set("reset","1");u.searchParams.set("admin","1");if(b.dataset.dx==="abd")u.searchParams.set("demo","abdulrahman");else u.searchParams.delete("demo");location.href=u.toString()}else if(b.dataset.dx==="close")document.getElementById("demoBox").hidden=true})}
   const box=document.getElementById("demoBox");const cur=state.simLoc?state.simLoc.k:"";const hd=state.hajjDayTest||0;const camp=!!campFind(profile.campaign);
   const B=(attr,v,lab,on)=>`<button type="button" class="chip" ${attr}="${v}" aria-pressed="${on?"true":"false"}" style="margin:3px;${on?"background:var(--kiswa);color:#fff;border-color:var(--kiswa)":""}">${esc(lab)}</button>`;
   box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>أدمن العرض</b><button type="button" class="chip" data-dx="close">إغلاق</button></div><div class="note" style="margin:6px 0">للعرض فقط: يكتب كنف في بطاقاته «موقع تجريبي للعرض».</div>
@@ -2994,7 +3017,7 @@ function demoPanel(){let w=document.getElementById("demoAdm");if(!w){w=document.
    <div style="margin-top:8px"><b>يوم الحج</b></div><div>${B("data-dd",0,"التاريخ الحقيقي",!hd)}${[8,9,10,11,12,13].map(d=>B("data-dd",d,d+" ذو الحجة",hd===d)).join("")}</div>
    <div style="margin-top:8px"><b>الساعة (القلب والنفس)</b></div><div>${B("data-dw","0","بلا ساعة",health.src!=="sim")}${B("data-dw","1","ساعة تجريبية للعرض",health.src==="sim")}</div>
    <div style="margin-top:8px"><b>الحملة</b></div><div>${B("data-dc","1","مع بشرى الضيافة",camp)}${B("data-dc","0","بلا حملة",!camp)}</div>
-   <div style="margin-top:8px">${B("data-dx","new","ضيف جديد (مسح الجهاز)",false)}</div>`}
+   <div style="margin-top:8px">${B("data-dx","abd","عبدالرحمن (شخصية العرض)",profile.demoPersona==="abdulrahman")}${B("data-dx","new","ضيف جديد (مسح الجهاز)",false)}</div>`}
 if(demoAdminOn()){setTimeout(()=>{try{demoPanel()}catch(_){}},1200)}
 if(/^#hc=/.test(location.hash))setTimeout(()=>{try{hcIncoming()}catch(_){}},1500);
 window.addEventListener("hashchange",()=>{if(/^#hc=/.test(location.hash))try{hcIncoming()}catch(_){}});
