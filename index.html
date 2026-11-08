@@ -141,11 +141,11 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .dn .ic svg{width:34px;height:34px}
 .dn .nm{font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .dn .sub{font-size:.76rem;color:var(--muted);line-height:1.5}
-.dn .cart{width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:.9rem;border:1px solid var(--line)}
-.dtabs{display:flex;gap:6px;margin-top:6px}.dtabs button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px;font-weight:700}.dtabs button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1d1f1b}
-.best{margin-top:8px;border:2px solid var(--gold);border-radius:12px;padding:10px;background:#fff}
+.dn .cart{width:30px;height:30px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:.9rem;border:1px solid var(--line)}
+.dtabs{display:flex;gap:6px;margin-top:6px}.dtabs button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px;font-weight:700}.dtabs button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1d1f1b}
+.best{margin-top:8px;border:2px solid var(--gold);border-inline-start-width:6px;border-radius:12px;padding:10px 12px;background:color-mix(in srgb,var(--gold) 14%,var(--card));color:var(--fg);font-weight:600;line-height:1.6}.best b{color:var(--kiswa)}@media (prefers-color-scheme:dark){.best b{color:var(--gold2)}}
 .mut{--mg:#b8995a;--mg2:#f4efe3}
-.mut .stg{display:flex;flex-direction:row;gap:0;margin:8px 0 0;border:2px solid var(--mg);border-radius:14px;overflow:hidden;background:#fff}
+.mut .stg{display:flex;flex-direction:row;gap:0;margin:8px 0 0;border:2px solid var(--mg);border-radius:14px;overflow:hidden;background:var(--card)}
 .mut .stg div{flex:1;display:grid;place-items:center;padding:8px 2px;position:relative;border-inline-start:2px solid var(--mg)}
 .mut .stg div:first-child{border-inline-start:0}
 .mut .stg div svg{width:34px;height:30px;fill:none;stroke:var(--mg);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
@@ -155,7 +155,7 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .mut .sec i{display:grid;place-items:center;width:22px;height:22px;border:1px solid var(--mg);color:var(--mg);border-radius:6px;transform:rotate(45deg);font-style:normal;font-size:.7rem}
 .mut .sec i b{transform:rotate(-45deg);font-weight:600}
 .mut .pan{display:flex;flex-direction:column;gap:8px;background:var(--mg2);padding:8px;border-radius:0 0 10px 10px}
-.mut .box{background:#fff;border-radius:10px;padding:10px;position:relative}
+.mut .box{background:var(--card);border-radius:10px;padding:10px;position:relative}
 .mut .lbl{position:absolute;top:8px;inset-inline-start:8px;background:var(--mg2);border-radius:6px;padding:2px 8px;font-size:.74rem;font-weight:700}
 .mut .cnt{display:flex;align-items:center;justify-content:center;gap:18px;margin:22px 0 6px}
 .mut .cnt .n{width:84px;height:84px;border-radius:50%;border:5px solid #e4ddcc;display:grid;place-items:center;font-size:2rem;font-weight:800;color:var(--mg)}
@@ -169,11 +169,11 @@ body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{
 .mut .tools button{border:0;background:var(--mg2);border-radius:6px;width:28px;height:26px;display:grid;place-items:center}
 .mut .tools button svg{width:16px;height:16px;fill:none;stroke:var(--mg);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .mut .sw{width:32px;height:18px;border-radius:999px;background:#cfcac0;position:relative;border:0}.mut .sw::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}.mut .sw[aria-pressed="true"]{background:var(--mg)}.mut .sw[aria-pressed="true"]::after{inset-inline-start:16px}
-.mut .pl{margin-top:8px;background:#fff;border-radius:10px;padding:8px 10px;font-size:.8rem}
+.mut .pl{margin-top:8px;background:var(--card);border-radius:10px;padding:8px 10px;font-size:.8rem}
 .mut .pl summary{cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;list-style:none}
 .mut .pl summary svg{width:14px;height:14px;fill:none;stroke:var(--mg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .mut .pl ul{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;color:var(--muted)}
-.mut .kn{margin-top:8px;border-right:4px solid var(--gold);padding:6px 10px;background:#fff;border-radius:8px;font-size:.84rem}
+.mut .kn{margin-top:8px;border-right:4px solid var(--gold);padding:6px 10px;background:var(--card);border-radius:8px;font-size:.84rem}
 .sv{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .sv .q{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg2);border-radius:12px;padding:8px 10px}
 .sv .q span{font-size:.84rem;font-weight:700}
@@ -1102,7 +1102,7 @@ function hcNum(t){t=String(t==null?"":t).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧
 /* الإصدار 218: &t= عمر كل عينة بالدقائق (من «الوقت بين التواريخ» في الاختصار). النبض يصلح 30 دقيقة من قياسه، والتنفس والأكسجين 60 دقيقة؛
    الأقدم لا يعرض، ويقول كنف متى قيس (تنفس الساعة يقاس أثناء النوم فيكون غالبا من الليلة الماضية) */
 const HC_MAX={hr:30,rr:60,spo2:60};
-function hcParse(h){const m=/^#hc=([^&]*)/.exec(h||"");if(!m)return null;let raw="";try{raw=decodeURIComponent(m[1])}catch(_){raw=m[1]}
+function hcParse(h){h=String(h||"");if(/^#hc=/.test(h)&&/%26|%3D/i.test(h)){try{h="#hc="+decodeURIComponent(h.slice(4))}catch(_){}}const m=/^#hc=([^&]*)/.exec(h);if(!m)return null;let raw="";try{raw=decodeURIComponent(m[1])}catch(_){raw=m[1]}
   const parts=/[_;|]/.test(raw)?raw.split(/[_;|]/):raw.split(",");let [hr,rr,o2]=parts.map(hcNum);
   hr=(hr>=30&&hr<=220)?Math.round(hr):null;rr=(rr>=5&&rr<=60)?Math.round(rr):null;
   if(o2!=null&&o2>0&&o2<=1)o2=o2*100;o2=(o2>=70&&o2<=100)?Math.round(o2):null;
