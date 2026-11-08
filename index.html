@@ -43,6 +43,20 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6;direction:rtl}
 .wrap{max-width:1180px;margin:0 auto;padding-block:20px;padding-inline:16px}
+/* وضع المعرض (الإصدار 225): خيارات العرض والجوال، وتحتهما التعريف والسيناريوهات */
+body.expo .side,body.expo .foot{display:none}body.expo .top .tag:not(.keep){display:none}body.expo .grid{grid-template-columns:1fr;justify-items:center}
+body.expo .screen{height:min(820px,calc(100vh - 150px));min-height:520px}body.expo .top{margin-bottom:12px}
+#expoInfo{display:none}body.expo #expoInfo{display:block;max-width:1100px;margin:22px auto 30px}
+#expoInfo .xh{font-family:var(--display);font-size:1.6rem;font-weight:800;color:var(--kiswa);margin:0 0 6px}@media (prefers-color-scheme:dark){#expoInfo .xh{color:var(--gold2)}}
+#expoInfo .xl{font-size:1.05rem;line-height:1.8;margin:0 0 16px;color:var(--fg)}
+#expoInfo .xp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}@media (max-width:760px){#expoInfo .xp{grid-template-columns:1fr}}
+#expoInfo .xp div{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:14px;padding:14px 16px;line-height:1.7}
+#expoInfo .xp b{display:block;font-family:var(--display);font-size:1.15rem;margin-bottom:4px;color:var(--fg)}
+#expoInfo .xs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}@media (max-width:980px){#expoInfo .xs{grid-template-columns:repeat(3,1fr)}}@media (max-width:640px){#expoInfo .xs{grid-template-columns:1fr 1fr}}
+#expoInfo .xc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+#expoInfo .xc h3{margin:0;font-family:var(--display);font-size:1.05rem;color:var(--fg)}
+#expoInfo .xc button{border:1px solid var(--kiswa);background:transparent;color:var(--fg);border-radius:999px;padding:8px 10px;font:600 .95rem var(--body);cursor:pointer;text-align:start}
+#expoInfo .xc button:active,#expoInfo .xc button.on{background:var(--kiswa);color:#fff}
 body.judge .top,body.judge .side,body.judge .foot{display:none}body.judge .grid{grid-template-columns:1fr;justify-items:center}body.judge .wrap{padding-block:8px}body.judge .screen{height:min(860px,calc(100vh - 40px))}
 .onb{display:flex;flex-direction:column;gap:8px}.onb input{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--fg);font-family:inherit;font-size:.92rem}.onb .opts button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1d1f1b}
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
@@ -353,13 +367,14 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <span class="tag">نموذج أولي <b>بيانات محاكاة</b></span>
       <span class="tag mode" id="modeTag">الوضع: <b>جار التحقق</b></span>
-      <span class="tag" style="gap:6px">محاكاة موقع الضيف:
+      <span class="tag keep" style="gap:6px">محاكاة موقع الضيف:
         <button class="chip" data-k="site" data-v="makkah" aria-pressed="true">المسجد الحرام</button>
         <button class="chip" data-k="site" data-v="madinah" aria-pressed="false">المسجد النبوي</button>
       </span>
-      <span class="tag" style="gap:6px;border-color:var(--gold)">تحكم العرض:
+      <span class="tag keep" style="gap:6px;border-color:var(--gold)">تحكم العرض:
         <button class="chip" id="demoOpen" type="button" style="background:var(--kiswa);color:#fff;border-color:var(--kiswa)">⚙ المكان ويوم الحج</button>
         <button class="chip" id="demoAbd" type="button">ضيف بشرى الضيافة</button>
+        <button class="chip" id="expoBtn" type="button">وضع المعرض</button>
       </span>
       <span class="tag" style="gap:6px">حالة انقطاع الشبكة:
         <button class="chip" data-net="on" aria-pressed="true" type="button">متصل</button>
@@ -496,6 +511,17 @@ body.judge.mob.ios{position:static;height:auto;overflow:visible}body.judge.mob.i
     </div>
 
   </div>
+  <section id="expoInfo" aria-label="كنف بشرى الضيافة">
+    <h2 class="xh">كنف بشرى الضيافة</h2>
+    <p class="xl">وكيل ذكي يرافق ضيف الحملة من المطاف إلى المشاعر: يعرف مكانه ومخيمه وجدول حملته، ويستبق حاجته قبل أن يسأل.</p>
+    <div class="xp">
+      <div><b>🧭 التيه</b>يعرف مخيمات الحملة في منى وعرفات من خرائط الهيئة الملكية، ويدل الضيف على مخيمه بالمسافة والاتجاه، ويربطه بعائلته وحملته.</div>
+      <div><b>☀️ الحر</b>يتابع الحرارة ووقت آخر شرب، وينبه بالماء والظل، ويقرأ ساعة الضيف بإذنه.</div>
+      <div><b>👥 الحشود</b>يقرأ كثافة المطاف والمسعى من الهيئة لحظيا ويقترح الوقت الأخف، وفي المشاعر يذكر بتفويج الحملة.</div>
+    </div>
+    <h2 class="xh" style="font-size:1.25rem">جرب: اختر المكان والموقف</h2>
+    <div class="xs" id="expoScen"></div>
+  </section>
   <p class="foot">كنف بشرى الضيافة: نموذج أولي. البيانات والأرقام والتذاكر محاكاة، وأرقام الهواتف وهمية، والخدمات الحقيقية على <a href="https://alharamain.gov.sa/public/?site=ar" target="_blank" rel="noopener">alharamain.gov.sa</a>.</p>
 </div>
 
@@ -530,7 +556,7 @@ if(!profile.accountId&&!profile.selfNamed&&profile.name==="عبدالرحمن"){
 /* العائلة في الإصدارات السابقة كانت عينة عرض؛ بلا حساب وبلا سؤال سابق لا نفترض أحدا */
 if(!profile.accountId&&!profile.familyAsked){profile.family=[]}
 /* شخصية العرض للمعرض (الإصدار 212): ?demo=abdulrahman يحمل ملف عبدالرحمن من حملة بشرى الضيافة ويتخطى أسئلة التعارف، ثم يمسح المعلمة من الرابط */
-{const q=new URLSearchParams(location.search);let nx=null;try{nx=localStorage.getItem("knf_demo_next");localStorage.removeItem("knf_demo_next")}catch(_){}if(q.get("demo")==="abdulrahman"||nx==="abdulrahman"){Object.assign(profile,JSON.parse(JSON.stringify(DEFAULT_PROFILE)),{name:"عبدالرحمن",selfNamed:true,nameAsked:1,gender:"m",genderStated:1,age:62,mobility:"slow",tawafFloor:1,rest:1,quiet:1,campaign:"بشرى الضيافة",campaignAsked:1,familyAsked:1,family:[],langSet:1,basicsStated:1,pv2:164,langChosen:1,readLang:"ar",speakLang:"ar",meds:[{name:"دواء الضغط",times:["08:00","20:00"]}],demoPersona:"abdulrahman"});
+{const q=new URLSearchParams(location.search);let nx=null;try{nx=localStorage.getItem("knf_demo_next");localStorage.removeItem("knf_demo_next")}catch(_){}if(q.get("demo")==="abdulrahman"||nx==="abdulrahman"){Object.assign(profile,JSON.parse(JSON.stringify(DEFAULT_PROFILE)),{name:"عبدالرحمن",selfNamed:true,nameAsked:1,gender:"m",genderStated:1,age:62,mobility:"slow",tawafFloor:1,rest:1,quiet:1,campaign:"بشرى الضيافة",campaignAsked:1,familyAsked:1,family:[],langSet:1,basicsStated:1,pv2:164,langChosen:1,readLang:"ar",speakLang:"ar",meds:[{name:"دواء الضغط",times:["08:00","20:00"]}],homes:{makkah:{home:"سكن الحملة في العزيزية",dist:4200,auto:0,confirmed:1},madinah:{home:"سكن الحملة قرب المسجد النبوي",dist:600,auto:0,confirmed:1}},demoPersona:"abdulrahman"});
   try{localStorage.setItem("hafi.profile",JSON.stringify(profile));localStorage.setItem("hafi.onboarded","1")}catch(_){}q.delete("demo");try{history.replaceState(null,"",location.pathname+(q.toString()?"?"+q.toString():"")+location.hash)}catch(_){}}}
 if(!profile.accountId&&!profile.langSet){profile.readLang=DEV_LANG;profile.speakLang=DEV_LANG}
 /* قيم العرض القديمة (68 سنة، فاس، يتعب من المشي، طفلان) لا تفترض على ضيف حقيقي؛ تمسح مرة واحدة ما لم يصرح بها الضيف */
@@ -2313,6 +2339,8 @@ async function ask(text,img){const dl=detectLang(String(text||""));const base=pr
   try{return await askInner(text,img)}finally{if(prev!==null){state.turnLang=null;state.lang=prev}}}
 async function askInner(text,img){try{document.getElementById("box").classList.remove("await")}catch(_){}
   if(state.busy||!text.trim())return;state.lastText=text;state.holdTop=0;
+  /* الحشود في المشاعر (الإصدار 225) */
+  if(/(زحام|زحمة|زحمه|كثافة|كثافه|حشود|مزدحم|زحمة)/.test(text)&&!/(مطاف|مسعى|مسعي|طواف|سعي|روضة|روضه|سلام)/.test(text)){const r0=state.real;const z0=r0&&typeof r0.la==="number"?mashaerAt(r0.la,r0.lo):null;if(z0){msg("user",text);box.value="";state.followOnce=null;crowdMashaer(z0);return}}
   /* تفويج الروضة بالكلام */
   {const t0=text;let a=null;
     if(/(تفويج|خطوات|مراحل|شريط)\s*(ال)?(دخول\s*)?(الروضة|الروضه)|(الروضة|الروضه)\s*(خطوات|تفويج)|rawdah (entry )?(steps|progress)/i.test(t0))a="show";
@@ -2761,6 +2789,15 @@ function telCard(num){const n=String(num||"").trim();const digits=n.replace(/\D/
   log("svc","اتصال من جهاز بلا شريحة",n+(wa?" · واتساب متاح":short?" · رقم طوارئ قصير":""));
   card(head("📞",(f?"اتصلي":"اتصل")+" بـ"+n,"هذا الجهاز بلا شريحة اتصال")+`<div class="big notr" dir="ltr" style="font-family:var(--display);font-size:2.4rem;font-weight:800;text-align:center;letter-spacing:.06em;color:var(--kiswa)">${esc(n)}</div><div>${short?"رقم طوارئ: "+(f?"اتصلي":"اتصل")+" به من أي جوال قريب، أو "+(f?"اطلبي":"اطلب")+" من أقرب منظم.":wa?(f?"اتصلي":"اتصل")+" به من جوالك، أو عبر واتساب بالإنترنت.":(f?"اتصلي":"اتصل")+" به من جوالك."}</div><div class="acts">${wa?`<a class="btn primary" href="https://wa.me/${wa}" target="_blank" rel="noopener">واتساب</a>`:""}<button type="button" data-telcopy="${esc(n)}">انسخ الرقم</button><a class="btn" href="tel:${esc(digits||n)}">اتصل من هذا الجهاز</a></div>`,"telcard")}
 document.addEventListener("click",e=>{if(!NO_TEL)return;const a=e.target.closest('a[href^="tel:"]');if(!a||a.closest(".telcard"))return;e.preventDefault();e.stopPropagation();let n=a.getAttribute("href").slice(4);try{n=decodeURIComponent(n)}catch(_){}telCard(n)},true);
+/* الحشود في المشاعر: الهيئة لا تنشر كثافة حية للمشاعر، فيبني كنف على تفويج الحملة ونصائح الأدلة التوعوية */
+const CROWD_TIPS={jamarat:["ارم في وقت التفويج المحدد لحملتك ومن الدور المحدد لها، والتزم بتوجيهات رجال الأمن.","اقترب من الجهة الأقل زحاما، ولا تتوقف بعد الرمي في مسار المشاة.","إن شق عليك الزحام فوكل من يرمي عنك."],
+ mina:["لا تخرج من المخيم إلا للضرورة ومع رفقة، وأبلغ مشرف الحملة.","تحرك إلى الجمرات مع حملتك في وقت تفويجها، لا منفردا."],
+ arafat:["ابق في مخيمك؛ عرفة كلها موقف ولا يلزمك صعود الجبل.","انفر إلى مزدلفة مع حملتك بعد الغروب وبوسيلتها المحددة، ولا تنفر منفردا."],
+ muzdalifah:["ابق في حدود مكان حملتك، والتزم بموعد انصرافها.","لا تبحث عن الحصى في مسارات المشاة."]};
+function crowdMashaer(z){const c=campFind(profile.campaign);let nx=null;try{nx=schedNext()}catch(_){}const sm=c&&c.schedMeta&&c.schedMeta.sample;
+  log("nav","الحشود في "+z.n,"لا قراءة كثافة حية للمشاعر · تفويج الحملة والأدلة");
+  card(head("👥","الحشود في "+z.n,"تفويج الحملة يقيك الزحام")+(nx?`<div class="best"><b>تفويج حملتك القادم:</b> ${esc(schedSay(nx))}${sm?" (جدول مقترح للعرض)":""}</div>`:"")+`<ul style="margin:8px 0;padding-inline-start:20px">${(CROWD_TIPS[z.k]||[]).map(t=>`<li>${esc(t)}</li>`).join("")}</ul><div class="muted">لا تصلني قراءة كثافة حية للمشاعر، فلا أعطيك رقما من عندي.</div><div class="acts">${c?`<button type="button" class="primary" data-say="ما هي خطة ${esc(c.n)}؟">جدول الحملة</button><button type="button" data-say="اتصل بحملة ${esc(c.n)}">اتصل بالحملة</button>`:""}</div>`);
+  return{zone:z.k}}
 /* الطوارئ بصدق (الإصدار 208): كنف لا يبلغ جهة رسمية تلقائيا بعد، فيضع الاتصال أولا، ويرسل موقع الضيف فعلا لعائلته المتصلة في كنف، ويهيئ رسالة بموقعه لمن يختار، ويدل على أقرب مركز. لا يكتب «الفريق في الطريق» */
 function sosAct(type,desc){const ty=EMG[type]||EMG.unknown;if(ty.body)wb.body="pain";try{wbRender()}catch(_){}
   const r=state.real&&typeof state.real.la==="number"?state.real:null;const fam=(state.room&&state.peers)?state.peers.length:0;
@@ -3048,9 +3085,9 @@ const DEMO_PLACES=[
  ["mina","منى (المخيم)",21.4140,39.8925,"makkah"],["jamarat","الجمرات",21.4209,39.8727,"makkah"],["arafat","عرفات",21.3545,39.9760,"makkah"],["muzdalifah","مزدلفة",21.3880,39.9200,"makkah"],
  ["nabawi","المسجد النبوي",24.4672,39.6111,"madinah"]];
 function demoAdminOn(){const q=new URLSearchParams(location.search);let on=false;try{if(q.get("admin")==="0")localStorage.removeItem("knf_admin");else if(q.get("admin")==="1"||location.hash==="#admin")localStorage.setItem("knf_admin","1");on=localStorage.getItem("knf_admin")==="1"}catch(_){on=q.get("admin")==="1"||location.hash==="#admin"}return on}
-function demoSetPlace(key){const p=DEMO_PLACES.find(x=>x[0]===key);if(!p){state.simLoc=null;state.mashaer=null;log("sup","أدمن: إيقاف الموقع التجريبي","يعود كنف إلى GPS الجوال");msg("sys","عاد كنف إلى موقع الجوال الحقيقي.");demoPanel();renderQuick();return}
+function demoSetPlace(key){state.followOnce=null;const p=DEMO_PLACES.find(x=>x[0]===key);if(!p){state.simLoc=null;state.mashaer=null;log("sup","أدمن: إيقاف الموقع التجريبي","يعود كنف إلى GPS الجوال");msg("sys","عاد كنف إلى موقع الجوال الحقيقي.");demoPanel();renderQuick();return}
   state.simLoc={k:p[0],n:p[1],la:p[2],lo:p[3]};state.mashaer=null;state.mashaerShown={};
-  const go=()=>{try{$("#locText").innerHTML="موقعك الآن: <b>"+esc(p[1])+"</b> <span style=\"color:var(--muted)\">(موقع تجريبي للعرض)</span>"}catch(_){}log("sup","أدمن: موقع تجريبي للعرض: "+p[1],p[2]+", "+p[3]);msg("sys","موقع تجريبي للعرض: "+p[1]+".");const z=mashaerAt(p[2],p[3]);state.mashaerShown={};if(z){state.mashaerShown[z.k]=1;TOOLS.mashaer_guide.run({place:z.k})}else TOOLS.my_location.run({});try{renderQuick()}catch(_){}demoPanel();const bx=document.getElementById("demoBox");if(bx)bx.hidden=true};
+  const go=()=>{try{$("#locText").innerHTML="موقعك الآن: <b>"+esc(p[1])+"</b> <span style=\"color:var(--muted)\">(موقع تجريبي للعرض)</span>"}catch(_){}log("sup","أدمن: موقع تجريبي للعرض: "+p[1],p[2]+", "+p[3]);msg("sys","موقع تجريبي للعرض: "+p[1]+".");const z=mashaerAt(p[2],p[3]);state.mashaerShown={};if(z){state.mashaerShown[z.k]=1;TOOLS.mashaer_guide.run({place:z.k})}else TOOLS.my_location.run({});state.kbReply=null;state.followOnce=null;try{renderQuick()}catch(_){}demoPanel();const bx=document.getElementById("demoBox");if(bx)bx.hidden=true};
   if(state.site!==p[4]){setSite(p[4]);setTimeout(go,500)}else go()}
 function demoSetDay(d){state.hajjDayTest=d||0;log("sup","أدمن: يوم الحج للعرض",d?d+" ذو الحجة":"بلا (التاريخ الحقيقي)");msg("sys",d?"يوم الحج للعرض: "+d+" ذو الحجة.":"عاد كنف إلى التاريخ الحقيقي.");try{renderQuick()}catch(_){}demoPanel()}
 function demoSetCamp(on){if(on){profile.campaign="بشرى الضيافة";profile.campaignAsked=1;saveProfile();showCampCard(campFind(profile.campaign))}else{profile.campaign="";saveProfile();msg("sys","أزيلت الحملة من ملف الضيف.")}try{renderQuick()}catch(_){}try{refreshHero()}catch(_){}demoPanel()}
@@ -3066,10 +3103,26 @@ function demoPanel(){let w=document.getElementById("demoAdm");if(!w){w=document.
    <div style="margin-top:8px"><b>الحملة</b></div><div>${B("data-dc","1","مع بشرى الضيافة",camp)}${B("data-dc","0","بلا حملة",!camp)}</div>
    <div style="margin-top:8px">${B("data-dx","abd","عبدالرحمن (شخصية العرض)",profile.demoPersona==="abdulrahman")}${B("data-dx","new","ضيف جديد (مسح الجهاز)",false)}</div>`}
 if(demoAdminOn()){setTimeout(()=>{try{demoPanel()}catch(_){}},1200)}
+/* وضع المعرض: ?expo=1 أو زر «وضع المعرض»، ويبقى على الجهاز */
+const EXPO_SCEN=[["mataf","المطاف",{lost:"ضعت في الحرم وين مكتب التائهين؟",heat:"أحس بدوخة من الحر",crowd:"كثافة المطاف الآن؟"}],
+ ["mina","منى",{lost:"تهت عن مخيمي",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد في منى"}],
+ ["arafat","عرفات",{lost:"تهت عن مخيمي",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد في عرفات"}],
+ ["jamarat","الجمرات",{lost:"تهت عن مخيمي",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد عند الجمرات"}],
+ ["nabawi","المسجد النبوي",{lost:"ضعت وما أعرف أرجع",heat:"أحس بدوخة من الحر",crowd:"الزحام شديد وين أروح؟"}]];
+const EXPO_K=[["lost","🧭 تيه"],["heat","☀️ حر"],["crowd","👥 حشود"]];
+function expoSet(on){try{on?localStorage.setItem("knf_expo","1"):localStorage.removeItem("knf_expo")}catch(_){}document.body.classList.toggle("expo",!!on);const b=document.getElementById("expoBtn");if(b){b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"الصفحة كاملة":"وضع المعرض"}if(on)expoRender()}
+function expoRender(){const w=document.getElementById("expoScen");if(!w||w.dataset.done)return;w.dataset.done=1;w.innerHTML=EXPO_SCEN.map(([k,n,u])=>`<div class="xc"><h3>${esc(n)}</h3>${EXPO_K.map(([kk,lab])=>`<button type="button" data-xp="${k}" data-xk="${kk}" title="${esc(u[kk])}">${lab}</button>`).join("")}</div>`).join("");
+  w.addEventListener("click",e=>{const b=e.target.closest("[data-xp]");if(!b)return;w.querySelectorAll("button.on").forEach(x=>x.classList.remove("on"));b.classList.add("on");const sc=EXPO_SCEN.find(x=>x[0]===b.dataset.xp);if(!sc)return;
+    try{window.scrollTo({top:0,behavior:"smooth"})}catch(_){window.scrollTo(0,0)}
+    if(!profile.campaign){profile.campaign="بشرى الضيافة";profile.campaignAsked=1;saveProfile()}
+    const tg=(DEMO_PLACES.find(x=>x[0]===sc[0])||[])[4];const dl=tg&&tg!==state.site?1700:900;demoSetPlace(sc[0]);const box2=document.getElementById("demoBox");if(box2)box2.hidden=true;
+    setTimeout(()=>{if(state.busy){setTimeout(()=>ask(sc[2][b.dataset.xk]),1200)}else ask(sc[2][b.dataset.xk])},dl)})}
+{let on=false;try{const q=new URLSearchParams(location.search);if(q.get("expo")==="1")localStorage.setItem("knf_expo","1");if(q.get("expo")==="0")localStorage.removeItem("knf_expo");on=localStorage.getItem("knf_expo")==="1"}catch(_){}
+ if(on&&!state.judge)expoSet(true);const xb=document.getElementById("expoBtn");if(xb)xb.addEventListener("click",()=>expoSet(!document.body.classList.contains("expo")))}
 /* تحكم العرض ظاهر دائما في شريط صفحة العرض (التابلت والحاسب)، فلا يحتاج رابطا خاصا */
 {const o=document.getElementById("demoOpen");if(o)o.addEventListener("click",()=>{try{localStorage.setItem("knf_admin","1")}catch(_){}demoPanel();const b=document.getElementById("demoBox");if(b)b.hidden=false});
  const a=document.getElementById("demoAbd");if(a)a.addEventListener("click",demoGuest)}
-function demoGuest(){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)&&k!=="knf_admin").forEach(k=>localStorage.removeItem(k));localStorage.setItem("knf_admin","1");localStorage.setItem("knf_demo_next","abdulrahman")}catch(_){}location.reload()}
+function demoGuest(){try{Object.keys(localStorage).filter(k=>/^(hafi\.|knf_)/.test(k)&&k!=="knf_admin"&&k!=="knf_expo").forEach(k=>localStorage.removeItem(k));localStorage.setItem("knf_admin","1");localStorage.setItem("knf_demo_next","abdulrahman")}catch(_){}location.reload()}
 if(/^#hc=/.test(location.hash)||new URLSearchParams(location.search).get("hc")!==null)setTimeout(()=>{try{hcIncoming();const c=[...document.querySelectorAll("#feed .card,#feed .msg")].pop();if(c)c.scrollIntoView({block:"center"})}catch(_){}},1500);
 window.addEventListener("hashchange",()=>{if(/^#hc=/.test(location.hash))try{hcIncoming()}catch(_){}});
 
