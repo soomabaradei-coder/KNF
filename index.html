@@ -1174,7 +1174,7 @@ function hcStop(){hcSet("0");state.hcPending=null;try{localStorage.removeItem("k
 function hcTemplate(){return location.origin+location.pathname+"#hc=78_16_97&t=3_480_20"}
 setInterval(()=>{try{if(health.src!=="health"||!health.exp)return;let ch=false;for(const k of ["hr","rr","spo2"])if(typeof health[k]==="number"&&health.exp[k]&&Date.now()>health.exp[k]){health[k]=null;ch=true}if(ch){wbRender();hcSave()}}catch(_){}},60000);
 /* الإصدار 234: تشخيص على جهاز الضيف. ?diag=1 يعرض بطاقة بحالة الصحة والأخطاء بعد كل قراءة */
-const KNF_VER="234";window.__errs=window.__errs||[];window.addEventListener("error",e=>{try{window.__errs.push(String(e.message||e).slice(0,160)+" @"+(e.lineno||""))}catch(_){}});window.addEventListener("unhandledrejection",e=>{try{window.__errs.push("P: "+String(e.reason&&e.reason.message||e.reason).slice(0,160))}catch(_){}});
+const KNF_VER="235";window.__errs=window.__errs||[];window.addEventListener("error",e=>{try{window.__errs.push(String(e.message||e).slice(0,160)+" @"+(e.lineno||""))}catch(_){}});window.addEventListener("unhandledrejection",e=>{try{window.__errs.push("P: "+String(e.reason&&e.reason.message||e.reason).slice(0,160))}catch(_){}});
 function hcDiag(){try{if(new URLSearchParams(location.search).get("diag")!=="1")return;const h={};for(const k of ["permitted","watch","hr","rr","spo2","src","ts"])h[k]=health[k];
   card(head("🛠️","تشخيص كنف "+KNF_VER,"للمطورة")+`<div class="notr" dir="ltr" style="font-size:.75rem;word-break:break-all;white-space:pre-wrap">health=${esc(JSON.stringify(h))}
 fresh=${healthFresh()} hc_ok=${esc(String(hcGet()))} saved=${esc(String((()=>{try{return localStorage.getItem("knf_hc_last")}catch(_){return "x"}})()))}
@@ -3137,7 +3137,8 @@ const EXPO_SCEN=[
  ["lost","🧭 التيه",[["mina","تهت عن مخيمي"],["mataf","ضعت في الحرم وين مكتب التائهين؟"],["nabawi","ما أعرف أرجع للسكن"]]],
  ["heat","☀️ الحر",[["arafat","أحس بدوخة من الحر"],["mataf","ما شربت ماء من الفجر"],["sahat","أبغى مكان بارد أرتاح فيه"]]],
  ["crowd","👥 الزحام",[["mataf","كثافة المطاف الآن؟"],["jamarat","الزحام شديد عند الجمرات"],["nabawi","الزحام شديد وين أروح؟"]]],
- ["plan","📋 خطة وتعليمات الحملة",[["mina","ما هي خطة بشرى الضيافة؟"],["mina","متى تفويج حملتنا للجمرات؟"],["arafat","وين مخيم الحملة في عرفات؟"]]]];
+ ["plan","📋 خطة وتعليمات الحملة",[["mina","ما هي خطة بشرى الضيافة؟"],["mina","متى تفويج حملتنا للجمرات؟"],["arafat","وين مخيم الحملة في عرفات؟"]]],
+ ["map","🗺️ الخريطة التفاعلية",[["mataf","افتح خريطة الحرم"],["sahat","وين أقرب باب؟"],["mataf","دلني على الصفا من الدور الأول"]]]];
 const EXPO_PLACE={mataf:"المطاف",sahat:"الساحات",mina:"منى",arafat:"عرفات",jamarat:"الجمرات",muzdalifah:"مزدلفة",nabawi:"المسجد النبوي"};
 function expoSet(on){try{on?localStorage.setItem("knf_expo","1"):localStorage.removeItem("knf_expo")}catch(_){}document.body.classList.toggle("expo",!!on);const b=document.getElementById("expoBtn");if(b){b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"الصفحة كاملة":"وضع المعرض"}if(on)expoRender()}
 function expoRender(){const w=document.getElementById("expoScen");if(!w||w.dataset.done)return;w.dataset.done=1;w.innerHTML=EXPO_SCEN.map(([k,n,qs])=>`<div class="xc"><h3>${esc(n)}</h3>${qs.map(([pl,q])=>`<button type="button" data-xp="${pl}" data-q="${esc(q)}">${esc(q)}<small>${esc(EXPO_PLACE[pl]||"")}</small></button>`).join("")}</div>`).join("");
