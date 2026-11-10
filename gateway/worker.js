@@ -65,7 +65,8 @@ export default {
     // الكثافة اللحظية من واجهات الهيئة العامة (الإصدار 236): المتصفح يمنع قراءتها مباشرة من صفحة أخرى (CORS)،
     // فيقرؤها الخادم كما تقرؤها صفحة الهيئة نفسها ويعيدها كما هي مع وقت القراءة. لا مفاتيح. تخزين مؤقت 60 ثانية.
     //   GET /density?k=mataf|salam|halls   →  { ok, k, at, source, data }   أو  { ok:false, k, error }
-    if (url.pathname === "/density" && req.method === "GET" && ok) {
+    // بيانات عامة بلا مفاتيح، فيسمح بها أيضا بلا Origin (طلب مباشر من المتصفح أو من لوحة Cloudflare للاختبار)
+    if (url.pathname === "/density" && req.method === "GET" && (ok || !origin)) {
       const EP = { mataf: "TawafSaiStatus", salam: "salamStatus", halls: "prayerLocationsStatusHaramain" };
       const k = String(url.searchParams.get("k") || "mataf");
       if (!EP[k]) return json({ ok: false, error: "bad k" }, 400);
