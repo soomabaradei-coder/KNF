@@ -1,0 +1,5 @@
+.build-check.js
+node_modules/
+*.png.b64
+.DS_Store
+dist/hafi.prev.html
