@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>كنف الحرمين</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@600;800&display=swap">
+<style>
+__CSS__
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <img class="partner" alt="بشرى الضيافة" src="__ASSET__(bushra-logo.png)__">
+      <div>
+        <h1>كنف بشرى الضيافة</h1>
+        <p><b>كنف بشرى الضيافة… وكيل ذكي يرتقي بجودة حياة ضيف بيت الله الحرام؛ يفهم احتياجه، ويستبق سؤاله، ويوصله بالخدمة الأنسب، في وقتها وبالطريقة التي تلائمه.</b><br>من كرم الضيافة… أن يصل للزائر ما يحتاجه، قبل أن يسأل عنه.</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="tag">نموذج أولي <b>بيانات محاكاة</b></span>
+      <span class="tag mode" id="modeTag">الوضع: <b>جار التحقق</b></span>
+      <span class="tag keep" style="gap:6px">محاكاة موقع الضيف:
+        <button class="chip" data-k="site" data-v="makkah" aria-pressed="true">المسجد الحرام</button>
+        <button class="chip" data-k="site" data-v="madinah" aria-pressed="false">المسجد النبوي</button>
+      </span>
+      <span class="tag keep" style="gap:6px;border-color:var(--gold)">تحكم العرض:
+        <button class="chip" id="demoOpen" type="button" style="background:var(--kiswa);color:#fff;border-color:var(--kiswa)">⚙ المكان ويوم الحج</button>
+        <button class="chip" id="demoAbd" type="button">ضيف بشرى الضيافة</button>
+        <button class="chip" id="expoBtn" type="button">وضع المعرض</button>
+      </span>
+      <span class="tag" style="gap:6px">حالة انقطاع الشبكة:
+        <button class="chip" data-net="on" aria-pressed="true" type="button">متصل</button>
+        <button class="chip" data-net="off" aria-pressed="false" type="button">منقطع</button>
+      </span>
+      <span class="tag" style="gap:6px">قياس الأثر:
+        <button class="chip" id="svAsk" type="button">استبيان الضيف</button>
+        <button class="chip" id="svRes" type="button">النتائج المجمعة</button>
+      </span>
+      <span class="tag" style="gap:6px;border-color:var(--gold)">لوحة كنف بشرى الضيافة:
+        <button class="chip" id="dashOpen" type="button">الأثر والقرار</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="phone">
+      <div class="screen">
+        <div class="sb"><span id="clock">--:--</span><span>مكة المكرمة · 41°</span></div>
+        <div class="appbar">
+          <button class="chip" id="menuBtn" type="button" aria-label="القائمة" title="القائمة"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+          <img class="logo" alt="" src="__ASSET__(kanaf-logo.png)__" style="border-radius:10px">
+          <div class="t"><b>كنف بشرى الضيافة</b><span id="subline">مساعد ضيف الرحمن الذكي</span></div>
+          <button class="chip sos" id="sosBtn" title="طوارئ" type="button" aria-label="طوارئ">SOS</button><button class="chip" id="voiceBtn" title="الصوت" aria-pressed="true">🔊</button><button class="chip" id="profBtn" title="ملف الضيف">👤 عبدالرحمن</button><button class="chip" id="thrBtn" title="محادثاتك" aria-label="محادثاتك"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button><button class="chip" id="resetBtn" title="بدء محادثة جديدة">↻</button>
+        </div>
+        <div class="menuPop" id="menuPop" hidden></div>
+        <div class="loc" id="loc"><span class="dot"></span><span id="locText">جار تحديد موقعك…</span></div>
+        <div class="net" id="net" hidden><span class="dot"></span><span id="netText"></span></div>
+        <button class="wb gray" id="wb" data-say="كيف حالي الجسدية؟"><span class="wbdot"></span><b id="wbTitle">بخير</b><span class="wbic" id="wbIc"></span><small id="wbWhy" hidden></small></button>
+        <div class="sheet thr" id="threads" hidden>
+          <div class="sh"><b>محادثاتك مع كنف بشرى الضيافة</b><span>محفوظة على جهازك وتفتح بلا إنترنت</span><button class="chip" id="thrClose">إغلاق</button></div>
+          <button class="chip" id="thrNew" type="button">+ محادثة جديدة</button>
+          <div id="thrList" class="thrl"></div>
+        </div>
+        <div class="sheet" id="sheet" hidden>
+          <div class="sh"><b>ملف الضيف</b><span>ما يعرفه كنف بشرى الضيافة عنك، وتتحكم فيه أنت</span><button class="chip" id="sheetClose">إغلاق</button></div>
+          <div class="sec">
+            <label>الاسم <input id="pName" type="text" value="عبدالرحمن"></label>
+            <label>الجنس <select id="pGender"><option value="m">ذكر</option><option value="f">أنثى</option></select></label>
+            <label>العمر <input id="pAge" type="number" value="" min="1" max="110"></label>
+          </div>
+          <div class="sec">
+            <label>الجوال <input id="pPhone" type="tel" inputmode="tel" placeholder="05xxxxxxxx" style="direction:ltr"></label><span class="hint" id="pPhoneSt"></span>
+            <label>الحملة <input id="pCamp" type="text" placeholder="بلا حملة"></label>
+            <label>البريد <input id="pEmail" type="email" inputmode="email" placeholder="للخطة اليومية" style="direction:ltr"></label>
+          </div>
+          <div class="sec"><div class="lbl">يقرأ بـ</div>
+            <div class="opts" data-pref="readLang"><button data-v="ar" aria-pressed="true">العربية</button><button data-v="fr">Français</button><button data-v="en" aria-pressed="true">English</button></div></div>
+          <div class="sec"><div class="lbl">يسمع بـ</div>
+            <div class="opts" data-pref="speakLang"><button data-v="ar">العربية</button><button data-v="fr">Français</button><button data-v="en">English</button></div></div>
+          <div class="sec"><div class="lbl">الحركة</div>
+            <div class="opts" data-pref="mobility"><button data-v="walk">يمشي بلا مساعدة</button><button data-v="slow" aria-pressed="true">يتعب من المشي الطويل</button><button data-v="cart">يحتاج عربة</button></div></div>
+          <div class="sec"><div class="lbl">الرفقة</div>
+            <div class="opts" data-pref="kids"><button data-v="0">بلا أطفال</button><button data-v="2" aria-pressed="true">معه طفلان</button></div></div>
+          <div class="sec"><div class="lbl">تفضيلات العبادة</div>
+            <div class="opts multi">
+              <button data-pref="tawafFloor" data-v="1" aria-pressed="true">الطواف من الدور الأول</button>
+              <button data-pref="quiet" data-v="1" aria-pressed="true">يفضل المصليات الهادئة</button>
+              <button data-pref="lessons" data-v="1" aria-pressed="true">يحب حضور الدروس</button>
+              <button data-pref="rest" data-v="1" aria-pressed="true">تذكير بالراحة كل 20 دقيقة</button>
+              <button data-pref="hearing" data-v="1" aria-pressed="false">ضعف سمع</button>
+            </div></div>
+          <div class="sec"><div class="lbl">رحلته اليوم</div>
+            <div class="opts" data-pref="stage"><button data-v="arrive">وصل للتو</button><button data-v="tawaf" aria-pressed="true">أتم الطواف</button><button data-v="saee">أتم السعي</button></div></div>
+          <div class="sec"><div class="lbl">العائلة (مجموعة كنف بشرى الضيافة)</div>
+            <div class="fam" id="famList"></div>
+            <div class="lbl">في مجموعتك الآن (مباشر عبر هذا الرابط)</div><div id="livePeers" class="fam"><div class="hint">يظهر هنا كل من يفتح الرابط نفسه ويأذن بموقعه</div></div>
+            <div class="opts"><button class="chip" id="famInvite" type="button">دعوة فرد عبر الرابط</button><button class="chip" id="famAdd" type="button">+ أضف فردا</button></div></div>
+          <div class="sec"><div class="lbl">مكان السكن</div>
+            <label style="flex:1;min-width:0">السكن <input id="pHome" type="text" style="width:100%" value="" placeholder="اسم الفندق أو السكن"></label>
+            <button class="chip" id="homeAuto" type="button">سكني هنا الآن</button></div>
+          <p class="hint">تعلمها كنف بشرى الضيافة من حسابك ومن حركتك في الحرم ومن حديثه معك، وتبقى على جهازك.</p>
+        </div>
+        <div class="feed" id="feed" aria-live="polite"></div>
+        <div class="quick" id="quick"></div>
+        <form class="compose" id="form">
+          <div class="modes" role="group" aria-label="طريقة الإدخال">
+            <button type="button" class="mode" id="plusBtn" aria-label="المزيد" title="صورة أو إشارة"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button type="button" class="mode" id="mVoice" aria-label="تحدث" title="تحدث"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg></button>
+            <button type="button" class="mode" id="mImage" aria-label="صورة" title="صورة"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg></button>
+            <button type="button" class="mode" id="mSign" aria-label="إشارة (بث الكاميرا)" title="إشارة"><svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M14 10.5V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M8 13l-2.5-2.5a1.5 1.5 0 0 0-2.2 2L8 18a6 6 0 0 0 11 0v-5"/></svg></button>
+            <button type="button" class="mode on" id="mText" aria-label="كتابة" title="كتابة"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg></button>
+            <input type="file" id="imgIn" accept="image/*" capture="environment" hidden>
+          </div>
+          <input id="box" type="text" autocomplete="off" placeholder="اكتب أو تحدث… مثل: وين أقرب عربة؟" aria-label="رسالتك">
+          <button type="submit" id="send" aria-label="إرسال"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9z"/></svg></button>
+        </form>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel" id="adminPanel" hidden style="border-color:var(--gold)">
+        <h2>استعراض الواجهات (أدمن)</h2>
+        <p class="lead">كل زر يعيد الهاتف إلى حالة واحدة نظيفة ويعرض واجهة محددة. «عرض تلقائي» يمر عليها كلها بترتيب العرض.</p>
+        <div class="simloc" id="adminBtns"></div>
+        <div class="acts" style="margin-top:8px"><button type="button" class="primary" id="adminAuto">عرض تلقائي</button><button type="button" id="adminStop">إيقاف</button><span class="mode" id="adminNow"></span></div>
+      </div>
+      <div class="panel">
+        <h2>كنف بشرى الضيافة: جودة الحياة لضيف بيت الله الحرام</h2>
+        <p class="lead"><b>كنف بشرى الضيافة… وكيل ذكي يرتقي بجودة حياة ضيف بيت الله الحرام؛ يفهم احتياجه، ويستبق سؤاله، ويوصله بالخدمة الأنسب، في وقتها وبالطريقة التي تلائمه.</b></p>
+        <p class="lead">الشاشة هنا تمثل محادثة كنف بشرى الضيافة كما تظهر داخل منصة الهيئة ذات الخدمات المتنوعة؛ الحساب والهوية والحجوزات تبقى للمنصة، والوكيل يضيف الفهم والرعاية والتكامل.</p>
+        <p class="lead">جودة حياة الضيف طوال رحلته هي الغاية، والخدمات وسيلتها. ومع تنوع الخدمات المقدمة لضيوف الرحمن، نضيف بعدا شخصيا للرحلة: نفهم كل زائر، ونوصله بما يناسب احتياجاته وتفضيلاته، في الوقت المناسب؛ لتزداد رحلته راحة وطمأنينة. وكيل ذكي يضاف إلى منصة الهيئة الموجودة بخدماتها المتنوعة، لا تطبيق مستقل.</p>
+        <div class="agents" style="margin-bottom:4px">
+          <div class="ag"><b>١ نفهم الحاج</b><span>احتياجاته وتفضيلاته من حديثه، وهاتفه بإذنه: الموقع والصحة والطقس والعائلة</span></div>
+          <div class="ag"><b>٢ نعرف الخدمات المتاحة</b><span>خدمات الهيئة الاثنتا عشرة كأدوات يستدعيها الوكيل</span></div>
+          <div class="ag active"><b>٣ نوصله بالخدمة المناسبة</b><span>في الوقت المناسب وبالطريقة التي تناسبه؛ تجربة مخصصة تتكيف مع احتياجاته أثناء الرحلة</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>في حال انقطع النت: دائما جاهزون</h2>
+        <p class="lead">الأساسيات تبقى على الجهاز: ملف الحاج وتفضيلاته، شريط الحالة (الساعة وآخر طقس محفوظ ومواعيد الماء والدواء)، تمرين التنفس والطمأنة، الإرشاد إلى الأبواب والسكن بخريطة الحرم المحملة مسبقا وتحديد الموقع، وآخر موقع معروف لكل فرد من العائلة ونقطة اللقاء المتفق عليها.</p>
+        <p class="lead">الوكيل الكبير يحتاج اتصالا، فعند الانقطاع يتحول إلى نموذج صغير على الجهاز يفهم الطلبات الأساسية (ماء، عربة، طبيب، عائلتي، ضعت) ويظهر شريط «بلا اتصال: أعمل بالضروري». أي طلب للهيئة يحفظ ويرسل تلقائيا أول ما يرجع الاتصال، والطوارئ بالاتصال الهاتفي 911. جربيه بزر «انقطع الإنترنت» في لوحة المحاكاة.</p>
+      </div>
+      <div class="panel">
+        <h2>ما يعرفه كنف بشرى الضيافة عن الضيف</h2>
+        <p class="lead" style="margin-bottom:6px">جودة الحياة التي يرعاها كنف بشرى الضيافة لها ثلاثة أركان: <b>صحة جسدية</b> (القدرة على الحركة، والحالة الصحية، والحاجة إلى الراحة أو المساعدة)، <b>طمأنينة نفسية</b> (الإرشاد، والدعم، وطريقة التواصل التي يفضلها)، و<b>راحة الرحلة</b> (سهولة التنقل، والوصول إلى الخدمات، والعائلة، واللغة والتفضيلات الشخصية). والشريط الملون أعلى الهاتف يلخص حالته: أخضر عافية جيدة بحسب إجاباته، أصفر قد يحتاج استراحة أو دعما، أحمر يحتاج متابعة. وبلا ساعة يحكم الشريط على الماء والحر، وهما الأهم للحاج.</p>
+        <p class="lead">كل تنبيه وكل اقتراح يبنى على هذا الملف. غيري شيئا فيه من زر الملف في الهاتف وستتغير التنبيهات الاستباقية.</p>
+        <dl class="known" id="known"></dl>
+      </div>
+      <div class="panel">
+        <h2>ماذا يحدث خلف المحادثة</h2>
+        <p class="lead">الوكيل المشرف يقرأ الطلب وملف الضيف والسياق، يختار الوكيل المتخصص، وهذا يستدعي خدمة الهيئة المناسبة.</p>
+        <div class="agents" id="agents"></div>
+        <div class="simloc" id="voiceStat" style="margin-top:6px"></div>
+        <div class="simloc">لمحاكاة العرض: <button class="chip" id="simPrayer" type="button">اقترب وقت العصر</button> <button class="chip" id="simThirst" type="button">مرت 40 دقيقة بلا ماء</button> <button class="chip" id="simRawdah" type="button">حان تحرك الفوج (الروضة)</button> <button class="chip" id="simPulse" type="button">الساعة: نبض 114 بلا حركة</button> <button class="chip" id="simSpo2" type="button">الساعة: أكسجين 91%</button> <button class="chip" id="simNoWatch" type="button">بلا ساعة / بلا إذن</button> <button class="chip" id="simMed" type="button">حان موعد الدواء</button> <button class="chip" id="simNet" type="button" aria-pressed="false">انقطع الإنترنت</button> <a class="chip" id="dashLink" href="?dash=1" target="_blank" rel="noopener" style="text-decoration:none">لوحة الهيئة للقرار</a></div>
+
+        <div style="height:10px"></div>
+        <div class="trace" id="trace"><div class="empty">أرسلي طلبا في الهاتف وسيظهر هنا مسار التنفيذ خطوة بخطوة</div></div>
+      </div>
+      <div class="panel">
+        <h2>خدمات الهيئة التي يتكامل معها</h2>
+        <p class="lead">كل خدمة أدناه موجودة فعلا على alharamain.gov.sa أو في منشآت الحرمين؛ في هذا النموذج تستدعى ببيانات محاكاة عبر أدوات (Tools) يختارها الوكيل بنفسه.</p>
+        <div style="overflow-x:auto"><table class="svc" id="svcTable"><thead><tr><th>خدمة الهيئة</th><th>الواجهة التي يستدعيها الوكيل</th><th>المستوى</th><th>أدوات الوكيل</th><th>الحالة</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+  </div>
+  <section id="expoInfo" aria-label="كنف بشرى الضيافة">
+    <h2 class="xh">كنف بشرى الضيافة</h2>
+    <p class="xl">وكيل ذكي يرافق ضيف الحملة من المطاف إلى المشاعر: يعرف مكانه ومخيمه وجدول حملته، ويستبق حاجته قبل أن يسأل.</p>
+    <div class="xp">
+      <div><b>🧭 التيه</b>يعرف مخيمات الحملة في منى وعرفات من خرائط الهيئة الملكية، ويدل الضيف على مخيمه بالمسافة والاتجاه، ويربطه بعائلته وحملته.</div>
+      <div><b>☀️ الحر</b>يتابع الحرارة ووقت آخر شرب، وينبه بالماء والظل، ويقرأ ساعة الضيف بإذنه.</div>
+      <div><b>👥 الحشود</b>يقرأ كثافة المطاف والمسعى من الهيئة لحظيا ويقترح الوقت الأخف، وفي المشاعر يذكر بتفويج الحملة.</div>
+    </div>
+    <h2 class="xh" style="font-size:1.25rem">جرب: اختر موقفا، وينتقل الضيف إلى مكانه ثم يسأل</h2>
+    <div class="xs" id="expoScen"></div>
+  </section>
+  <p class="foot">كنف بشرى الضيافة: نموذج أولي. البيانات والأرقام والتذاكر محاكاة، وأرقام الهواتف وهمية، والخدمات الحقيقية على <a href="https://alharamain.gov.sa/public/?site=ar" target="_blank" rel="noopener">alharamain.gov.sa</a>.</p>
+</div>
+<script>
+(function(){
+__JS__
+})();
+</script>
+</body>
+</html>
