@@ -29,7 +29,7 @@ https://soomabaradei-coder.github.io/KNF/
 1. عدل في `src/` فقط. لا تعدل `index.html` أو `dist/` يدويا.
 2. `python3 build.py --check` للصياغة، ثم `python3 build.py`.
 3. `node tests/scen6.js` و`node tests/hc_persist.js` على الأقل.
-4. ارفع الإصدار في `const KNF_VER` داخل `src/js/12-mashaer-gps.js` وأضف فقرة في `docs/kanaf-reference.md`.
+4. ارفع الإصدار في `const KNF_VER` داخل `src/js/11-voice-tts.js` وأضف فقرة في `docs/kanaf-reference.md`.
 5. `git commit` ثم `git push`؛ GitHub Pages ينشر `index.html` خلال دقيقة أو اثنتين. على الجوال افتح الرابط بـ `?v=N` مرة حتى لا يستخدم سفاري نسخة قديمة.
 6. نسخة الأرتيفاكت على claude.ai تنشر من `dist/hafi.html`، ونموذج المنصة بعد `tools/sync_mock.py`.
 
