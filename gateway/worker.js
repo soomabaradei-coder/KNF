@@ -26,6 +26,8 @@
 //      SMS_PROVIDER=unifonic   UNIFONIC_APP_SID   UNIFONIC_SENDER (اسم المرسل المسجل)
 //   بلا مزود: الحساب ينشأ بلا تأكيد وتقول الصفحة إن التأكيد غير مفعل بعد.
 //
+// الكثافة اللحظية: GET /density?k=mataf|salam|halls يقرأ واجهات الهيئة العامة من الخادم (بلا مفاتيح) لأن المتصفح يمنعها مباشرة.
+//
 // الصوت العصبي (صوت تشات جي بي تي عبر واجهة أوبن إيه آي). أضف كـ Secret:
 //      OPENAI_API_KEY   مفتاح أوبن إيه آي
 //   واختياري كنص: TTS_VOICE (الافتراضي ash: صوت رجل هادئ ناعم؛ بدائل رجالية: echo, onyx, verse, fable؛ نسائية: nova, coral, shimmer, sage, alloy)  TTS_MODEL (الافتراضي gpt-4o-mini-tts)
@@ -49,7 +51,7 @@ export default {
     const ok = allowed.length === 0 || allowed.includes(origin);
     const cors = {
       "Access-Control-Allow-Origin": ok ? origin : "null",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "content-type",
       "Vary": "Origin",
       "content-type": "application/json; charset=utf-8"
@@ -60,6 +62,29 @@ export default {
     const sha = async s => { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, "0")).join(""); };
     const okPhone = p => /^\+[1-9]\d{7,14}$/.test(String(p || ""));
     const provider = (env.SMS_PROVIDER || (env.TWILIO_VERIFY_SID ? "twilio" : env.UNIFONIC_APP_SID ? "unifonic" : "")).toLowerCase();
+    // الكثافة اللحظية من واجهات الهيئة العامة (الإصدار 236): المتصفح يمنع قراءتها مباشرة من صفحة أخرى (CORS)،
+    // فيقرؤها الخادم كما تقرؤها صفحة الهيئة نفسها ويعيدها كما هي مع وقت القراءة. لا مفاتيح. تخزين مؤقت 60 ثانية.
+    //   GET /density?k=mataf|salam|halls   →  { ok, k, at, source, data }   أو  { ok:false, k, error }
+    if (url.pathname === "/density" && req.method === "GET" && ok) {
+      const EP = { mataf: "TawafSaiStatus", salam: "salamStatus", halls: "prayerLocationsStatusHaramain" };
+      const k = String(url.searchParams.get("k") || "mataf");
+      if (!EP[k]) return json({ ok: false, error: "bad k" }, 400);
+      const src = "https://eservices.alharamain.gov.sa/haram-api/api/pry/" + EP[k];
+      const cacheKey = new Request("https://kanaf-cache/density/" + k);
+      const cache = caches.default;
+      try { const hit = await cache.match(cacheKey); if (hit) { const body = await hit.text(); return new Response(body, { headers: { ...cors, "X-Kanaf-Cache": "hit" } }); } } catch {}
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+      try {
+        const r = await fetch(src, { signal: ctl.signal, headers: { "Accept": "application/json, text/plain, */*", "Accept-Language": "ar,en;q=0.8", "Referer": "https://alharamain.gov.sa/", "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" }, cf: { cacheTtl: 0 } });
+        clearTimeout(t);
+        const txt = await r.text();
+        let data = null; try { data = JSON.parse(txt); } catch {}
+        if (!r.ok || data === null) return json({ ok: false, k, error: "upstream", status: r.status, sample: txt.slice(0, 160) }, 502);
+        const out = JSON.stringify({ ok: true, k, at: Date.now(), source: src, data });
+        try { await cache.put(cacheKey, new Response(out, { headers: { "content-type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60" } })); } catch {}
+        return new Response(out, { headers: { ...cors, "X-Kanaf-Cache": "miss" } });
+      } catch (e) { clearTimeout(t); return json({ ok: false, k, error: e && e.name === "AbortError" ? "timeout" : "fetch_failed" }, 502); }
+    }
     if (url.pathname === "/translate" && req.method === "POST" && ok) { if (!env.ANTHROPIC_API_KEY) return json({ error: "no key" }, 503); let b; try { b = await req.json(); } catch { return json({ error: "bad json" }, 400); } const to = String(b.to || "en").slice(0, 5); const items = (Array.isArray(b.texts) ? b.texts : []).slice(0, 40).map(t => String(t || "").slice(0, 1200)); if (!items.length) return json({ out: [] }); const ck = "tr:" + await sha(to + JSON.stringify(items)); if (env.KANAF_KV) { const c = await env.KANAF_KV.get(ck, "json"); if (c) return json({ out: c }); } const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model: env.MODEL || "claude-haiku-4-5", max_tokens: 4000, system: "You translate interface text of KNF, a companion app for Hajj and Umrah pilgrims, faithfully into the target language. Keep numbers, gate numbers, phone numbers, times and proper names. Do not add, explain or omit anything. Use the tool.", tools: [{ name: "translations", description: "The translations, same order and count as the items", input_schema: { type: "object", properties: { out: { type: "array", items: { type: "string" } } }, required: ["out"] } }], tool_choice: { type: "tool", name: "translations" }, messages: [{ role: "user", content: "Target language: " + to + ". Items as a JSON array: " + JSON.stringify(items) }] }) }); const j = await r.json().catch(() => ({})); const tu = (j.content || []).find(c => c.type === "tool_use"); const out = tu && tu.input && Array.isArray(tu.input.out) ? tu.input.out.map(x => String(x)) : null; if (!out || out.length !== items.length) return json({ error: "translate_failed" }, 502); if (env.KANAF_KV) await env.KANAF_KV.put(ck, JSON.stringify(out), { expirationTtl: 2592000 }); return json({ out }); } // الصوت العصبي: {text, lang} يعيد mp3
     if (url.pathname === "/tts" && req.method === "POST" && ok) {
       if (!env.OPENAI_API_KEY) return json({ error: "tts_not_configured" }, 503);
