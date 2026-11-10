@@ -3,8 +3,14 @@ const LIVE={base:"https://eservices.alharamain.gov.sa/haram-api/api/pry/",ep:{ma
   load(){try{const j=JSON.parse(localStorage.getItem("knf_live")||"null");if(j){this.data=j.data||{};this.at=j.at||{}}}catch(_){}},
   save(){try{localStorage.setItem("knf_live",JSON.stringify({data:this.data,at:this.at}))}catch(_){}},
   sandboxed(){return /claude\.ai|claudeusercontent|usercontent/.test(location.hostname)},
-  async fetch(k,again){const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),10000);const url=this.base+this.ep[k];
-    try{const r=await fetch(url,{signal:ctl.signal,cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();this.data[k]=j;this.at[k]=Date.now();this.save();log("api","GET "+url+" · "+r.status,"قراءة حية من واجهة الهيئة · "+j.length+" سجل");return j}
+  /* الإصدار 236: القراءة عبر بوابة كنف أولا (الخادم يقرأ واجهة الهيئة العامة لأن المتصفح يمنعها مباشرة)، ثم المحاولة المباشرة احتياطا */
+  via:"",
+  async viaGateway(k){const base=(typeof LLM!=="undefined"&&LLM.url)||"";if(!base||state.offline)return null;const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);const url=base.replace(/\/$/,"")+"/density?k="+k;
+    try{const r=await fetch(url,{signal:ctl.signal,cache:"no-store"});const j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok||!Array.isArray(j.data))throw new Error(j&&j.error?j.error:"HTTP "+r.status);
+      this.data[k]=j.data;this.at[k]=j.at||Date.now();this.via="gateway";this.save();log("api","GET بوابة كنف /density?k="+k+" · "+r.status,"قراءة حية من واجهة الهيئة عبر البوابة · "+j.data.length+" سجل");return j.data}
+    catch(e){log("api","بوابة كنف /density?k="+k+" · تعذرت",e.name==="AbortError"?"انتهت المهلة":String(e.message||e).slice(0,80));return null}finally{clearTimeout(t)}},
+  async fetch(k,again){if(!again){const g=await this.viaGateway(k);if(g)return g}const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),10000);const url=this.base+this.ep[k];
+    try{const r=await fetch(url,{signal:ctl.signal,cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();this.data[k]=j;this.at[k]=Date.now();this.via="direct";this.save();log("api","GET "+url+" · "+r.status,"قراءة حية من واجهة الهيئة · "+j.length+" سجل");return j}
     catch(e){if(!again&&e.name==="AbortError"){clearTimeout(t);return this.fetch(k,true)}this.err=e.name==="AbortError"?"timeout":(this.sandboxed()?"sandbox":"blocked");log("api","GET "+url+" · تعذرت القراءة",(e.name==="AbortError"?"انتهت المهلة":this.sandboxed()?"صفحة claude.ai تمنع الاتصال بمواقع خارجية":"الاتصال محجوب من هذه الصفحة")+(this.at[k]?" · أعرض آخر قراءة محفوظة":" · لا أعرض بيانات مفترضة"));return null}finally{clearTimeout(t)}},
   async refresh(){if(state.offline)return;await Promise.all(Object.keys(this.ep).map(k=>this.fetch(k)));renderSvc()},
   fresh(k){return this.at[k]&&(Date.now()-this.at[k])<15*60000},
@@ -56,7 +62,7 @@ function densityCard(){
     return `<div class="dn">${L.map(([n,l,doors,t,cart])=>`<div class="it"><div class="ic ${LVL[l][1]}">${RING}</div><div><div class="nm">${esc(n)}<span class="lvl ${LVL[l][1]}">${LVL[l][0]}</span></div><div class="sub">${doors?"الأبواب المؤدية ("+esc(doors)+")<br>":""}${t?AR(t)+" د لإنهاء "+act:"المدة غير منشورة"}</div></div>${cart?`<div class="cart" title="يسمح بالعربات">♿</div>`:"<span></span>"}</div>`).join("")}</div>`};
   const pick=tab=>{const L=(SRC_D[tab].filter(x=>!needsCart||x[4]).slice().sort((a,b)=>a[1]-b[1])[0])||SRC_D[tab][0];return L};
   if(live)log("nav","قرأ الكثافة الحية من واجهة الهيئة","TawafSaiStatus · "+LIVE.when("mataf"));
-  const c=card(head(ICON.crowd,"كثافة المطاف والمسعى",live?"قراءة حية من واجهة الهيئة · "+LIVE.when("mataf"):"مؤشر الكثافة اللحظي · منصة الهيئة · محاكاة")+`<div class="dtabs"><button type="button" data-tab="المطاف" aria-pressed="true">المطاف</button><button type="button" data-tab="المسعى" aria-pressed="false">المسعى</button></div><div class="dbody">${render("المطاف")}</div><div class="best"></div>`,"nav");
+  const c=card(head(ICON.crowd,"كثافة المطاف والمسعى",live?"قراءة حية من واجهة الهيئة"+(LIVE.via==="gateway"?" عبر بوابة كنف":"")+" · "+LIVE.when("mataf"):"مؤشر الكثافة اللحظي · منصة الهيئة · محاكاة")+`<div class="dtabs"><button type="button" data-tab="المطاف" aria-pressed="true">المطاف</button><button type="button" data-tab="المسعى" aria-pressed="false">المسعى</button></div><div class="dbody">${render("المطاف")}</div><div class="best"></div>`,"nav");
   const best=c.querySelector(".best");
   const show=tab=>{c.querySelector(".dbody").innerHTML=render(tab);const b=pick(tab);const act=tab==="المطاف"?"الطواف":"السعي";const door=b[2]?String(b[2]).split(/\s*-\s*/)[0]:"";
     const b2=SRC_D[tab].slice().sort((a,b)=>a[1]-b[1])[0];const alt=(needsCart&&b2&&b2!==b&&b2[1]<b[1])?`<div class="sub" style="font-size:.8rem;margin-top:4px">${esc(b[0])} هو المخصص للعربات وفق مؤشر الهيئة. وإن كنت تستطيع ${act==="الطواف"?"الطواف":"السعي"} بلا عربة فالأخف الآن ${esc(b2[0])}: كثافة ${LVL[b2[1]][0]}${b2[3]?"، "+AR(b2[3])+" د":""}.</div>`:"";
