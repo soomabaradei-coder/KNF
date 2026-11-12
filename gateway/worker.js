@@ -12,10 +12,10 @@
 //      https://soomabaradei-coder.github.io/KNF/?llm=https://kanaf-gateway.اسمك.workers.dev#judge
 //    فيحفظ الرابط على الجهاز ويستخدمه بعدها تلقائيا. ولإيقافه: ?llm=
 
-// الإرسال اليومي للخطة (اختياري):
-// 4) Settings → Bindings → KV namespace: الاسم KANAF_KV
+// إرسال الخطة بالبريد عند طلب الضيف فقط (اختياري):
+// 4) Settings → Bindings → KV namespace: الاسم KANAF_KV (لحد الإرسال ورموز التحقق)
 // 5) Settings → Variables: RESEND_API_KEY (Secret) و MAIL_FROM (Text، مثل kanaf@yourdomain.com أو onboarding@resend.dev للتجربة)
-// 6) Settings → Triggers → Cron: 0 2 * * *  (الخامسة صباحا بتوقيت السعودية)
+// 6) لا حاجة إلى Cron. إن كان مشغل Cron قديم مضافا في Settings → Triggers فاحذفه.
 //
 // تأكيد الجوال برمز (اختياري). اختر مزودا واحدا وأضف مفاتيحه كـ Secrets:
 //   تويليو (تجربة سريعة، ترسل فقط للأرقام الموثقة في حسابك التجريبي):
@@ -35,16 +35,9 @@
 //   والتعرف على كلام الضيف بأي لغة ولهجة: الصفحة تسجل الصوت وترسله إلى /stt (المفتاح نفسه)؛ اختياري STT_MODEL (الافتراضي gpt-4o-mini-transcribe).
 
 export default {
-  async scheduled(event, env, ctx) {
-    if (!env.KANAF_KV || !env.RESEND_API_KEY) return;
-    const list = await env.KANAF_KV.list({ prefix: "plan:" });
-    for (const k of list.keys) {
-      const rec = await env.KANAF_KV.get(k.name, "json");
-      if (!rec || !rec.email || !rec.text) continue;
-      await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-        body: JSON.stringify({ from: env.MAIL_FROM || "onboarding@resend.dev", to: [rec.email], subject: "خطتك اليوم من كنف: " + (rec.title || ""), text: rec.text }) }).catch(() => {});
-    }
-  },
+  // لا إرسال دوري: الخطة ترسل بالبريد مرة واحدة عند طلب الضيف فقط (المسار /plan مع send: true).
+  // يبقى هذا المعالج فارغا حتى لا يرسل شيئا ولو بقي مشغل Cron مفعلا في الإعدادات.
+  async scheduled(event, env, ctx) { return; },
   async fetch(req, env) {
     const origin = req.headers.get("Origin") || "";
     const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -165,23 +158,21 @@ export default {
       }
       return json({ verified: false, reason: "sms_not_configured" });
     }
-    // حفظ خطة الضيف للإرسال اليومي: {id, email, title, text}
+    // إرسال خطة الضيف إلى بريده مرة واحدة عند طلبه: {id, email, title, text, send: true}
+    // لا تحفظ الخطة في الخادم ولا ترسل دوريا. KV يستخدم هنا لحد الإرسال فقط: رسالتان كل عشر دقائق للحساب.
     if (url.pathname === "/plan" && req.method === "POST" && ok) {
-      if (!env.KANAF_KV) return new Response(JSON.stringify({ stored: false, reason: "KV غير مضبوط" }), { headers: cors });
       let b; try { b = await req.json(); } catch { return new Response(JSON.stringify({ error: "bad json" }), { status: 400, headers: cors }); }
-      if (!b.id || !b.email || !b.text) return new Response(JSON.stringify({ stored: false }), { headers: cors });
-      await env.KANAF_KV.put("plan:" + String(b.id).slice(0, 40), JSON.stringify({ email: String(b.email).slice(0, 120), title: String(b.title || "").slice(0, 120), text: String(b.text).slice(0, 4000), t: Date.now() }), { expirationTtl: 60 * 60 * 24 * 14 });
-      // إرسال فوري إن طلب الضيف (send: true) حتى لا ينتظر الصباح؛ بحد رسالتين كل عشر دقائق للحساب
-      if (b.send && env.RESEND_API_KEY) {
-        const rk = "plansend:" + String(b.id).slice(0, 40); const n = +(await env.KANAF_KV.get(rk)) || 0;
-        if (n >= 2) return new Response(JSON.stringify({ stored: true, sent: false, reason: "rate" }), { headers: cors });
-        const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-          body: JSON.stringify({ from: env.MAIL_FROM || "onboarding@resend.dev", to: [String(b.email).slice(0, 120)], subject: "خطتك من كنف: " + String(b.title || "").slice(0, 120), text: String(b.text).slice(0, 4000) }) });
-        const j = await r.json().catch(() => ({}));
-        await env.KANAF_KV.put(rk, String(n + 1), { expirationTtl: 600 });
-        return new Response(JSON.stringify({ stored: true, sent: r.ok, reason: r.ok ? "" : (j && (j.message || j.name)) || ("HTTP " + r.status) }), { headers: cors });
-      }
-      return new Response(JSON.stringify({ stored: true, sent: false, reason: env.RESEND_API_KEY ? "" : "RESEND_API_KEY غير مضبوط" }), { headers: cors });
+      if (!b.id || !b.email || !b.text) return new Response(JSON.stringify({ stored: false, sent: false, reason: "بيانات ناقصة" }), { headers: cors });
+      if (!b.send) return new Response(JSON.stringify({ stored: false, sent: false, reason: "لا إرسال إلا بطلب الضيف" }), { headers: cors });
+      if (!env.RESEND_API_KEY) return new Response(JSON.stringify({ stored: false, sent: false, reason: "RESEND_API_KEY غير مضبوط" }), { headers: cors });
+      if (!env.KANAF_KV) return new Response(JSON.stringify({ stored: false, sent: false, reason: "KV غير مضبوط" }), { headers: cors });
+      const rk = "plansend:" + String(b.id).slice(0, 40); const n = +(await env.KANAF_KV.get(rk)) || 0;
+      if (n >= 2) return new Response(JSON.stringify({ stored: false, sent: false, reason: "rate" }), { headers: cors });
+      const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
+        body: JSON.stringify({ from: env.MAIL_FROM || "onboarding@resend.dev", to: [String(b.email).slice(0, 120)], subject: "خطتك من كنف: " + String(b.title || "").slice(0, 120), text: String(b.text).slice(0, 4000) }) });
+      const j = await r.json().catch(() => ({}));
+      await env.KANAF_KV.put(rk, String(n + 1), { expirationTtl: 600 });
+      return new Response(JSON.stringify({ stored: false, sent: r.ok, reason: r.ok ? "" : (j && (j.message || j.name)) || ("HTTP " + r.status) }), { headers: cors });
     }
     if (req.method !== "POST" || !ok) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: cors });
     if (!env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY غير مضبوط" }), { status: 500, headers: cors });
