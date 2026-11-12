@@ -175,7 +175,7 @@ function hcStop(){hcSet("0");state.hcPending=null;try{localStorage.removeItem("k
 function hcTemplate(){return location.origin+location.pathname+"#hc=78_16_97&t=3_480_20"}
 setInterval(()=>{try{if(health.src!=="health"||!health.exp)return;let ch=false;for(const k of ["hr","rr","spo2"])if(typeof health[k]==="number"&&health.exp[k]&&Date.now()>health.exp[k]){health[k]=null;ch=true}if(ch){wbRender();hcSave()}}catch(_){}},60000);
 /* الإصدار 234: تشخيص على جهاز الضيف. ?diag=1 يعرض بطاقة بحالة الصحة والأخطاء بعد كل قراءة */
-const KNF_VER="236";window.__errs=window.__errs||[];window.addEventListener("error",e=>{try{window.__errs.push(String(e.message||e).slice(0,160)+" @"+(e.lineno||""))}catch(_){}});window.addEventListener("unhandledrejection",e=>{try{window.__errs.push("P: "+String(e.reason&&e.reason.message||e.reason).slice(0,160))}catch(_){}});
+const KNF_VER="237";window.__errs=window.__errs||[];window.addEventListener("error",e=>{try{window.__errs.push(String(e.message||e).slice(0,160)+" @"+(e.lineno||""))}catch(_){}});window.addEventListener("unhandledrejection",e=>{try{window.__errs.push("P: "+String(e.reason&&e.reason.message||e.reason).slice(0,160))}catch(_){}});
 function hcDiag(){try{if(new URLSearchParams(location.search).get("diag")!=="1")return;const h={};for(const k of ["permitted","watch","hr","rr","spo2","src","ts"])h[k]=health[k];
   card(head("🛠️","تشخيص كنف "+KNF_VER,"للمطورة")+`<div class="notr" dir="ltr" style="font-size:.75rem;word-break:break-all;white-space:pre-wrap">health=${esc(JSON.stringify(h))}
 fresh=${healthFresh()} hc_ok=${esc(String(hcGet()))} saved=${esc(String((()=>{try{return localStorage.getItem("knf_hc_last")}catch(_){return "x"}})()))}

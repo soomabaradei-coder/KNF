@@ -54,7 +54,7 @@ const TOOLS={
   trip_plan:{agent:"nav",desc:"يجهز خطة رحلة الضيف (العمرة في مكة أو زيارة الروضة في المدينة) من نيته وحالته ويحفظها على الجهاز لتعمل بلا اتصال، أو يعرض الخطة المحفوظة. المدخل: action (build أو show).",
     schema:{type:"object",properties:{action:{type:"string",enum:["build","show"]}},required:["action"]},
     run(input){if(input.action==="build"){log("nav","جهز خطة الرحلة وحفظها على الجهاز","الخريطة والمسار والخطوات والأدعية والمواقيت وآخر لقطة كثافة");const p=buildPlan();msg("sys","حفظت خطتك على جهازك. ستظهر تلقائيا إن انقطع الاتصال.");const out=planCard(false);
-      if(profile.email){state.followOnce="ستصلك الخطة كل صباح على "+profile.email+" أيضا."}
+      if(profile.email){state.followOnce="وإن أردتها على بريدك قل: أرسل خطتي للبريد."}
       else if(!profile.planMailAsked){profile.planMailAsked=1;saveProfile();state.onb="planmail";box.placeholder="بريدك الإلكتروني، أو لا…";state.followOnce="تبغى أرسل لك الخطة على بريدك لتبقى عندك ولو انقطع النت؟ اكتب بريدك، أو قل لا.";log("svc","يسأل عن البريد مرة واحدة لإرسال الخطة","")}
       return out}
       log("nav","عرض الخطة المحفوظة","من جهاز الضيف");return planCard(state.offline)}},
@@ -278,10 +278,10 @@ const TOOLS={
   emergency:{agent:"care",desc:"حالة طارئة صحية أو أمنية أو حريق: يعرض زر الاتصال المباشر بالرقم المناسب (997 الهلال الأحمر، 911 الطوارئ الموحد، 998 الدفاع المدني) ومشرف الحملة، ويرسل موقع الضيف فعلا لعائلته المتصلة في كنف، ويهيئ رسالة بموقعه. لا يبلغ أي جهة رسمية تلقائيا، فلا تقل إن الفريق في الطريق؛ قل له اتصل الآن. استخدمه فورا عند أي إغماء أو ألم شديد أو خطر.",
     schema:{type:"object",properties:{description:{type:"string"},type:{type:"string",enum:["medical","security","fire","unknown"],description:"medical إغماء أو ألم أو إصابة؛ security ضياع طفل أو اعتداء أو سرقة؛ fire حريق أو دخان أو خطر؛ unknown إن لم يتضح"}}},
     run({description,type}){return sosAct(type,description)}},
-  plan_mail:{agent:"svc",desc:"يرسل خطة الضيف المحفوظة إلى بريده الإلكتروني ويحفظها للإرسال اليومي؛ إن ذكر بريدا (email) يحفظه أولا.",schema:{type:"object",properties:{email:{type:"string"}}},
+  plan_mail:{agent:"svc",desc:"يرسل خطة الضيف المحفوظة إلى بريده الإلكتروني مرة واحدة عند طلبه فقط، ولا إرسال دوري؛ إن ذكر بريدا (email) يحفظه أولا.",schema:{type:"object",properties:{email:{type:"string"}}},
     run({email}={}){const em=String(email||"").match(/[\w.+-]+@[\w-]+\.[\w.-]+/);if(em){profile.email=em[0];saveProfile();renderKnown();log("svc","حفظ بريد الضيف",em[0]);ACCT.sync(true)}
       const pl=state.plan||loadPlan();if(!pl){state.followOnce="لا توجد خطة محفوظة بعد. قل: جهز رحلتي، ثم أرسلها للبريد.";return{plan:false}}
-      if(!profile.email){state.onb="mailonly";box.placeholder="بريدك الإلكتروني…";state.followOnce="ما بريدك الإلكتروني لأرسل لك الخطة عليه الآن وكل صباح؟";return{asked:"email"}}pushPlan(pl,true).then(j=>{if(!(j&&j.sent)){sharePlan("mail")}});state.followOnce="أرسلها الآن إلى "+profile.email+".";return{email:profile.email}}},
+      if(!profile.email){state.onb="mailonly";box.placeholder="بريدك الإلكتروني…";state.followOnce="ما بريدك الإلكتروني لأرسل لك الخطة عليه الآن؟";return{asked:"email"}}pushPlan(pl).then(j=>{if(!(j&&j.sent)){sharePlan("mail")}});state.followOnce="أرسلها الآن إلى "+profile.email+".";return{email:profile.email}}},
   set_campaign:{agent:"svc",desc:"يحفظ اسم حملة الحج أو العمرة التي مع الضيف (name)، أو يمسحها إن قال إنه بلا حملة (name فارغ)، أو يذكره باسمها (ask: true). استخدمه عندما يذكر الضيف حملته أو شركة خدمته.",schema:{type:"object",properties:{name:{type:"string"},ask:{type:"boolean"}}},
     run({name,ask}={}){const en=isEN();if(ask){const r=profile.campaign?(en?"You are with campaign "+profile.campaign+".":"أنت مع حملة "+profile.campaign+"."):(en?"You have not told me a campaign. Say: I am with campaign X.":"لم تذكر لي حملة. قل: أنا مع حملة فلان.");state.followOnce=r;return{campaign:profile.campaign||null}}
       const cf=campFind(name);profile.campaign=cf?cf.n:campName(name||"");profile.campaignAsked=1;saveProfile();renderKnown();log("svc",profile.campaign?"حفظ حملة الضيف":"الضيف بلا حملة",profile.campaign||"");if(cf)showCampCard(cf);const r=profile.campaign?(en?"Noted: campaign "+profile.campaign+".":"حفظت: أنت مع حملة "+profile.campaign+"."):(en?"Noted: no campaign.":"حفظت: بلا حملة.");state.followOnce=r;return{campaign:profile.campaign||null}}},

@@ -177,7 +177,7 @@ $("#pHome").addEventListener("change",e=>{const v=e.target.value.trim();const H=
 $("#pPhone")&&$("#pPhone").addEventListener("change",e=>{const ph=normPhone(e.target.value);if(!ph){$("#pPhoneSt").textContent="رقم غير مكتمل";return}if(ph!==profile.phone){profile.phone=ph;profile.phoneVerified=0;$("#pPhoneSt").textContent="غير مؤكد";saveProfile();renderKnown()}});
 $("#pCamp")&&$("#pCamp").addEventListener("change",e=>{const cf=campFind(e.target.value);profile.campaign=cf?cf.n:campName(e.target.value);e.target.value=profile.campaign;profile.campaignAsked=1;saveProfile();renderKnown();if(cf)showCampCard(cf)});
 $("#pCampPh")&&$("#pCampPh").addEventListener("change",e=>{const ph=normPhone(e.target.value);profile.campaignPhone=ph||"";e.target.value=profile.campaignPhone;saveProfile();renderKnown();log("svc",ph?"حفظ رقم الحملة من صفحة المعلومات":"حذف رقم الحملة","")});
-$("#pEmail")&&$("#pEmail").addEventListener("change",e=>{const em=(e.target.value.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)||[])[0]||"";profile.email=em;saveProfile();renderKnown();if(em)pushPlan()});
+$("#pEmail")&&$("#pEmail").addEventListener("change",e=>{const em=(e.target.value.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)||[])[0]||"";profile.email=em;saveProfile();renderKnown()});
 $("#pName").addEventListener("change",e=>{profile.selfNamed=true});
 $("#pName").addEventListener("change",e=>{profile.name=e.target.value.trim()||DEFAULT_PROFILE.name;saveProfile();renderKnown()});
 $("#pAge").addEventListener("change",e=>{profile.age=Number(e.target.value)||0;profile.basicsStated=1;saveProfile();renderKnown()});
