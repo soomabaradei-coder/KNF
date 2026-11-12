@@ -12,5 +12,7 @@
     node tests/wbshot2.js      # لقطة شريط العافية على الآيفون في الوضعين
     node tests/diag.js         # بطاقة التشخيص ?diag=1
     node tests/three.js        # أسئلة مفردة بعد اختيار مكان (عدل القائمة في أعلى الملف)
+    node tests/density.js      # الكثافة اللحظية: عبر البوابة، ثم الجواب الصريح عند تعذر القراءة
+    node tests/mail_once.js    # البريد بطلب الضيف فقط: بناء الخطة لا يرسل، وطلب البريد يرسل مرة واحدة
 
 يلزم Playwright مثبتا مع كروميوم: `npm i playwright` ثم `npx playwright install chromium`.
