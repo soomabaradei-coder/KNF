@@ -28,7 +28,7 @@ https://soomabaradei-coder.github.io/KNF/
 
 1. عدل في `src/` فقط. لا تعدل `index.html` أو `dist/` يدويا.
 2. `python3 build.py --check` للصياغة، ثم `python3 build.py`.
-3. `node tests/scen6.js` و`node tests/hc_persist.js` على الأقل.
+3. `node tests/scen6.js` و`node tests/hc_persist.js` على الأقل، و`node tests/mail_once.js` عند أي تعديل في الخطة أو البريد.
 4. ارفع الإصدار في `const KNF_VER` داخل `src/js/11-voice-tts.js` وأضف فقرة في `docs/kanaf-reference.md`.
 5. `git commit` ثم `git push`؛ GitHub Pages ينشر `index.html` خلال دقيقة أو اثنتين. على الجوال افتح الرابط بـ `?v=N` مرة حتى لا يستخدم سفاري نسخة قديمة.
 6. نسخة الأرتيفاكت على claude.ai تنشر من `dist/hafi.html`، ونموذج المنصة بعد `tools/sync_mock.py`.
@@ -37,6 +37,7 @@ https://soomabaradei-coder.github.io/KNF/
 
 - لا بيانات مفترضة تعرض كأنها حية: كل قراءة حية موسومة بمصدرها، وما لا يصل يقال صراحة.
 - القراءات الصحية تبقى على الجهاز ولا ترسل إلى النموذج ولا إلى أي خادم.
+- لا بريد ولا رسالة للضيف إلا بطلبه، ومرة واحدة لكل طلب. لا إرسال دوري من البوابة.
 - الطوارئ بالقواعد لا بالنموذج، وتعمل بلا شبكة.
 - لا شرطة طويلة في أي نص، ولا تشكيل في العربية، ولا عربي وإنجليزي في سطر واحد.
 - المفاتيح وبيانات الاعتماد لا تدخل المستودع ولا المحادثة أبدا.
